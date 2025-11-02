@@ -1,0 +1,71 @@
+{
+  "title": "AI Conversation Platform",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "API Calls",
+      "targets": [
+        {
+          "expr": "sum by (provider,model,status) (ai_api_calls_total)",
+          "legendFormat": "{{provider}} {{model}} {{status}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      }
+    },
+    {
+      "type": "graph",
+      "title": "Latency (seconds)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, provider, model) (rate(ai_response_seconds_bucket[5m])))",
+          "legendFormat": "{{provider}} {{model}} p95"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      }
+    },
+    {
+      "type": "graph",
+      "title": "Active Conversations",
+      "targets": [
+        {
+          "expr": "ai_active_conversations",
+          "legendFormat": "active"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      }
+    },
+    {
+      "type": "graph",
+      "title": "Errors",
+      "targets": [
+        {
+          "expr": "sum by (provider,error_type) (rate(ai_errors_total[5m]))",
+          "legendFormat": "{{provider}} {{error_type}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 8
+      }
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}
