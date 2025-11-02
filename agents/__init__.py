@@ -1,5 +1,6 @@
+"""Agent integrations and factory for AI Conversation Platform."""
 
-"""Agents package: factory functions and helpers."""
+from __future__ import annotations
 
 import os
 from typing import Dict, List, Type
@@ -11,62 +12,117 @@ from .gemini import GeminiAgent
 from .grok import GrokAgent
 from .perplexity import PerplexityAgent
 
-_AGENT_REGISTRY: Dict[str, Dict] = {
+# Public re-exports (so callers can: from agents import ChatGPTAgent, ...)
+__all__ = [
+    "BaseAgent",
+    "ChatGPTAgent",
+    "ClaudeAgent",
+    "GeminiAgent",
+    "GrokAgent",
+    "PerplexityAgent",
+    "list_available_agents",
+    "detect_configured_agents",
+    "get_agent_info",
+    "create_agent",
+]
+
+# Central registry for providers
+_AGENT_REGISTRY: Dict[str, Dict[str, object]] = {
     "chatgpt": {
         "class": ChatGPTAgent,
         "env_key": "OPENAI_API_KEY",
-        "models": [ChatGPTAgent.DEFAULT_MODEL, "gpt-4o-mini"]
+        "default_model": getattr(ChatGPTAgent, "DEFAULT_MODEL", None),
     },
     "claude": {
         "class": ClaudeAgent,
         "env_key": "ANTHROPIC_API_KEY",
-        "models": [ClaudeAgent.DEFAULT_MODEL, "claude-3-5-sonnet-latest"]
+        "default_model": getattr(ClaudeAgent, "DEFAULT_MODEL", None),
     },
     "gemini": {
         "class": GeminiAgent,
         "env_key": "GOOGLE_API_KEY",
-        "models": [GeminiAgent.DEFAULT_MODEL, "gemini-1.5-flash"]
+        "default_model": getattr(GeminiAgent, "DEFAULT_MODEL", None),
     },
     "grok": {
         "class": GrokAgent,
         "env_key": "XAI_API_KEY",
-        "models": [GrokAgent.DEFAULT_MODEL, "grok-2"]
+        "default_model": getattr(GrokAgent, "DEFAULT_MODEL", None),
     },
     "perplexity": {
         "class": PerplexityAgent,
         "env_key": "PERPLEXITY_API_KEY",
-        "models": [PerplexityAgent.DEFAULT_MODEL]
+        "default_model": getattr(PerplexityAgent, "DEFAULT_MODEL", None),
     },
 }
 
+
 def list_available_agents() -> List[str]:
-    return list(_AGENT_REGISTRY.keys())
+    """Return all agent keys known to the registry."""
+    return sorted(_AGENT_REGISTRY.keys())
+
 
 def detect_configured_agents() -> List[str]:
-    available = []
-    for k, v in _AGENT_REGISTRY.items():
-        if os.getenv(v["env_key"]):
-            available.append(k)
-    return available
+    """Return agents with required API keys present in the environment."""
+    available: List[str] = []
+    for key, meta in _AGENT_REGISTRY.items():
+        if os.getenv(str(meta["env_key"])):
+            available.append(key)
+    return sorted(available)
 
-def get_agent_info(agent_type: str) -> Dict:
-    agent_type = agent_type.lower()
-    if agent_type not in _AGENT_REGISTRY:
-        raise ValueError(f"Unknown agent type: {agent_type}")
-    return _AGENT_REGISTRY[agent_type]
 
-def create_agent(agent_type: str, queue, logger, model: str = None, topic: str = "general", timeout: int = 30, api_key: str = None) -> BaseAgent:
+def get_agent_info(agent_type: str) -> Dict[str, object]:
+    """Return the registry record for an agent type (case-insensitive)."""
+    k = agent_type.strip().lower()
+    if k not in _AGENT_REGISTRY:
+        raise ValueError(f"Unknown agent type: {agent_type!r}. "
+                         f"Known: {', '.join(list_available_agents())}")
+    return _AGENT_REGISTRY[k]
+
+
+def create_agent(
+    agent_type: str,
+    queue,
+    logger,
+    *,
+    model: str | None = None,
+    topic: str = "general",
+    timeout: int = 30,
+    api_key: str | None = None,
+) -> BaseAgent:
+    """
+    Construct a configured agent instance from the registry.
+
+    Parameters
+    ----------
+    agent_type : str
+        One of: chatgpt, claude, gemini, grok, perplexity
+    queue : QueueInterface
+        Your queue instance (Redis/SQLite)
+    logger : logging.Logger
+        Logger for the agent
+    model : str | None
+        Optional model override; falls back to agent DEFAULT_MODEL
+    topic : str
+        Optional conversation topic seed
+    timeout : int
+        Timeout (minutes) for the agent loop
+    api_key : str | None
+        Optional explicit key; falls back to env var
+    """
     info = get_agent_info(agent_type)
-    cls = info["class"]
-    key = api_key or os.getenv(info["env_key"])
+    cls: Type[BaseAgent] = info["class"]  # type: ignore[assignment]
+    key = api_key or os.getenv(str(info["env_key"]))
     if not key:
-        raise ValueError(f"{info['env_key']} not set for {agent_type}")
-    model = model or info["models"][0]
-    return cls(
+        raise ValueError(
+            f"Missing API key for {agent_type!r}. "
+            f"Set {info['env_key']} or pass api_key=..."
+        )
+    selected_model = model or info["default_model"]
+    return cls(  # type: ignore[call-arg]
         api_key=key,
         queue=queue,
         logger=logger,
-        model=model,
+        model=selected_model,
         topic=topic,
-        timeout_minutes=timeout
+        timeout_minutes=timeout,
     )
