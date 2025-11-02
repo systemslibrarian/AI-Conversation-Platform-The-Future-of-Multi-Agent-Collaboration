@@ -1,60 +1,23 @@
 # ───────────────────────────────
-# Version control
-# ───────────────────────────────
-.git
-.gitignore
-.github/
-.gitmodules
-
-# ───────────────────────────────
-# Python build and cache
+# Python build & virtual envs
 # ───────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.pdb
 *.egg-info/
 .eggs/
 env/
 venv/
 .venv/
+.env
 .uv/
 instance/
 site-packages/
 
 # ───────────────────────────────
-# Tests & coverage
-# ───────────────────────────────
-tests/
-.pytest_cache/
-.coverage
-.tox/
-htmlcov/
-coverage.xml
-
-# ───────────────────────────────
-# Docker, Compose & configs
-# ───────────────────────────────
-docker-compose.yml
-docker-compose.override.yml
-Dockerfile.dev
-.env
-.env.*
-.env.docker
-*.pid
-*.seed
-*.pid.lock
-
-# ───────────────────────────────
-# Monitoring and runtime data
-# ───────────────────────────────
-monitoring/prometheus/data/
-monitoring/grafana/data/
-monitoring/grafana/logs/
-monitoring/grafana/plugins/
-
-# ───────────────────────────────
-# Development & IDE
+# Editor & system files
 # ───────────────────────────────
 .DS_Store
 .idea/
@@ -63,12 +26,47 @@ monitoring/grafana/plugins/
 *.bak
 *.tmp
 *.log
-*.out
-*.orig
-*.rej
 
 # ───────────────────────────────
-# Build and dist output
+# Test, coverage, and profiling
+# ───────────────────────────────
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+.prof
+*.prof
+*.lcov
+coverage.xml
+
+# ───────────────────────────────
+# Docker, Compose, & runtime
+# ───────────────────────────────
+*.pid
+*.seed
+*.pid.lock
+*.tar
+docker-compose.override.yml
+.env.docker
+
+# ───────────────────────────────
+# Prometheus & Grafana runtime data
+# ───────────────────────────────
+monitoring/prometheus/data/
+monitoring/grafana/data/
+monitoring/grafana/logs/
+monitoring/grafana/plugins/
+
+# ───────────────────────────────
+# Streamlit & web cache
+# ───────────────────────────────
+.streamlit/
+__cache__/
+.cache/
+web/__pycache__/
+
+# ───────────────────────────────
+# Packaging & distribution
 # ───────────────────────────────
 build/
 dist/
@@ -76,31 +74,20 @@ dist/
 *.whl
 
 # ───────────────────────────────
-# Streamlit and cache
+# Temporary and debug files
 # ───────────────────────────────
-.streamlit/
-.cache/
-__cache__/
-web/__pycache__/
+*.orig
+*.rej
+*.out
+*.tmp
+*.log
+*.sqlite
+*.db
 
 # ───────────────────────────────
-# Docs, drafts, and local notes
+# Local development tools
 # ───────────────────────────────
-docs/RELEASE_DRAFT.md
+.pre-commit-config.yaml.bak
+coverage/
 notebooks/
 scratchpad/
-*.md.bak
-
-# ───────────────────────────────
-# Keep only essential code & configs
-# ───────────────────────────────
-!agents/
-!core/
-!cli/
-!web/
-!monitoring/
-!Makefile
-!pyproject.toml
-!Dockerfile
-!README.md
-!LICENSE
