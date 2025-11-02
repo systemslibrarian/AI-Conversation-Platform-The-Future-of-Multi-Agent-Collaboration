@@ -1,0 +1,93 @@
+# ───────────────────────────────
+# Python build & virtual envs
+# ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+env/
+venv/
+.venv/
+.env
+.uv/
+instance/
+site-packages/
+
+# ───────────────────────────────
+# Editor & system files
+# ───────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.log
+
+# ───────────────────────────────
+# Test, coverage, and profiling
+# ───────────────────────────────
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+.prof
+*.prof
+*.lcov
+coverage.xml
+
+# ───────────────────────────────
+# Docker, Compose, & runtime
+# ───────────────────────────────
+*.pid
+*.seed
+*.pid.lock
+*.tar
+docker-compose.override.yml
+.env.docker
+
+# ───────────────────────────────
+# Prometheus & Grafana runtime data
+# ───────────────────────────────
+monitoring/prometheus/data/
+monitoring/grafana/data/
+monitoring/grafana/logs/
+monitoring/grafana/plugins/
+
+# ───────────────────────────────
+# Streamlit & web cache
+# ───────────────────────────────
+.streamlit/
+__cache__/
+.cache/
+web/__pycache__/
+
+# ───────────────────────────────
+# Packaging & distribution
+# ───────────────────────────────
+build/
+dist/
+*.egg
+*.whl
+
+# ───────────────────────────────
+# Temporary and debug files
+# ───────────────────────────────
+*.orig
+*.rej
+*.out
+*.tmp
+*.log
+*.sqlite
+*.db
+
+# ───────────────────────────────
+# Local development tools
+# ───────────────────────────────
+.pre-commit-config.yaml.bak
+coverage/
+notebooks/
+scratchpad/
