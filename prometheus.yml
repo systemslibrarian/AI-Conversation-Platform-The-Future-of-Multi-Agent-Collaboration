@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'ai-conversation-platform'
+    static_configs:
+      - targets: ['conversation:8000', 'ui:8000']
