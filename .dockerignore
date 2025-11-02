@@ -1,0 +1,106 @@
+# ───────────────────────────────
+# Version control
+# ───────────────────────────────
+.git
+.gitignore
+.github/
+.gitmodules
+
+# ───────────────────────────────
+# Python build and cache
+# ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+env/
+venv/
+.venv/
+.uv/
+instance/
+site-packages/
+
+# ───────────────────────────────
+# Tests & coverage
+# ───────────────────────────────
+tests/
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+coverage.xml
+
+# ───────────────────────────────
+# Docker, Compose & configs
+# ───────────────────────────────
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile.dev
+.env
+.env.*
+.env.docker
+*.pid
+*.seed
+*.pid.lock
+
+# ───────────────────────────────
+# Monitoring and runtime data
+# ───────────────────────────────
+monitoring/prometheus/data/
+monitoring/grafana/data/
+monitoring/grafana/logs/
+monitoring/grafana/plugins/
+
+# ───────────────────────────────
+# Development & IDE
+# ───────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.log
+*.out
+*.orig
+*.rej
+
+# ───────────────────────────────
+# Build and dist output
+# ───────────────────────────────
+build/
+dist/
+*.egg
+*.whl
+
+# ───────────────────────────────
+# Streamlit and cache
+# ───────────────────────────────
+.streamlit/
+.cache/
+__cache__/
+web/__pycache__/
+
+# ───────────────────────────────
+# Docs, drafts, and local notes
+# ───────────────────────────────
+docs/RELEASE_DRAFT.md
+notebooks/
+scratchpad/
+*.md.bak
+
+# ───────────────────────────────
+# Keep only essential code & configs
+# ───────────────────────────────
+!agents/
+!core/
+!cli/
+!web/
+!monitoring/
+!Makefile
+!pyproject.toml
+!Dockerfile
+!README.md
+!LICENSE
