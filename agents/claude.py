@@ -46,7 +46,7 @@ class ClaudeAgent(BaseAgent):
             content = content_block.text  # type: ignore[union-attr]
         else:
             content = str(content_block)
-        
+
         tokens = response.usage.input_tokens + response.usage.output_tokens
 
         return content, tokens
