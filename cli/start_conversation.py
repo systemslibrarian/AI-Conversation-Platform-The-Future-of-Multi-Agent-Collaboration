@@ -122,7 +122,7 @@ class ConversationStarter:
         else:
             model = default_model
 
-        return agent_type, model  # type: ignore[return-value]
+        return agent_type, model
 
     def _get_topic(self) -> str:
         """Get topic from CLI or interactively"""
