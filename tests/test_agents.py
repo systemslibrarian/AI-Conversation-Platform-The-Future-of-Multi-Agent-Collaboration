@@ -364,22 +364,16 @@ class TestSimilarityDetection:
     @pytest.mark.asyncio
     async def test_similar_messages(self, agent):
         """Test detection of similar messages"""
-        # --- THIS IS THE FIX ---
-        # Using an identical base_message ensures the similarity check
-        # passes (score=1.0) and correctly tests the *counting* logic.
         base_message = "Hello world this is a test"
         agent.recent_responses.append(base_message)
 
-        # First similar message (using identical string)
         result = agent._check_similarity(base_message)
         assert agent.consecutive_similar == 1
         assert result is False
 
-        # Second similar message (using identical string)
         result = agent._check_similarity(base_message)
         assert agent.consecutive_similar == 2
 
-        # Depends on MAX_CONSECUTIVE_SIMILAR threshold
         if agent.consecutive_similar >= config.MAX_CONSECUTIVE_SIMILAR:
             assert result is True
 
@@ -395,18 +389,16 @@ class TestSimilarityDetection:
 
     @pytest.mark.asyncio
     async def test_threshold_triggering(self, agent):
-        """Test similarity threshold triggering"""
+        """Test similarity threshold"""
         with patch.object(config, "SIMILARITY_THRESHOLD", 0.8):
             with patch.object(config, "MAX_CONSECUTIVE_SIMILAR", 2):
                 test_msg = "This is a test message for similarity"
                 agent.recent_responses.append(test_msg)
 
-                # Add similar messages
                 agent._check_similarity(test_msg)
                 assert agent.consecutive_similar == 1
 
                 result = agent._check_similarity(test_msg)
-                # Should trigger after 2 consecutive similar
                 assert result is True
                 assert agent.consecutive_similar == 2
 
@@ -622,9 +614,8 @@ class TestChatGPTAgent:
     async def test_chatgpt_initialization(self, mock_queue, logger):
         """Test ChatGPT agent initialization"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # --- FIX APPLIED HERE ---
-            # Use colon syntax to specify module and object path explicitly
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            # FIXED: Patch the actual imported location
+            with patch("openai.OpenAI", DummyOpenAIClient):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -642,8 +633,7 @@ class TestChatGPTAgent:
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # --- FIX APPLIED HERE ---
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            with patch("openai.OpenAI", DummyOpenAIClient):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -744,7 +734,6 @@ class TestGrokAgent:
     async def test_grok_api_call(self, mock_queue, logger, monkeypatch):
         """Test Grok API call"""
         monkeypatch.setenv("XAI_API_KEY", "test-key")
-        # This patch path assumes agents/grok.py uses "from openai import OpenAI"
         with patch("agents.grok.OpenAI", DummyOpenAIClient):
             agent = GrokAgent(
                 api_key="dummy",
@@ -771,7 +760,6 @@ class TestPerplexityAgent:
     async def test_perplexity_api_call(self, mock_queue, logger, monkeypatch):
         """Test Perplexity API call"""
         monkeypatch.setenv("PERPLEXITY_API_KEY", "test-key")
-        # This patch path assumes agents/perplexity.py uses "from openai import OpenAI"
         with patch("agents.perplexity.OpenAI", DummyOpenAIClient):
             agent = PerplexityAgent(
                 api_key="dummy",
@@ -797,9 +785,7 @@ class TestAgentFactory:
     def test_create_chatgpt_agent(self, mock_queue, logger):
         """Test creating ChatGPT agent via factory"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # --- FIX APPLIED HERE ---
-            # This test also needs the corrected patch path
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            with patch("openai.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
@@ -811,7 +797,7 @@ class TestAgentFactory:
 
     def test_create_claude_agent(self, mock_queue, logger):
         """Test creating Claude agent via factory"""
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+        with patch.dict("os.environ",  {"ANTHROPIC_API_KEY": "test-key"}):
             with patch("agents.claude.anthropic.Anthropic", DummyAnthropicClient):
                 agent = create_agent(
                     agent_type="claude",
@@ -856,8 +842,7 @@ class TestAgentFactory:
     def test_create_agent_with_model_override(self, mock_queue, logger):
         """Test agent creation with model override"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # --- FIX APPLIED HERE ---
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            with patch("openai.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
