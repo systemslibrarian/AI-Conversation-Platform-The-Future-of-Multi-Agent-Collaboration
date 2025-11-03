@@ -2,12 +2,18 @@
 
 > **"Because AIs shouldn't monologue — they should *converse*."**
 
+# 🤖 AI Conversation Platform — Multi-Agent Collaboration
+
 [![CI](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml)
+[![Coverage Status](https://img.shields.io/badge/coverage-90%25-brightgreen?style=flat&logo=pytest)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/tree/main/tests)
+[![Lint: Ruff](https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white)](https://github.com/astral-sh/ruff)
+[![Type Checked: mypy](https://img.shields.io/badge/type--checked-mypy-blue)](http://mypy-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)](https://www.docker.com/)
+[![Prometheus](https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus)](https://prometheus.io/)
+[![Grafana](https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana)](https://grafana.com/)
 
 ---
 
