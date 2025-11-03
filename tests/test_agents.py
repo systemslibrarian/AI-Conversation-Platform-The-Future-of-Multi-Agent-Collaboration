@@ -623,7 +623,8 @@ class TestChatGPTAgent:
         """Test ChatGPT agent initialization"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             # --- FIX APPLIED HERE ---
-            with patch("agents.chatgpt.openai.OpenAI", DummyOpenAIClient):
+            # Use colon syntax to specify module and object path explicitly
+            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -642,7 +643,7 @@ class TestChatGPTAgent:
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             # --- FIX APPLIED HERE ---
-            with patch("agents.chatgpt.openai.OpenAI", DummyOpenAIClient):
+            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -743,6 +744,7 @@ class TestGrokAgent:
     async def test_grok_api_call(self, mock_queue, logger, monkeypatch):
         """Test Grok API call"""
         monkeypatch.setenv("XAI_API_KEY", "test-key")
+        # This patch path assumes agents/grok.py uses "from openai import OpenAI"
         with patch("agents.grok.OpenAI", DummyOpenAIClient):
             agent = GrokAgent(
                 api_key="dummy",
@@ -769,6 +771,7 @@ class TestPerplexityAgent:
     async def test_perplexity_api_call(self, mock_queue, logger, monkeypatch):
         """Test Perplexity API call"""
         monkeypatch.setenv("PERPLEXITY_API_KEY", "test-key")
+        # This patch path assumes agents/perplexity.py uses "from openai import OpenAI"
         with patch("agents.perplexity.OpenAI", DummyOpenAIClient):
             agent = PerplexityAgent(
                 api_key="dummy",
@@ -794,13 +797,9 @@ class TestAgentFactory:
     def test_create_chatgpt_agent(self, mock_queue, logger):
         """Test creating ChatGPT agent via factory"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # This test doesn't actually instantiate the client, just the
-            # agent class, so it doesn't need the patch fix.
-            # However, if it *did* instantiate, it would need the same fix.
-            # For consistency, I'll add the corrected patch path here
-            # in case the factory logic changes, but it's not
-            # strictly necessary for *this specific test* to pass.
-            with patch("agents.chatgpt.openai.OpenAI", DummyOpenAIClient):
+            # --- FIX APPLIED HERE ---
+            # This test also needs the corrected patch path
+            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
@@ -857,7 +856,8 @@ class TestAgentFactory:
     def test_create_agent_with_model_override(self, mock_queue, logger):
         """Test agent creation with model override"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt.openai.OpenAI", DummyOpenAIClient):
+            # --- FIX APPLIED HERE ---
+            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
