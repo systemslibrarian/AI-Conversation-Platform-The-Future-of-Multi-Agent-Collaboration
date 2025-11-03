@@ -41,14 +41,14 @@ jobs:
 
       # ✅ Async enabled + enforce >=90% + branch coverage + HTML + XML
       - name: Pytest (with coverage)
-        run: >
-          uv run pytest -q --maxfail=1 --disable-warnings
-          --asyncio-mode=auto
-          --cov=agents --cov=core --cov=cli --cov=web
-          --cov-branch
-          --cov-report=xml:coverage.xml
-          --cov-report=html
-          --cov-fail-under=90
+        run: |
+          uv run pytest -q --maxfail=1 --disable-warnings \
+            --asyncio-mode=auto \
+            --cov=agents --cov=core --cov=cli --cov=web \
+            --cov-branch \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html \
+            --cov-fail-under=90
 
       - name: Upload HTML coverage report
         uses: actions/upload-artifact@v4
@@ -66,7 +66,7 @@ PY
 )
           echo "### Coverage: **${PCT}%**" >> "$GITHUB_STEP_SUMMARY"
 
-      # 🟣 Optional but recommended: push numbers to Codecov for a live badge
+      # 🟣 Optional but recommended: Codecov for a live badge
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -74,4 +74,4 @@ PY
           flags: unittests
           fail_ci_if_error: true
           verbose: true
-          # token: ${{ secrets.CODECOV_TOKEN }}  # ← only needed if your repo is private
+          # token: ${{ secrets.CODECOV_TOKEN }}  # only for private repos
