@@ -50,7 +50,7 @@ jobs:
             --cov-report=html \
             --cov-fail-under=40
 
-      - name: Upload HTML coverage report
+      - name: Upload HTML coverage report 
         uses: actions/upload-artifact@v4
         with:
           name: htmlcov
