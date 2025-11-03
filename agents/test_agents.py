@@ -3,6 +3,7 @@
 import pytest
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
+import importlib.util
 
 from agents import create_agent, ClaudeAgent, ChatGPTAgent
 from agents.base import CircuitBreaker
@@ -282,10 +283,8 @@ class TestAgentSecurity:
     async def test_llm_guard_integration(self, mock_queue, logger):
         """Test LLM Guard integration (if available)"""
         with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key', 'ENABLE_LLM_GUARD': 'true'}):
-            try:
-                # Attempt optional import; skip test if not installed
-                from llm_guard.input_scanners import PromptInjection  # type: ignore
-            except Exception:
+            # Use importlib.util.find_spec to check presence without importing unused names
+            if importlib.util.find_spec("llm_guard.input_scanners") is None:
                 pytest.skip("llm-guard not installed")
             
             agent = ChatGPTAgent(
@@ -297,15 +296,15 @@ class TestAgentSecurity:
                 timeout_minutes=30
             )
             
-            # If llm-guard is available, and the agent has scanning enabled, exercise the scan
+            # If llm-guard is available and the agent has scanning enabled, exercise the scan
             if getattr(agent, "llm_guard_enabled", False):
-                is_valid = agent._scan_input("Normal text")
+                scan_result = agent._scan_input("Normal text")
                 # _scan_input may return tuple (text, bool) or bool depending on implementation; handle both.
-                if isinstance(is_valid, tuple):
-                    _, valid_flag = is_valid
+                if isinstance(scan_result, tuple):
+                    _, valid_flag = scan_result
                     assert valid_flag is True
                 else:
-                    assert is_valid is True
+                    assert scan_result is True
 
 
 if __name__ == "__main__":
