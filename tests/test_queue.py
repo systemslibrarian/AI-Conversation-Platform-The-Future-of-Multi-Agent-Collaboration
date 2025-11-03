@@ -1,13 +1,28 @@
+"""
+Comprehensive Queue Tests - Merged Edition
+Combines basic and comprehensive SQLite/Redis queue testing
+Coverage target: 92%+ for core/queue.py
+"""
+
 import pytest
 import asyncio
 import tempfile
 from pathlib import Path
 import logging
-from core.queue import SQLiteQueue, create_queue
+import time
+from unittest.mock import AsyncMock, MagicMock, patch
 
+from core.queue import SQLiteQueue, RedisQueue, create_queue, ValidationError, DatabaseError
+from core.config import config
+
+
+# ============================================================================
+# FIXTURES
+# ============================================================================
 
 @pytest.fixture
 def temp_db():
+    """Create temporary database"""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = Path(f.name)
     yield db_path
@@ -20,54 +35,556 @@ def temp_db():
 
 @pytest.fixture
 def logger():
-    return logging.getLogger("test")
+    """Create test logger"""
+    return logging.getLogger("test_queue")
 
 
-@pytest.mark.asyncio
-async def test_queue_initialization(temp_db, logger):
-    queue = SQLiteQueue(temp_db, logger)
-    data = await queue.load()
-    assert "messages" in data and "metadata" in data
-    assert data["metadata"]["version"] == "5.0"
+@pytest.fixture
+def mock_redis():
+    """Create mock Redis client"""
+    redis_mock = AsyncMock()
+    redis_mock.xadd.return_value = b"1234567890-0"
+    redis_mock.xrevrange.return_value = []
+    redis_mock.xrange.return_value = []
+    redis_mock.get.return_value = None
+    redis_mock.hgetall.return_value = {}
+    redis_mock.ping.return_value = True
+    return redis_mock
 
 
-@pytest.mark.asyncio
-async def test_add_and_context(temp_db, logger):
-    queue = SQLiteQueue(temp_db, logger)
-    await queue.add_message("Claude", "Hello, world!", {"tokens": 10})
-    await queue.add_message("ChatGPT", "Second", {"tokens": 5})
-    ctx = await queue.get_context(2)
-    assert len(ctx) == 2
-    assert ctx[0]["sender"] == "Claude"
-    assert ctx[1]["sender"] == "ChatGPT"
-    last = await queue.get_last_sender()
-    assert last == "ChatGPT"
+# ============================================================================
+# SQLITE QUEUE - BASIC TESTS
+# ============================================================================
+
+class TestSQLiteQueueBasic:
+    """Basic SQLite queue functionality tests"""
+
+    @pytest.mark.asyncio
+    async def test_queue_initialization(self, temp_db, logger):
+        """Test queue initialization"""
+        queue = SQLiteQueue(temp_db, logger)
+        data = await queue.load()
+        assert "messages" in data
+        assert "metadata" in data
+        assert data["metadata"]["version"] == "5.0"
+
+    @pytest.mark.asyncio
+    async def test_add_and_context(self, temp_db, logger):
+        """Test adding messages and retrieving context"""
+        queue = SQLiteQueue(temp_db, logger)
+        
+        await queue.add_message("Claude", "Hello, world!", {"tokens": 10})
+        await queue.add_message("ChatGPT", "Second message", {"tokens": 5})
+        
+        ctx = await queue.get_context(2)
+        assert len(ctx) == 2
+        assert ctx[0]["sender"] == "Claude"
+        assert ctx[1]["sender"] == "ChatGPT"
+        
+        last = await queue.get_last_sender()
+        assert last == "ChatGPT"
+
+    @pytest.mark.asyncio
+    async def test_termination(self, temp_db, logger):
+        """Test conversation termination"""
+        queue = SQLiteQueue(temp_db, logger)
+        
+        assert not await queue.is_terminated()
+        
+        await queue.mark_terminated("done")
+        assert await queue.is_terminated()
+        assert (await queue.get_termination_reason()) == "done"
+
+    @pytest.mark.asyncio
+    async def test_concurrent_writes(self, temp_db, logger):
+        """Test concurrent message writes"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        async def add(sender):
+            for i in range(10):
+                await queue.add_message(sender, f"m{i}", {"tokens": 1})
+
+        await asyncio.gather(add("Claude"), add("ChatGPT"))
+        
+        data = await queue.load()
+        assert len(data["messages"]) == 20
+        assert data["metadata"]["total_turns"] == 20
+
+    @pytest.mark.asyncio
+    async def test_factory(self, temp_db, logger):
+        """Test queue factory creates SQLite queue"""
+        q = create_queue(str(temp_db), logger, use_redis=False)
+        assert isinstance(q, SQLiteQueue)
 
 
-@pytest.mark.asyncio
-async def test_termination(temp_db, logger):
-    queue = SQLiteQueue(temp_db, logger)
-    assert not await queue.is_terminated()
-    await queue.mark_terminated("done")
-    assert await queue.is_terminated()
-    assert (await queue.get_termination_reason()) == "done"
+# ============================================================================
+# SQLITE QUEUE - COMPREHENSIVE TESTS
+# ============================================================================
+
+class TestSQLiteQueueComprehensive:
+    """Comprehensive SQLite queue tests"""
+
+    @pytest.mark.asyncio
+    async def test_empty_content_rejected(self, temp_db, logger):
+        """Test empty content is rejected"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        with pytest.raises(Exception):
+            await queue.add_message("Agent1", "", {})
+
+        with pytest.raises(Exception):
+            await queue.add_message("Agent1", "   ", {})
+
+    @pytest.mark.asyncio
+    async def test_message_too_long_rejected(self, temp_db, logger):
+        """Test messages exceeding max length are rejected"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        long_message = "x" * (config.MAX_MESSAGE_LENGTH + 1)
+
+        with pytest.raises(Exception):
+            await queue.add_message("Agent1", long_message, {})
+
+    @pytest.mark.asyncio
+    async def test_sender_normalization(self, temp_db, logger):
+        """Test sender names are normalized"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        await queue.add_message("claude", "Message 1", {})
+        await queue.add_message("CLAUDE", "Message 2", {})
+        await queue.add_message("Claude", "Message 3", {})
+
+        data = await queue.load()
+        messages = data["messages"]
+
+        # All should be normalized to "Claude"
+        assert all(msg["sender"] == "Claude" for msg in messages)
+
+    @pytest.mark.asyncio
+    async def test_token_accumulation(self, temp_db, logger):
+        """Test token counts accumulate correctly"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        await queue.add_message("Agent1", "Message 1", {"tokens": 50})
+        await queue.add_message("Agent2", "Message 2", {"tokens": 75})
+        await queue.add_message("Agent1", "Message 3", {"tokens": 100})
+
+        data = await queue.load()
+        assert data["metadata"]["total_tokens"] == 225
+
+    @pytest.mark.asyncio
+    async def test_agent_turn_counting(self, temp_db, logger):
+        """Test individual agent turn counting"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        await queue.add_message("Agent1", "M1", {"tokens": 10})
+        await queue.add_message("Agent2", "M2", {"tokens": 10})
+        await queue.add_message("Agent1", "M3", {"tokens": 10})
+        await queue.add_message("Agent1", "M4", {"tokens": 10})
+        await queue.add_message("Agent2", "M5", {"tokens": 10})
+
+        data = await queue.load()
+        assert data["metadata"]["agent1_turns"] == 3
+        assert data["metadata"]["agent2_turns"] == 2
+        assert data["metadata"]["total_turns"] == 5
+
+    @pytest.mark.asyncio
+    async def test_context_limit(self, temp_db, logger):
+        """Test context retrieval respects max messages"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        # Add many messages
+        for i in range(20):
+            await queue.add_message("Agent1", f"Message {i}", {})
+
+        # Get context with limit
+        context = await queue.get_context(max_messages=5)
+
+        assert len(context) == 5
+        # Should get most recent
+        assert "Message 19" in context[-1]["content"]
+
+    @pytest.mark.asyncio
+    async def test_get_last_sender_empty_queue(self, temp_db, logger):
+        """Test get_last_sender with empty queue"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        last_sender = await queue.get_last_sender()
+        assert last_sender is None
+
+    @pytest.mark.asyncio
+    async def test_termination_persistence(self, temp_db, logger):
+        """Test termination state persists across instances"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        await queue.add_message("Agent1", "Message", {"tokens": 10})
+        await queue.mark_terminated("test_reason")
+
+        # Create new queue instance with same db
+        queue2 = SQLiteQueue(temp_db, logger)
+
+        # Termination should persist
+        assert await queue2.is_terminated()
+        assert await queue2.get_termination_reason() == "test_reason"
+
+    @pytest.mark.asyncio
+    async def test_get_termination_reason_null(self, temp_db, logger):
+        """Test getting termination reason when null"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        # Initially should be null/unknown
+        reason = await queue.get_termination_reason()
+        assert reason == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_initial_metadata(self, temp_db, logger):
+        """Test initial metadata is set correctly"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        data = await queue.load()
+        meta = data["metadata"]
+
+        assert "conversation_id" in meta
+        assert "started_at" in meta
+        assert meta["total_turns"] == 0
+        assert meta["version"] == "5.0"
+
+    @pytest.mark.asyncio
+    async def test_metadata_updates(self, temp_db, logger):
+        """Test metadata updates as conversation progresses"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        await queue.add_message("Claude", "M1", {"tokens": 50})
+        await queue.add_message("ChatGPT", "M2", {"tokens": 75})
+
+        data = await queue.load()
+        meta = data["metadata"]
+
+        assert meta["total_turns"] == 2
+        assert meta["claude_turns"] == 1
+        assert meta["chatgpt_turns"] == 1
+        assert meta["total_tokens"] == 125
+
+    @pytest.mark.asyncio
+    async def test_health_check_healthy(self, temp_db, logger):
+        """Test health check when healthy"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        health = await queue.health_check()
+
+        assert health["healthy"] is True
+        assert health["checks"]["database"] == "ok"
+        assert health["checks"]["lock"] == "ok"
+        assert "timestamp" in health
 
 
-@pytest.mark.asyncio
-async def test_concurrent_writes(temp_db, logger):
-    queue = SQLiteQueue(temp_db, logger)
+# ============================================================================
+# REDIS QUEUE TESTS
+# ============================================================================
 
-    async def add(sender):
-        for i in range(10):
-            await queue.add_message(sender, f"m{i}", {"tokens": 1})
+class TestRedisQueue:
+    """Test RedisQueue implementation"""
 
-    await asyncio.gather(add("Claude"), add("ChatGPT"))
-    data = await queue.load()
-    assert len(data["messages"]) == 20
-    assert data["metadata"]["total_turns"] == 20
+    @pytest.mark.asyncio
+    async def test_redis_init_without_package(self, logger):
+        """Test Redis queue fails gracefully without redis package"""
+        with patch("core.queue.redis", side_effect=ImportError()):
+            with pytest.raises(ImportError, match="redis package required"):
+                RedisQueue("redis://localhost:6379/0", logger)
+
+    @pytest.mark.asyncio
+    async def test_add_message(self, logger, mock_redis):
+        """Test adding message to Redis"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+
+            result = await queue.add_message(
+                "Agent1", "Test message", {"tokens": 50}
+            )
+
+            assert mock_redis.xadd.called
+            assert mock_redis.hincrby.called
+            assert "id" in result
+
+    @pytest.mark.asyncio
+    async def test_get_context(self, logger, mock_redis):
+        """Test getting context from Redis"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.xrevrange.return_value = [
+                (
+                    b"1234567890-0",
+                    {
+                        "sender": "Agent1",
+                        "content": "Message 1",
+                        "metadata": '{"tokens": 10}',
+                    },
+                ),
+                (
+                    b"1234567891-0",
+                    {
+                        "sender": "Agent2",
+                        "content": "Message 2",
+                        "metadata": '{"tokens": 20}',
+                    },
+                ),
+            ]
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            messages = await queue.get_context(max_messages=10)
+
+            assert len(messages) == 2
+            assert messages[0]["sender"] == "Agent1"
+            assert messages[1]["sender"] == "Agent2"
+
+    @pytest.mark.asyncio
+    async def test_get_last_sender(self, logger, mock_redis):
+        """Test getting last sender from Redis"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.xrevrange.return_value = [
+                (b"1234567890-0", {"sender": "Agent1", "content": "Last"})
+            ]
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            last_sender = await queue.get_last_sender()
+
+            assert last_sender == "Agent1"
+
+    @pytest.mark.asyncio
+    async def test_get_last_sender_empty(self, logger, mock_redis):
+        """Test getting last sender when no messages"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.xrevrange.return_value = []
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            last_sender = await queue.get_last_sender()
+
+            assert last_sender is None
+
+    @pytest.mark.asyncio
+    async def test_is_terminated(self, logger, mock_redis):
+        """Test checking if conversation terminated"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            # Not terminated
+            mock_redis.get.return_value = "0"
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            assert not await queue.is_terminated()
+
+            # Terminated
+            mock_redis.get.return_value = "1"
+            assert await queue.is_terminated()
+
+    @pytest.mark.asyncio
+    async def test_mark_terminated(self, logger, mock_redis):
+        """Test marking conversation as terminated"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            await queue.mark_terminated("test_reason")
+
+            assert mock_redis.set.called
+            assert mock_redis.hset.called
+
+    @pytest.mark.asyncio
+    async def test_get_termination_reason(self, logger, mock_redis):
+        """Test getting termination reason"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            # With reason
+            mock_redis.get.return_value = "max_turns"
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            reason = await queue.get_termination_reason()
+            assert reason == "max_turns"
+
+            # Without reason
+            mock_redis.get.return_value = None
+            reason = await queue.get_termination_reason()
+            assert reason == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_load(self, logger, mock_redis):
+        """Test loading all data from Redis"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.xrange.return_value = [
+                (b"1-0", {"sender": "Agent1", "content": "M1"})
+            ]
+            mock_redis.hgetall.return_value = {"total_turns": "1"}
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            data = await queue.load()
+
+            assert "messages" in data
+            assert "metadata" in data
+            assert len(data["messages"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_health_check_healthy(self, logger, mock_redis):
+        """Test health check when Redis is healthy"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.ping.return_value = True
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            health = await queue.health_check()
+
+            assert health["healthy"] is True
+            assert health["checks"]["redis"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_health_check_unhealthy(self, logger, mock_redis):
+        """Test health check when Redis fails"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.ping.side_effect = Exception("Connection failed")
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            health = await queue.health_check()
+
+            assert health["healthy"] is False
+            assert "error" in health["checks"]["redis"]
+
+    @pytest.mark.asyncio
+    async def test_malformed_json_metadata(self, logger, mock_redis):
+        """Test handling malformed JSON in metadata"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = mock_redis
+
+            mock_redis.xrevrange.return_value = [
+                (
+                    b"1-0",
+                    {
+                        "sender": "Agent1",
+                        "content": "Test",
+                        "metadata": "not-valid-json",
+                    },
+                )
+            ]
+
+            queue = RedisQueue("redis://localhost:6379/0", logger)
+            messages = await queue.get_context(max_messages=10)
+
+            # Should handle gracefully with empty dict
+            assert len(messages) == 1
+            assert messages[0]["metadata"] == {}
 
 
-@pytest.mark.asyncio
-async def test_factory(temp_db, logger):
-    q = create_queue(str(temp_db), logger, use_redis=False)
-    assert isinstance(q, SQLiteQueue)
+# ============================================================================
+# FACTORY FUNCTION TESTS
+# ============================================================================
+
+class TestQueueFactory:
+    """Test queue factory function"""
+
+    @pytest.mark.asyncio
+    async def test_factory_creates_sqlite(self, temp_db, logger):
+        """Test factory creates SQLite queue"""
+        queue = create_queue(str(temp_db), logger, use_redis=False)
+        assert isinstance(queue, SQLiteQueue)
+
+    @pytest.mark.asyncio
+    async def test_factory_creates_redis_with_flag(self, logger):
+        """Test factory creates Redis queue with flag"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = AsyncMock()
+
+            queue = create_queue(
+                "redis://localhost:6379/0", logger, use_redis=True
+            )
+            assert isinstance(queue, RedisQueue)
+
+    @pytest.mark.asyncio
+    async def test_factory_creates_redis_with_url(self, logger):
+        """Test factory creates Redis queue from URL"""
+        with patch("core.queue.redis") as mock_redis_module:
+            mock_redis_module.from_url.return_value = AsyncMock()
+
+            queue = create_queue("redis://localhost:6379/0", logger)
+            assert isinstance(queue, RedisQueue)
+
+
+# ============================================================================
+# ERROR HANDLING TESTS
+# ============================================================================
+
+class TestErrorHandling:
+    """Test error handling in queue operations"""
+
+    @pytest.mark.asyncio
+    async def test_queue_survives_errors(self, temp_db, logger):
+        """Test queue continues working after errors"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        # Add a valid message
+        await queue.add_message("Agent1", "Valid", {"tokens": 10})
+
+        # Try to add invalid message (empty content)
+        with pytest.raises(Exception):
+            await queue.add_message("Agent1", "", {"tokens": 10})
+
+        # Queue should still work
+        await queue.add_message("Agent2", "Also valid", {"tokens": 10})
+
+        data = await queue.load()
+        assert data["metadata"]["total_turns"] == 2
+
+
+# ============================================================================
+# STRESS TESTS
+# ============================================================================
+
+class TestStressScenarios:
+    """Test under stress conditions"""
+
+    @pytest.mark.asyncio
+    async def test_many_messages(self, temp_db, logger):
+        """Test handling many messages"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        # Add 100 messages
+        for i in range(100):
+            sender = f"Agent{i % 3 + 1}"
+            await queue.add_message(sender, f"Message {i}", {"tokens": 10})
+
+        data = await queue.load()
+        assert data["metadata"]["total_turns"] == 100
+        assert len(data["messages"]) == 100
+
+    @pytest.mark.asyncio
+    async def test_rapid_termination_checks(self, temp_db, logger):
+        """Test rapid termination checking"""
+        queue = SQLiteQueue(temp_db, logger)
+
+        # Check termination many times rapidly
+        results = await asyncio.gather(*[queue.is_terminated() for _ in range(50)])
+
+        assert all(result is False for result in results)
+
+        # Now terminate and check again
+        await queue.mark_terminated("test")
+
+        results = await asyncio.gather(*[queue.is_terminated() for _ in range(50)])
+
+        assert all(result is True for result in results)
+
+
+# ============================================================================
+# RUN TESTS (if executed directly)
+# ============================================================================
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--cov=core.queue", "--cov-report=term-missing"])
