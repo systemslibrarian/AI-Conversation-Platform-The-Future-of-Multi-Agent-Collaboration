@@ -1,7 +1,7 @@
 
 import pytest
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from agents import GeminiAgent, GrokAgent, PerplexityAgent
 
 @pytest.fixture

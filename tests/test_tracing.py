@@ -1,6 +1,5 @@
 
 from core import tracing
-import os
 
 def test_get_tracer():
     assert tracing.get_tracer() is not None
