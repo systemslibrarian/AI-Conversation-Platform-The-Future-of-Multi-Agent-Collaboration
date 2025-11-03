@@ -307,8 +307,9 @@ class TestAgentSecurity:
     async def test_llm_guard_integration(self, mock_queue, logger):
         """Test LLM Guard integration (if available)"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "ENABLE_LLM_GUARD": "true"}):
-            # Use importlib.util.find_spec to check presence without importing unused names
-            if importlib.util.find_spec("llm_guard.input_scanners") is None:
+            # --- THIS IS THE FIX ---
+            # Check for the base package 'llm_guard' instead of the submodule
+            if importlib.util.find_spec("llm_guard") is None:
                 pytest.skip("llm-guard not installed")
 
             agent = ChatGPTAgent(
