@@ -33,7 +33,9 @@ class ValidationError(Exception):
 class QueueInterface(Protocol):
     """Protocol defining the queue interface"""
 
-    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict:
+    async def add_message(
+        self, sender: str, content: str, metadata: Optional[Dict] = None
+    ) -> Dict:
         """Add a message to the queue"""
         ...
 
@@ -77,7 +79,9 @@ class SQLiteQueue:
         self._init_db()
 
         log_event(
-            self.logger, "queue_initialized", {"filepath": str(self.filepath), "type": "sqlite"}
+            self.logger,
+            "queue_initialized",
+            {"filepath": str(self.filepath), "type": "sqlite"},
         )
 
     def _init_db(self) -> None:
@@ -105,10 +109,14 @@ class SQLiteQueue:
         """)
 
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sender ON messages(sender)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON messages(timestamp DESC)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_timestamp ON messages(timestamp DESC)"
+        )
 
         # Initialize metadata if not exists
-        existing = conn.execute("SELECT value FROM metadata WHERE key='conversation_id'").fetchone()
+        existing = conn.execute(
+            "SELECT value FROM metadata WHERE key='conversation_id'"
+        ).fetchone()
 
         if existing is None:
             conv_id = f"conv_{int(time.time())}"
@@ -128,7 +136,9 @@ class SQLiteQueue:
             }
 
             for key, value in initial_metadata.items():
-                conn.execute("INSERT INTO metadata (key, value) VALUES (?, ?)", (key, value))
+                conn.execute(
+                    "INSERT INTO metadata (key, value) VALUES (?, ?)", (key, value)
+                )
 
         conn.commit()
         conn.close()
@@ -149,11 +159,15 @@ class SQLiteQueue:
             raise ValidationError("Message content cannot be empty")
 
         if len(content) > config.MAX_MESSAGE_LENGTH:
-            raise ValidationError(f"Message too long (max {config.MAX_MESSAGE_LENGTH} chars)")
+            raise ValidationError(
+                f"Message too long (max {config.MAX_MESSAGE_LENGTH} chars)"
+            )
 
         return sender_normalized, content.strip()
 
-    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+    async def add_message(
+        self, sender: str, content: str, metadata: Optional[Dict] = None
+    ) -> Dict[str, Any]:
         """
         Atomically add a message - ALL OPERATIONS IN ONE TRANSACTION
         This eliminates race conditions
@@ -277,7 +291,9 @@ class SQLiteQueue:
 
         conn = sqlite3.connect(str(self.filepath))
         try:
-            row = conn.execute("SELECT sender FROM messages ORDER BY id DESC LIMIT 1").fetchone()
+            row = conn.execute(
+                "SELECT sender FROM messages ORDER BY id DESC LIMIT 1"
+            ).fetchone()
             if row is None:
                 return None
             # sqlite3.Row supports mapping access; convert to dict for mypy
@@ -293,7 +309,9 @@ class SQLiteQueue:
 
         conn = sqlite3.connect(str(self.filepath))
         try:
-            row = conn.execute("SELECT value FROM metadata WHERE key='terminated'").fetchone()
+            row = conn.execute(
+                "SELECT value FROM metadata WHERE key='terminated'"
+            ).fetchone()
             if row is None:
                 return False
             row_dict = dict(row)
@@ -311,9 +329,12 @@ class SQLiteQueue:
                 conn = sqlite3.connect(str(self.filepath))
                 try:
                     now = datetime.now().isoformat()
-                    conn.execute("UPDATE metadata SET value = '1' WHERE key='terminated'")
                     conn.execute(
-                        "UPDATE metadata SET value = ? WHERE key='termination_reason'", (reason,)
+                        "UPDATE metadata SET value = '1' WHERE key='terminated'"
+                    )
+                    conn.execute(
+                        "UPDATE metadata SET value = ? WHERE key='termination_reason'",
+                        (reason,),
                     )
                     conn.execute(
                         "INSERT OR REPLACE INTO metadata (key, value) VALUES ('ended_at', ?)",
@@ -321,7 +342,9 @@ class SQLiteQueue:
                     )
                     conn.commit()
 
-                    log_event(self.logger, "conversation_terminated", {"reason": reason})
+                    log_event(
+                        self.logger, "conversation_terminated", {"reason": reason}
+                    )
                 finally:
                     conn.close()
         except Exception as e:
@@ -354,7 +377,10 @@ class SQLiteQueue:
         conn.row_factory = sqlite3.Row
 
         try:
-            messages = [dict(row) for row in conn.execute("SELECT * FROM messages ORDER BY id").fetchall()]
+            messages = [
+                dict(row)
+                for row in conn.execute("SELECT * FROM messages ORDER BY id").fetchall()
+            ]
 
             metadata_rows = conn.execute("SELECT key, value FROM metadata").fetchall()
             metadata: Dict[str, Any] = {}
@@ -377,7 +403,11 @@ class SQLiteQueue:
         """Perform health check"""
         await asyncio.sleep(0)
 
-        health: Dict[str, Any] = {"healthy": True, "checks": {}, "timestamp": datetime.now().isoformat()}
+        health: Dict[str, Any] = {
+            "healthy": True,
+            "checks": {},
+            "timestamp": datetime.now().isoformat(),
+        }
 
         # Database connectivity
         try:
@@ -422,15 +452,21 @@ class RedisQueue:
         try:
             import redis.asyncio as redis  # type: ignore
         except ImportError:
-            raise ImportError("redis package required for RedisQueue. Install: pip install redis")
+            raise ImportError(
+                "redis package required for RedisQueue. Install: pip install redis"
+            )
 
         self.r = redis.from_url(url, decode_responses=True)
         self.logger = logger
         self.conv_id = f"conv:{int(time.time())}"
 
-        log_event(self.logger, "queue_initialized", {"type": "redis", "conv_id": self.conv_id})
+        log_event(
+            self.logger, "queue_initialized", {"type": "redis", "conv_id": self.conv_id}
+        )
 
-    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+    async def add_message(
+        self, sender: str, content: str, metadata: Optional[Dict] = None
+    ) -> Dict[str, Any]:
         """Add message to Redis stream"""
         msg: Dict[str, Any] = {
             "sender": sender,
@@ -446,7 +482,9 @@ class RedisQueue:
         await self.r.hincrby(f"{self.conv_id}:meta", f"{sender.lower()}_turns", 1)
 
         if metadata and "tokens" in metadata:
-            await self.r.hincrby(f"{self.conv_id}:meta", "total_tokens", int(metadata["tokens"]))
+            await self.r.hincrby(
+                f"{self.conv_id}:meta", "total_tokens", int(metadata["tokens"])
+            )
 
         log_event(self.logger, "message_added", {"sender": sender, "stream_id": msg_id})
 
@@ -484,7 +522,9 @@ class RedisQueue:
         """Mark conversation as terminated"""
         await self.r.set(f"{self.conv_id}:terminated", "1")
         await self.r.set(f"{self.conv_id}:reason", reason)
-        await self.r.hset(f"{self.conv_id}:meta", "ended_at", datetime.now().isoformat())
+        await self.r.hset(
+            f"{self.conv_id}:meta", "ended_at", datetime.now().isoformat()
+        )
 
         log_event(self.logger, "conversation_terminated", {"reason": reason})
 
@@ -506,7 +546,11 @@ class RedisQueue:
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform health check"""
-        health: Dict[str, Any] = {"healthy": True, "checks": {}, "timestamp": datetime.now().isoformat()}
+        health: Dict[str, Any] = {
+            "healthy": True,
+            "checks": {},
+            "timestamp": datetime.now().isoformat(),
+        }
 
         try:
             await self.r.ping()
@@ -518,7 +562,9 @@ class RedisQueue:
         return health
 
 
-def create_queue(filepath_or_url: str, logger, use_redis: bool = False) -> QueueInterface:
+def create_queue(
+    filepath_or_url: str, logger, use_redis: bool = False
+) -> QueueInterface:
     """Factory function to create appropriate queue"""
     if use_redis or filepath_or_url.startswith("redis://"):
         return RedisQueue(filepath_or_url, logger)
