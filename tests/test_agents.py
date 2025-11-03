@@ -11,7 +11,14 @@ import time
 from unittest.mock import AsyncMock, patch
 from datetime import datetime, timedelta
 
-from agents import create_agent, ChatGPTAgent, ClaudeAgent, GeminiAgent
+from agents import (
+    create_agent,
+    ChatGPTAgent,
+    ClaudeAgent,
+    GeminiAgent,
+    GrokAgent,
+    PerplexityAgent,
+)
 from agents.base import BaseAgent, CircuitBreaker
 from core.config import config
 
@@ -722,6 +729,58 @@ class TestGeminiAgent:
 
 
 # ============================================================================
+# SPECIFIC AGENT TESTS - Grok
+# ============================================================================
+
+
+class TestGrokAgent:
+    """Test Grok agent implementation"""
+
+    @pytest.mark.asyncio
+    async def test_grok_api_call(self, mock_queue, logger, monkeypatch):
+        """Test Grok API call"""
+        monkeypatch.setenv("XAI_API_KEY", "test-key")
+        with patch("agents.grok.OpenAI", DummyOpenAIClient):
+            agent = GrokAgent(
+                api_key="dummy",
+                queue=mock_queue,
+                logger=logger,
+                model="grok-beta",
+                topic="x",
+                timeout_minutes=1,
+            )
+            content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+            assert content == "Hello, world!"
+            assert tokens == 20
+
+
+# ============================================================================
+# SPECIFIC AGENT TESTS - Perplexity
+# ============================================================================
+
+
+class TestPerplexityAgent:
+    """Test Perplexity agent implementation"""
+
+    @pytest.mark.asyncio
+    async def test_perplexity_api_call(self, mock_queue, logger, monkeypatch):
+        """Test Perplexity API call"""
+        monkeypatch.setenv("PERPLEXITY_API_KEY", "test-key")
+        with patch("agents.perplexity.OpenAI", DummyOpenAIClient):
+            agent = PerplexityAgent(
+                api_key="dummy",
+                queue=mock_queue,
+                logger=logger,
+                model="llama-3.1-sonar-large-128k-online",
+                topic="x",
+                timeout_minutes=1,
+            )
+            content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+            assert content == "Hello, world!"
+            assert tokens == 20
+
+
+# ============================================================================
 # AGENT FACTORY
 # ============================================================================
 
@@ -754,6 +813,32 @@ class TestAgentFactory:
                 )
 
                 assert isinstance(agent, ClaudeAgent)
+
+    def test_create_grok_agent(self, mock_queue, logger):
+        """Test creating Grok agent via factory"""
+        with patch.dict("os.environ", {"XAI_API_KEY": "test-key"}):
+            with patch("agents.grok.OpenAI", DummyOpenAIClient):
+                agent = create_agent(
+                    agent_type="grok",
+                    queue=mock_queue,
+                    logger=logger,
+                    api_key="test-key",
+                )
+
+                assert isinstance(agent, GrokAgent)
+
+    def test_create_perplexity_agent(self, mock_queue, logger):
+        """Test creating Perplexity agent via factory"""
+        with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
+            with patch("agents.perplexity.OpenAI", DummyOpenAIClient):
+                agent = create_agent(
+                    agent_type="perplexity",
+                    queue=mock_queue,
+                    logger=logger,
+                    api_key="test-key",
+                )
+
+                assert isinstance(agent, PerplexityAgent)
 
     def test_create_invalid_agent(self, mock_queue, logger):
         """Test creating invalid agent type"""
