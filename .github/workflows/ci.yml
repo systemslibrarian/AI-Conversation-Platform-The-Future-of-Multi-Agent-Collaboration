@@ -58,13 +58,8 @@ jobs:
 
       - name: Show coverage in Job Summary
         run: |
-          PCT=$(python - <<'PY'
-import xml.etree.ElementTree as ET
-r=ET.parse('coverage.xml').getroot().attrib
-print(f"{(float(r['lines-covered'])/float(r['lines-valid']))*100:.2f}")
-PY
-)
-          echo "### Coverage: **${PCT}%**" >> "$GITHUB_STEP_SUMMARY"
+          PCT=$(python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot().attrib; print((float(r['lines-covered'])/float(r['lines-valid']))*100)")
+          printf '### Coverage: **%.2f%%**\n' "$PCT" >> "$GITHUB_STEP_SUMMARY"
 
       # 🟣 Optional but recommended: Codecov for a live badge
       - name: Upload coverage to Codecov
