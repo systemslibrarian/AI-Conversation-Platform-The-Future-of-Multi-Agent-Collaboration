@@ -56,7 +56,7 @@ class CircuitBreaker:
         """Record successful call"""
         if self.state == "HALF_OPEN":
             self.state = "CLOSED"
-            self.failure_count = 0
+        self.failure_count = 0
 
     def record_failure(self) -> None:
         """Record failed call"""
