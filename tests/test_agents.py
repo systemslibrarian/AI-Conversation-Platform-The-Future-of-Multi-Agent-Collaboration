@@ -186,13 +186,13 @@ class TestCircuitBreaker:
         cb.record_failure()
         cb.record_failure()
         assert cb.state == "OPEN"
-        assert cb.is_open()
 
-        # Wait for timeout
-        time.sleep(0.2)
+        # Wait for timeout (no-op, since timeout=0)
+        # time.sleep(0.2) # No longer necessary
 
-        # Should transition to HALF_OPEN
-        assert not cb.is_open()  # This call checks timeout and transitions
+        # With timeout=0, the *first call* to is_open() will detect the
+        # timeout, transition to HALF_OPEN, and return False.
+        assert not cb.is_open()
         assert cb.state == "HALF_OPEN"
 
     def test_success_resets_closed(self):
