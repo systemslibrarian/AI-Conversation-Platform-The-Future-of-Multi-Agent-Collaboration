@@ -151,7 +151,7 @@ class BaseAgent(ABC):
             sanitized_output, is_valid, risk_score = self.output_scanner.scan("", text)
             if not is_valid:
                 self.logger.warning(f"Output scanning issue, risk score: {risk_score}")
-            return sanitized_output
+            return str(sanitized_output)
         except Exception as e:
             self.logger.error(f"Output scanning failed: {e}")
             return text

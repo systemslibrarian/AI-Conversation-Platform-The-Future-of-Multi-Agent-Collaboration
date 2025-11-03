@@ -14,7 +14,7 @@ import streamlit as st
 import sqlite3
 
 # Bleach stubs may be missing in some environments; ignore import typing error.
-import bleach  # type: ignore[import]
+import bleach  # type: ignore[import-untyped]
 
 from core.config import config
 
@@ -196,7 +196,7 @@ def main() -> None:
     with col1:
         total_turns = metadata.get("total_turns") if metadata and "total_turns" in metadata else 0
         try:
-            st.metric("Total Turns", int(total_turns))
+            st.metric("Total Turns", int(total_turns) if total_turns is not None else 0)
         except Exception:
             st.metric("Total Turns", total_turns)
     with col2:
@@ -204,7 +204,7 @@ def main() -> None:
             metadata.get("total_tokens") if metadata and "total_tokens" in metadata else 0
         )
         try:
-            st.metric("Total Tokens", int(total_tokens))
+            st.metric("Total Tokens", int(total_tokens) if total_tokens is not None else 0)
         except Exception:
             st.metric("Total Tokens", total_tokens)
     with col3:

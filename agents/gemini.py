@@ -14,7 +14,7 @@ class GeminiAgent(BaseAgent):
     DEFAULT_MODEL = config.GEMINI_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs, api_key=api_key)
+        super().__init__(api_key=api_key, *args, **kwargs)
 
         try:
             import google.generativeai as genai
@@ -41,7 +41,7 @@ class GeminiAgent(BaseAgent):
         loop = asyncio.get_event_loop()
 
         def _sync_call():
-            chat = self.client.start_chat(history=history)
+            chat = self.client.start_chat(history=history)  # type: ignore[arg-type]
             return chat.send_message(last_message or "Continue.")
 
         response = await loop.run_in_executor(None, _sync_call)

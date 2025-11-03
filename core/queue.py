@@ -10,7 +10,7 @@ import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Protocol
+from typing import Dict, List, Optional, Any, Protocol, Tuple
 from datetime import datetime
 from filelock import FileLock, Timeout
 
@@ -135,7 +135,7 @@ class SQLiteQueue:
         conn.commit()
         conn.close()
 
-    def _validate_message(self, sender: str, content: str) -> (str, str):
+    def _validate_message(self, sender: str, content: str) -> Tuple[str, str]:
         """Validate and normalize inputs"""
         sender_map = {
             "claude": "Claude",
@@ -370,12 +370,13 @@ class SQLiteQueue:
                 k = row_dict.get("key")
                 v = row_dict.get("value")
                 # normalize "null" to None
-                if isinstance(v, str) and v == "null":
-                    metadata[k] = None
-                elif isinstance(v, str) and v.isdigit():
-                    metadata[k] = int(v)
-                else:
-                    metadata[k] = v
+                if k is not None:
+                    if isinstance(v, str) and v == "null":
+                        metadata[k] = None
+                    elif isinstance(v, str) and v.isdigit():
+                        metadata[k] = int(v)
+                    else:
+                        metadata[k] = v
             return {"messages": messages, "metadata": metadata}
         finally:
             conn.close()
@@ -431,7 +432,7 @@ class RedisQueue:
 
     def __init__(self, url: str, logger) -> None:
         try:
-            import redis.asyncio as redis  # type: ignore
+            import redis.asyncio as redis  # type: ignore[import-untyped]
         except ImportError:
             raise ImportError("redis package required for RedisQueue. Install: pip install redis")
 
@@ -485,7 +486,8 @@ class RedisQueue:
         """Get last sender from Redis"""
         entries = await self.r.xrevrange(f"{self.conv_id}:messages", count=1)
         if entries:
-            return entries[0][1].get("sender")
+            sender = entries[0][1].get("sender")
+            return str(sender) if sender is not None else None
         return None
 
     async def is_terminated(self) -> bool:

@@ -14,7 +14,7 @@ class ClaudeAgent(BaseAgent):
     DEFAULT_MODEL = config.CLAUDE_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs, api_key=api_key)
+        super().__init__(api_key=api_key, *args, **kwargs)
 
         try:
             import anthropic
@@ -36,11 +36,17 @@ class ClaudeAgent(BaseAgent):
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
                 system=system,
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
             ),
         )
 
-        content = response.content[0].text
+        # Handle TextBlock union - extract text from first content block
+        content_block = response.content[0]
+        if hasattr(content_block, "text"):
+            content = content_block.text  # type: ignore[union-attr]
+        else:
+            content = str(content_block)
+        
         tokens = response.usage.input_tokens + response.usage.output_tokens
 
         return content, tokens

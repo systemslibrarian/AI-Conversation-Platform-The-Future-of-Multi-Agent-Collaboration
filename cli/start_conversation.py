@@ -53,7 +53,7 @@ class ConversationStarter:
         for agent_type in sorted(self.available_agents):
             info = get_agent_info(agent_type)
             agent_class = info["class"]
-            print(f"  ✅ {agent_class.PROVIDER_NAME} ({agent_type})")
+            print(f"  ✅ {agent_class.PROVIDER_NAME} ({agent_type})")  # type: ignore[attr-defined]
 
         print()
 
@@ -63,7 +63,7 @@ class ConversationStarter:
             print("-" * 80)
             for agent_type in sorted(unavailable):
                 info = get_agent_info(agent_type)
-                print(f"  ❌ {info['class'].PROVIDER_NAME} - Set {info['env_key']}")
+                print(f"  ❌ {info['class'].PROVIDER_NAME} - Set {info['env_key']}")  # type: ignore[attr-defined]
             print()
 
     def _select_agent(self, position: str, cli_agent: Optional[str] = None) -> Tuple[str, str]:
@@ -76,7 +76,7 @@ class ConversationStarter:
                 print(f"❌ Agent '{cli_agent}' not configured or invalid")
                 sys.exit(1)
             info = get_agent_info(agent_type)
-            return agent_type, info["models"][0]
+            return agent_type, info["models"][0]  # type: ignore[index]
 
         # Interactive selection
         print(f"\nSelect {position} agent:")
@@ -85,7 +85,7 @@ class ConversationStarter:
         agent_list = sorted(self.available_agents)
         for i, agent_type in enumerate(agent_list, 1):
             info = get_agent_info(agent_type)
-            print(f"  {i}. {info['class'].PROVIDER_NAME}")
+            print(f"  {i}. {info['class'].PROVIDER_NAME}")  # type: ignore[attr-defined]
 
         while True:
             try:
@@ -99,11 +99,12 @@ class ConversationStarter:
                 sys.exit(0)
 
         info = get_agent_info(agent_type)
-        default_model = info["models"][0]
+        default_model = info["models"][0]  # type: ignore[index]
 
         # plain string (no f-string needed)
         print("\nAvailable models:")
-        for i, model in enumerate(info["models"], 1):
+        models_list: list = info["models"]  # type: ignore[assignment]
+        for i, model in enumerate(models_list, 1):
             print(f"  {i}. {model}")
 
         response = input(f"\nUse default ({default_model})? (Y/n): ")

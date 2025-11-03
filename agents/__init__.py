@@ -32,26 +32,31 @@ _AGENT_REGISTRY: Dict[str, Dict[str, object]] = {
         "class": ChatGPTAgent,
         "env_key": "OPENAI_API_KEY",
         "default_model": getattr(ChatGPTAgent, "DEFAULT_MODEL", None),
+        "models": [getattr(ChatGPTAgent, "DEFAULT_MODEL", "gpt-4o")],
     },
     "claude": {
         "class": ClaudeAgent,
         "env_key": "ANTHROPIC_API_KEY",
         "default_model": getattr(ClaudeAgent, "DEFAULT_MODEL", None),
+        "models": [getattr(ClaudeAgent, "DEFAULT_MODEL", "claude-sonnet-4-5-20250929")],
     },
     "gemini": {
         "class": GeminiAgent,
         "env_key": "GOOGLE_API_KEY",
         "default_model": getattr(GeminiAgent, "DEFAULT_MODEL", None),
+        "models": [getattr(GeminiAgent, "DEFAULT_MODEL", "gemini-pro")],
     },
     "grok": {
         "class": GrokAgent,
         "env_key": "XAI_API_KEY",
         "default_model": getattr(GrokAgent, "DEFAULT_MODEL", None),
+        "models": [getattr(GrokAgent, "DEFAULT_MODEL", "grok-beta")],
     },
     "perplexity": {
         "class": PerplexityAgent,
         "env_key": "PERPLEXITY_API_KEY",
         "default_model": getattr(PerplexityAgent, "DEFAULT_MODEL", None),
+        "models": [getattr(PerplexityAgent, "DEFAULT_MODEL", "llama-3.1-sonar-large-128k-online")],
     },
 }
 
@@ -117,7 +122,7 @@ def create_agent(
         raise ValueError(
             f"Missing API key for {agent_type!r}. Set {info['env_key']} or pass api_key=..."
         )
-    selected_model = model or info["default_model"]
+    selected_model = model if model else str(info["default_model"] or "")
     return cls(  # type: ignore[call-arg]
         api_key=key,
         queue=queue,

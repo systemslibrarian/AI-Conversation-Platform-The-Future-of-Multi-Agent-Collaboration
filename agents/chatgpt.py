@@ -14,7 +14,7 @@ class ChatGPTAgent(BaseAgent):
     DEFAULT_MODEL = config.CHATGPT_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(*args, **kwargs, api_key=api_key)
+        super().__init__(api_key=api_key, *args, **kwargs)
 
         try:
             from openai import OpenAI
@@ -40,7 +40,7 @@ class ChatGPTAgent(BaseAgent):
             ),
         )
 
-        content = response.choices[0].message.content
-        tokens = response.usage.total_tokens
+        content = response.choices[0].message.content or ""
+        tokens = response.usage.total_tokens if response.usage else 0
 
         return content, tokens
