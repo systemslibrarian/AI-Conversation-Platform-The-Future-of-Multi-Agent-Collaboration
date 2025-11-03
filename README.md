@@ -2,7 +2,7 @@
 
 <p align="center"><em>"Because AIs shouldn't monologue — they should <strong>converse</strong>."</em></p>
 
-<hr style="width:60%;margin:auto;border:1px solid #ccc;">
+<hr style="width:60%;margin:auto;border:1px solid #444;">
 
 <p align="center">
   <!-- ✅ CI Badge -->
@@ -20,7 +20,7 @@
     <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage"/>
   </a>
 
-  <!-- ✅ Lint, Type, License -->
+  <!-- ✅ Static Badges -->
   <img src="https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white" alt="Ruff Lint">
   <img src="https://img.shields.io/badge/type--checked-mypy-blue" alt="Mypy Type Checking">
   <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT License">
@@ -28,22 +28,12 @@
 </p>
 
 <p align="center">
-  <!-- ✅ Stack Info -->
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker Ready">
   <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus Metrics">
   <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana Dashboards">
 </p>
 
-<p align="center">
-  <!-- ✅ Technology Icons -->
-  <img src="https://skillicons.dev/icons?i=python,docker,fastapi,prometheus,grafana,pytest,githubactions" />
-</p>
-
-
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=python,docker,fastapi,prometheus,grafana,pytest,githubactions" />
-</p>
 
 
 
