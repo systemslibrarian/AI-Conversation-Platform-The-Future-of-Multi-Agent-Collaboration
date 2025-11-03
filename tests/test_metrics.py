@@ -1,5 +1,5 @@
-
 from core import metrics
+
 
 def test_metrics_record_functions():
     metrics.record_call("Test", "Model")

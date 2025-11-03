@@ -1,10 +1,10 @@
-
 import pytest
 import asyncio
 import tempfile
 from pathlib import Path
 import logging
 from core.queue import SQLiteQueue, create_queue
+
 
 @pytest.fixture
 def temp_db():
@@ -17,9 +17,11 @@ def temp_db():
     if lock_file.exists():
         lock_file.unlink()
 
+
 @pytest.fixture
 def logger():
     return logging.getLogger("test")
+
 
 @pytest.mark.asyncio
 async def test_queue_initialization(temp_db, logger):
@@ -27,6 +29,7 @@ async def test_queue_initialization(temp_db, logger):
     data = await queue.load()
     assert "messages" in data and "metadata" in data
     assert data["metadata"]["version"] == "5.0"
+
 
 @pytest.mark.asyncio
 async def test_add_and_context(temp_db, logger):
@@ -40,6 +43,7 @@ async def test_add_and_context(temp_db, logger):
     last = await queue.get_last_sender()
     assert last == "ChatGPT"
 
+
 @pytest.mark.asyncio
 async def test_termination(temp_db, logger):
     queue = SQLiteQueue(temp_db, logger)
@@ -48,16 +52,20 @@ async def test_termination(temp_db, logger):
     assert await queue.is_terminated()
     assert (await queue.get_termination_reason()) == "done"
 
+
 @pytest.mark.asyncio
 async def test_concurrent_writes(temp_db, logger):
     queue = SQLiteQueue(temp_db, logger)
+
     async def add(sender):
         for i in range(10):
             await queue.add_message(sender, f"m{i}", {"tokens": 1})
+
     await asyncio.gather(add("Claude"), add("ChatGPT"))
     data = await queue.load()
     assert len(data["messages"]) == 20
     assert data["metadata"]["total_turns"] == 20
+
 
 @pytest.mark.asyncio
 async def test_factory(temp_db, logger):
