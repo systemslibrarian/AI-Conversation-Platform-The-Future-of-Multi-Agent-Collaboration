@@ -3,7 +3,6 @@
 
 import asyncio
 import argparse
-import os
 import sys
 from pathlib import Path
 from typing import Tuple, Optional
@@ -106,7 +105,8 @@ class ConversationStarter:
         info = get_agent_info(agent_type)
         default_model = info["models"][0]
         
-        print(f"\nAvailable models:")
+        # plain string (no f-string needed)
+        print("\nAvailable models:")
         for i, model in enumerate(info["models"], 1):
             print(f"  {i}. {model}")
         
@@ -119,7 +119,7 @@ class ConversationStarter:
                     if 0 <= idx < len(info["models"]):
                         model = info["models"][idx]
                         break
-                except:
+                except Exception:
                     model = default_model
                     break
         else:
@@ -147,13 +147,13 @@ class ConversationStarter:
         response = input(f"Enter (default {config.DEFAULT_MAX_TURNS}): ").strip()
         
         if not response:
-            return config.DEFAULT_max_turns if hasattr(config, "DEFAULT_max_turns") else config.DEFAULT_MAX_TURNS
+            return config.DEFAULT_MAX_TURNS
         
         try:
             turns = int(response)
             if 1 <= turns <= 1000:
                 return turns
-        except:
+        except Exception:
             pass
         
         return config.DEFAULT_MAX_TURNS
@@ -234,21 +234,21 @@ class ConversationStarter:
         
         # --- NEW: deterministic opener seed so only agent1 replies first ---
         try:
-            from core.common import setup_logging
-            from core.queue import create_queue
-            from agents import get_agent_info
+            from core.common import setup_logging as _setup_logging
+            from core.queue import create_queue as _create_queue
+            from agents import get_agent_info as _get_agent_info
 
-            logger_seed = setup_logging("seed", config.DEFAULT_LOG_DIR)
+            logger_seed = _setup_logging("seed", config.DEFAULT_LOG_DIR)
 
-            queue_seed = create_queue(str(db_path) if not config.USE_REDIS else config.REDIS_URL,
+            queue_seed = _create_queue(str(db_path) if not config.USE_REDIS else config.REDIS_URL,
                                       logger_seed,
                                       config.USE_REDIS)
 
             # Make agent2 the "last sender" so agent1 goes first
-            agent2_provider = get_agent_info(agent2_type)["class"].PROVIDER_NAME
+            agent2_provider = _get_agent_info(agent2_type)["class"].PROVIDER_NAME
             seed_text = f"[init] topic: {topic or 'general'}"
             await queue_seed.add_message(agent2_provider, seed_text, {"system": True})
-        except Exception as _seed_err:
+        except Exception:
             # Non-fatal: continue even if seeding fails
             pass
         # --- END NEW ---
