@@ -14,7 +14,8 @@ class GeminiAgent(BaseAgent):
     DEFAULT_MODEL = config.GEMINI_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(api_key=api_key, *args, **kwargs)
+        kwargs.pop('api_key', None)  # Remove api_key if it exists in kwargs
+        super().__init__(*args, api_key=api_key, **kwargs)
 
         try:
             import google.generativeai as genai

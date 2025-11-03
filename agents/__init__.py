@@ -123,7 +123,7 @@ def create_agent(
             f"Missing API key for {agent_type!r}. Set {info['env_key']} or pass api_key=..."
         )
     selected_model = model if model else str(info["default_model"] or "")
-    return cls(  # type: ignore[call-arg]
+    return cls(
         api_key=key,
         queue=queue,
         logger=logger,

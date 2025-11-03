@@ -111,10 +111,10 @@ class ConversationStarter:
         if response.lower() == "n":
             while True:
                 try:
-                    choice = input(f"Enter (1-{len(info['models'])}): ").strip()
+                    choice = input(f"Enter (1-{len(info['models'])}): ").strip()  # type: ignore[arg-type]
                     idx = int(choice) - 1
-                    if 0 <= idx < len(info["models"]):
-                        model = info["models"][idx]
+                    if 0 <= idx < len(info["models"]):  # type: ignore[arg-type]
+                        model = info["models"][idx]  # type: ignore[index]
                         break
                 except Exception:
                     model = default_model
@@ -122,12 +122,12 @@ class ConversationStarter:
         else:
             model = default_model
 
-        return agent_type, model
+        return agent_type, model  # type: ignore[return-value]
 
     def _get_topic(self) -> str:
         """Get topic from CLI or interactively"""
         if self.args and self.args.topic:
-            return self.args.topic
+            return str(self.args.topic)
 
         print("\nConversation topic:")
         print("-" * 40)
@@ -137,7 +137,7 @@ class ConversationStarter:
     def _get_max_turns(self) -> int:
         """Get max turns from CLI or interactively"""
         if self.args and self.args.turns:
-            return self.args.turns
+            return int(self.args.turns)
 
         print("\nMax turns:")
         print("-" * 40)
@@ -164,9 +164,9 @@ class ConversationStarter:
         print("\n" + "=" * 80)
         print("CONFIGURATION")
         print("=" * 80)
-        print(f"\nAgent 1: {info1['class'].PROVIDER_NAME}")
+        print(f"\nAgent 1: {info1['class'].PROVIDER_NAME}")  # type: ignore[attr-defined]
         print(f"  Model: {agent1_model}")
-        print(f"\nAgent 2: {info2['class'].PROVIDER_NAME}")
+        print(f"\nAgent 2: {info2['class'].PROVIDER_NAME}")  # type: ignore[attr-defined]
         print(f"  Model: {agent2_model}")
         print(f"\nTopic: {topic}")
         print(f"Max Turns: {max_turns}")
@@ -191,7 +191,7 @@ class ConversationStarter:
 
         # Get partner name
         partner_info = get_agent_info(partner_type)
-        partner_name = partner_info["class"].PROVIDER_NAME
+        partner_name = partner_info["class"].PROVIDER_NAME  # type: ignore[attr-defined]
 
         # Create agent
         agent = create_agent(
@@ -245,8 +245,8 @@ class ConversationStarter:
             )
 
             # Make agent2 the "last sender" so agent1 goes first
-            agent2_provider = _get_agent_info(agent2_type)["class"].PROVIDER_NAME
-            seed_text = f"[init] topic: {topic or 'general'}"
+            agent2_provider = _get_agent_info(agent2_type)["class"].PROVIDER_NAME  # type: ignore[attr-defined]
+            seed_text = f"[init] topic: {topic or 'general'}'"
             await queue_seed.add_message(agent2_provider, seed_text, {"system": True})
         except Exception:
             # Non-fatal: continue even if seeding fails

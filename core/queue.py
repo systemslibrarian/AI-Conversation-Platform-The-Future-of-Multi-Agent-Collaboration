@@ -432,7 +432,7 @@ class RedisQueue:
 
     def __init__(self, url: str, logger) -> None:
         try:
-            import redis.asyncio as redis  # type: ignore[import-untyped]
+            import redis.asyncio as redis
         except ImportError:
             raise ImportError("redis package required for RedisQueue. Install: pip install redis")
 

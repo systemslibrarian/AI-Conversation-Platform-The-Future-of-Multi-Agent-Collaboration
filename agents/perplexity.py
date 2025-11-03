@@ -14,7 +14,8 @@ class PerplexityAgent(BaseAgent):
     DEFAULT_MODEL = config.PERPLEXITY_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        super().__init__(api_key=api_key, *args, **kwargs)
+        kwargs.pop('api_key', None)  # Remove api_key if it exists in kwargs
+        super().__init__(*args, api_key=api_key, **kwargs)
 
         try:
             from openai import OpenAI
@@ -40,7 +41,7 @@ class PerplexityAgent(BaseAgent):
             ),
         )
 
-        content = response.choices[0].message.content
+        content = response.choices[0].message.content or ""
         tokens = response.usage.total_tokens if response.usage else len(content) // 4
 
         return content, tokens
