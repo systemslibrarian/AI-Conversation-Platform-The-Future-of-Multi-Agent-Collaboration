@@ -43,7 +43,7 @@ docker compose up --build
 | Prometheus | http://localhost:9090 | Metrics explorer |
 | Grafana | http://localhost:3000 | Dashboard visualization (admin/admin) |
 
-➡️ See full guides: [⚡ QUICK_START.md](../QUICK_START.md) · [🐳 DOCKER_README.md](../DOCKER_README.md)
+➡️ See full guides: [⚡ QUICK_START.md](QUICK_START.md) · [🐳 DOCKER_README.md](DOCKER_README.md)
 
 ---
 
