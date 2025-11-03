@@ -270,7 +270,7 @@ ai-conversation-platform/
 │       ├── auto-fix.yml   # Automated fixes
 │       └── release.yml    # Docker image publishing
 ├── docs/                   # Documentation
-│   ├── README.md          # Documentation index
+│   ├── docs_README.md          # Documentation index
 │   ├── CHANGELOG.md       # Version history
 │   ├── MONITORING.md      # Observability guide
 │   ├── UPGRADE_GUIDE.md   # Migration instructions
@@ -523,7 +523,7 @@ We welcome contributions! Please see:
 | Document | Description |
 |----------|-------------|
 | [README.md](README.md) | Main project documentation (this file) |
-| [docs/README.md](docs/README.md) | Documentation index |
+| [docs/README.md](docs/docs_README.md) | Documentation index |
 | [CHANGELOG.md](docs/CHANGELOG.md) | Version history and release notes |
 | [UPGRADE_GUIDE.md](docs/UPGRADE_GUIDE.md) | Migration guide from v4.0 to v5.0 |
 | [v5_UPGRADE_NOTES.md](docs/v5_UPGRADE_NOTES.md) | Technical changes and improvements |
