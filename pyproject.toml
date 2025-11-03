@@ -60,3 +60,8 @@ warn_unused_ignores = true
 no_implicit_optional = true
 strict_equality = true
 check_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.3",
+]
