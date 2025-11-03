@@ -3,6 +3,7 @@
 from prometheus_client import Counter, Histogram, Gauge, start_http_server
 import os
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ TOKEN_USAGE = Counter(
 ERRORS = Counter("ai_errors_total", "Total errors encountered", ["provider", "error_type"])
 
 
-def record_call(provider: str, model: str, status: str = "success"):
+def record_call(provider: str, model: str, status: str = "success") -> None:
     """Record an API call"""
     try:
         API_CALLS.labels(provider=provider, model=model, status=status).inc()
@@ -35,7 +36,7 @@ def record_call(provider: str, model: str, status: str = "success"):
         logger.error(f"Failed to record call metric: {e}")
 
 
-def record_latency(provider: str, model: str, seconds: float):
+def record_latency(provider: str, model: str, seconds: float) -> None:
     """Record response latency"""
     try:
         RESPONSE_LATENCY.labels(provider=provider, model=model).observe(seconds)
@@ -43,7 +44,7 @@ def record_latency(provider: str, model: str, seconds: float):
         logger.error(f"Failed to record latency metric: {e}")
 
 
-def record_tokens(provider: str, model: str, input_tokens: int, output_tokens: int):
+def record_tokens(provider: str, model: str, input_tokens: int, output_tokens: int) -> None:
     """Record token usage"""
     try:
         TOKEN_USAGE.labels(provider=provider, model=model, type="input").inc(input_tokens)
@@ -52,7 +53,7 @@ def record_tokens(provider: str, model: str, input_tokens: int, output_tokens: i
         logger.error(f"Failed to record token metric: {e}")
 
 
-def record_error(provider: str, error_type: str):
+def record_error(provider: str, error_type: str) -> None:
     """Record an error"""
     try:
         ERRORS.labels(provider=provider, error_type=error_type).inc()
@@ -60,7 +61,7 @@ def record_error(provider: str, error_type: str):
         logger.error(f"Failed to record error metric: {e}")
 
 
-def increment_conversations():
+def increment_conversations() -> None:
     """Increment active conversations"""
     try:
         ACTIVE_CONVERSATIONS.inc()
@@ -68,7 +69,7 @@ def increment_conversations():
         logger.error(f"Failed to increment conversations: {e}")
 
 
-def decrement_conversations():
+def decrement_conversations() -> None:
     """Decrement active conversations"""
     try:
         ACTIVE_CONVERSATIONS.dec()
@@ -76,8 +77,11 @@ def decrement_conversations():
         logger.error(f"Failed to decrement conversations: {e}")
 
 
-def start_metrics_server(port: int = None):
-    """Start Prometheus metrics HTTP server"""
+def start_metrics_server(port: Optional[int] = None) -> None:
+    """Start Prometheus metrics HTTP server
+
+    If port is None, read PROMETHEUS_PORT from the environment and use 8000 as fallback.
+    """
     if port is None:
         port = int(os.getenv("PROMETHEUS_PORT", "8000"))
 
