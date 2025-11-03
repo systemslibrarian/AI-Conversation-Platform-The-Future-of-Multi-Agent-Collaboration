@@ -7,35 +7,24 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Metrics
-API_CALLS = Counter(
-    "ai_api_calls_total",
-    "Total API calls made",
-    ["provider", "model", "status"]
-)
+API_CALLS = Counter("ai_api_calls_total", "Total API calls made", ["provider", "model", "status"])
 
 RESPONSE_LATENCY = Histogram(
     "ai_response_seconds",
     "Response latency in seconds",
     ["provider", "model"],
-    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0]
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0],
 )
 
-ACTIVE_CONVERSATIONS = Gauge(
-    "ai_active_conversations",
-    "Number of active conversations"
-)
+ACTIVE_CONVERSATIONS = Gauge("ai_active_conversations", "Number of active conversations")
 
 TOKEN_USAGE = Counter(
     "ai_tokens_total",
     "Total tokens used",
-    ["provider", "model", "type"]  # type = input/output
+    ["provider", "model", "type"],  # type = input/output
 )
 
-ERRORS = Counter(
-    "ai_errors_total",
-    "Total errors encountered",
-    ["provider", "error_type"]
-)
+ERRORS = Counter("ai_errors_total", "Total errors encountered", ["provider", "error_type"])
 
 
 def record_call(provider: str, model: str, status: str = "success"):
@@ -91,7 +80,7 @@ def start_metrics_server(port: int = None):
     """Start Prometheus metrics HTTP server"""
     if port is None:
         port = int(os.getenv("PROMETHEUS_PORT", "8000"))
-    
+
     try:
         start_http_server(port)
         logger.info(f"Prometheus metrics server started on port {port}")

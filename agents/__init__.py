@@ -74,8 +74,9 @@ def get_agent_info(agent_type: str) -> Dict[str, object]:
     """Return the registry record for an agent type (case-insensitive)."""
     k = agent_type.strip().lower()
     if k not in _AGENT_REGISTRY:
-        raise ValueError(f"Unknown agent type: {agent_type!r}. "
-                         f"Known: {', '.join(list_available_agents())}")
+        raise ValueError(
+            f"Unknown agent type: {agent_type!r}. Known: {', '.join(list_available_agents())}"
+        )
     return _AGENT_REGISTRY[k]
 
 
@@ -114,8 +115,7 @@ def create_agent(
     key = api_key or os.getenv(str(info["env_key"]))
     if not key:
         raise ValueError(
-            f"Missing API key for {agent_type!r}. "
-            f"Set {info['env_key']} or pass api_key=..."
+            f"Missing API key for {agent_type!r}. Set {info['env_key']} or pass api_key=..."
         )
     selected_model = model or info["default_model"]
     return cls(  # type: ignore[call-arg]
