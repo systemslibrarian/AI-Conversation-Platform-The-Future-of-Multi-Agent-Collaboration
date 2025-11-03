@@ -71,7 +71,7 @@ docker compose up --build
 
 ## ⚡ Quick Start Guide (Expanded)
 
-Follow the [QUICK_START.md](../QUICK_START.md) file for the full workflow.
+Follow the [QUICK_START.md](QUICK_START.md) file for the full workflow.
 
 ```bash
 # Install uv (faster dependency manager)
@@ -84,7 +84,7 @@ uv sync --all-extras
 uv run aic-start --agent1 claude --agent2 chatgpt --topic "AI safety" --turns 10 --yes
 ```
 
-**Want full-stack observability?** → Jump to the [Docker Deployment Guide](../DOCKER_README.md)
+**Want full-stack observability?** → Jump to the [Docker Deployment Guide](DOCKER_README.md)
 
 ---
 
@@ -112,7 +112,7 @@ docker compose down
 - Configure OTEL tracing for observability
 - Enable TLS and external alerting
 
-See [DOCKER_README.md](../DOCKER_README.md) for full details.
+See [DOCKER_README.md](DOCKER_README.md) for full details.
 
 ---
 
