@@ -14,7 +14,7 @@ class ClaudeAgent(BaseAgent):
     DEFAULT_MODEL = config.CLAUDE_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        kwargs.pop('api_key', None)  # Remove api_key if it exists in kwargs
+        kwargs.pop("api_key", None)  # Remove api_key if it exists in kwargs
         super().__init__(*args, api_key=api_key, **kwargs)
 
         try:
@@ -47,7 +47,7 @@ class ClaudeAgent(BaseAgent):
             content = content_block.text
         else:
             content = str(content_block)
-        
+
         tokens = response.usage.input_tokens + response.usage.output_tokens
 
         return content, tokens
