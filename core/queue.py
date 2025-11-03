@@ -284,9 +284,8 @@ class SQLiteQueue:
             row = conn.execute("SELECT sender FROM messages ORDER BY id DESC LIMIT 1").fetchone()
             if row is None:
                 return None
-            # sqlite3.Row supports mapping access; convert to dict for mypy
-            row_dict = dict(row)
-            sender = row_dict.get("sender")
+            # FIX: Access tuple by index
+            sender = row[0]
             return sender if isinstance(sender, str) else None
         finally:
             conn.close()
@@ -300,8 +299,8 @@ class SQLiteQueue:
             row = conn.execute("SELECT value FROM metadata WHERE key='terminated'").fetchone()
             if row is None:
                 return False
-            row_dict = dict(row)
-            val = row_dict.get("value")
+            # FIX: Access tuple by index
+            val = row[0]
             return str(val) == "1"
         finally:
             conn.close()
@@ -343,8 +342,8 @@ class SQLiteQueue:
             ).fetchone()
             if row is None:
                 return "unknown"
-            row_dict = dict(row)
-            val = row_dict.get("value")
+            # FIX: Access tuple by index
+            val = row[0]
             if val is None or str(val) == "null":
                 return "unknown"
             return str(val)
