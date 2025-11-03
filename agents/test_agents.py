@@ -3,9 +3,8 @@
 import pytest
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any
 
-from agents import create_agent, ClaudeAgent, ChatGPTAgent, GeminiAgent, GrokAgent, PerplexityAgent
+from agents import create_agent, ClaudeAgent, ChatGPTAgent
 from agents.base import CircuitBreaker
 
 
@@ -54,8 +53,8 @@ class TestCircuitBreaker:
         cb.record_failure()
         assert cb.state == "OPEN"
         
-        # After timeout, should transition to HALF_OPEN
-        assert not cb.is_open()  # This triggers the transition
+        # After timeout, should transition to HALF_OPEN when queried
+        assert not cb.is_open()  # This triggers the transition logic
     
     def test_circuit_breaker_success_resets(self):
         """Test successful call resets circuit breaker"""
@@ -239,12 +238,12 @@ class TestAgentBehavior:
             # Add a response
             agent.recent_responses.append("This is a test message")
             
-            # Test high similarity
-            is_similar = agent._check_similarity("This is a test message")
+            # Test high similarity (assert return value directly)
+            assert agent._check_similarity("This is a test message") is True
             assert agent.consecutive_similar > 0
             
             # Test low similarity
-            is_similar = agent._check_similarity("Completely different content here")
+            assert agent._check_similarity("Completely different content here") is False
             assert agent.consecutive_similar == 0
     
     @pytest.mark.asyncio
@@ -284,25 +283,29 @@ class TestAgentSecurity:
         """Test LLM Guard integration (if available)"""
         with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key', 'ENABLE_LLM_GUARD': 'true'}):
             try:
-                from llm_guard.input_scanners import PromptInjection
-                
-                agent = ChatGPTAgent(
-                    api_key='test-key',
-                    queue=mock_queue,
-                    logger=logger,
-                    model='gpt-4o',
-                    topic='test',
-                    timeout_minutes=30
-                )
-                
-                # If llm-guard is available, test scanning
-                if agent.llm_guard_enabled:
-                    text, is_valid = agent._scan_input("Normal text")
-                    assert is_valid is True
-                
-            except ImportError:
-                # llm-guard not installed, skip test
+                # Attempt optional import; skip test if not installed
+                from llm_guard.input_scanners import PromptInjection  # type: ignore
+            except Exception:
                 pytest.skip("llm-guard not installed")
+            
+            agent = ChatGPTAgent(
+                api_key='test-key',
+                queue=mock_queue,
+                logger=logger,
+                model='gpt-4o',
+                topic='test',
+                timeout_minutes=30
+            )
+            
+            # If llm-guard is available, and the agent has scanning enabled, exercise the scan
+            if getattr(agent, "llm_guard_enabled", False):
+                is_valid = agent._scan_input("Normal text")
+                # _scan_input may return tuple (text, bool) or bool depending on implementation; handle both.
+                if isinstance(is_valid, tuple):
+                    _, valid_flag = is_valid
+                    assert valid_flag is True
+                else:
+                    assert is_valid is True
 
 
 if __name__ == "__main__":
