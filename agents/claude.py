@@ -1,8 +1,6 @@
 """Anthropic Claude Agent v5.0 with async support"""
-
 from typing import List, Dict, Tuple
 import asyncio
-import os
 
 from .base import BaseAgent
 from core.config import config
