@@ -2,7 +2,7 @@
 
 > **"Because AIs shouldn't monologue — they should *converse*."**
 
-[![CI](https://github.com/systemslibrarian/ai-conversation-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/systemslibrarian/ai-conversation-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/systemslibrarian/ai-conversation-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/systemslibrarian/ai-conversation-platform/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
