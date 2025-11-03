@@ -178,7 +178,9 @@ class TestCircuitBreaker:
 
     def test_half_open_after_timeout(self):
         """Test transition to HALF_OPEN after timeout"""
-        cb = CircuitBreaker(failure_threshold=2, timeout_seconds=0.1)
+        # --- THIS IS THE FIX ---
+        # Changed 0.1 (float) to 0 (int) to match mypy's expectation
+        cb = CircuitBreaker(failure_threshold=2, timeout_seconds=0)
 
         # Open the circuit
         cb.record_failure()
