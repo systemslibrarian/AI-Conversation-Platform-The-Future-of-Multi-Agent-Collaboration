@@ -165,8 +165,10 @@ Each agent is modular and hot-swappable under `agents/`.
 ---
 
 ## 🧭 License & Credits
+To God be the glory
 MIT License © 2025 Systemslibrarian  
-Developed with ❤️ by Paul Clark (@systemslibrarian) and contributors.
+Developed with ❤️ by Paul Clark (@systemslibrarian) and AI.
+
 
 ---
 
