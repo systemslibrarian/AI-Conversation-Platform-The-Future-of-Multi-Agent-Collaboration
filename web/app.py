@@ -59,7 +59,7 @@ def load_conversation(db_path: Path):
         for msg in messages:
             try:
                 msg["metadata"] = json.loads(msg.get("metadata", "{}"))
-            except:
+            except (json.JSONDecodeError, ValueError, TypeError):  # FIXED: Specific exceptions
                 msg["metadata"] = {}
         
         # Load metadata
@@ -101,7 +101,8 @@ def main():
             help="Enter path to database file (must be in data directory or default location)"
         )
         
-        refresh = st.button("🔄 Refresh", use_container_width=True)
+        if st.button("🔄 Refresh", use_container_width=True):  # FIXED: Use the button return value
+            st.rerun()
         
         st.markdown("---")
         st.markdown("### Metrics")
@@ -127,9 +128,9 @@ def main():
         st.markdown("### Getting Started")
         st.markdown("""
         1. Run a conversation using the CLI:
-           ```bash
+```bash
            aic-start
-           ```
+```
         2. The conversation will be saved to the database
         3. Refresh this page to see the conversation
         """)
