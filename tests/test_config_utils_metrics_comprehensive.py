@@ -485,9 +485,7 @@ class TestMetricsErrorHandling:
 
     def test_record_latency_with_exception(self):
         """Test record_latency handles exceptions"""
-        with patch(
-            "core.metrics.RESPONSE_LATENCY.labels", side_effect=Exception("Metric error")
-        ):
+        with patch("core.metrics.RESPONSE_LATENCY.labels", side_effect=Exception("Metric error")):
             # Should not raise
             record_latency("Test", "model", 1.0)
 

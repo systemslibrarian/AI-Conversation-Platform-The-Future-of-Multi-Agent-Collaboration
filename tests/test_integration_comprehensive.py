@@ -52,9 +52,7 @@ class MockAPIClient:
 class IntegrationTestAgent:
     """Test agent for integration tests"""
 
-    def __init__(
-        self, name, queue, logger, model="test", topic="test", responses=None
-    ):
+    def __init__(self, name, queue, logger, model="test", topic="test", responses=None):
         self.name = name
         self.queue = queue
         self.logger = logger
@@ -178,15 +176,11 @@ class TestFullConversationFlow:
 
         async def add_messages(sender, count):
             for i in range(count):
-                await queue.add_message(
-                    sender, f"Message {i}", {"tokens": 10}
-                )
+                await queue.add_message(sender, f"Message {i}", {"tokens": 10})
                 await asyncio.sleep(0.001)  # Small delay
 
         # Add messages concurrently from two senders
-        await asyncio.gather(
-            add_messages("Agent1", 20), add_messages("Agent2", 20)
-        )
+        await asyncio.gather(add_messages("Agent1", 20), add_messages("Agent2", 20))
 
         # Verify all messages were added
         data = await queue.load()
@@ -480,9 +474,7 @@ class TestConcurrentAgents:
                 while True:
                     last = await queue.get_last_sender()
                     if last is None or last == "Agent2":
-                        await queue.add_message(
-                            "Agent1", f"A1-{i}", {"tokens": 10}
-                        )
+                        await queue.add_message("Agent1", f"A1-{i}", {"tokens": 10})
                         break
                     await asyncio.sleep(0.01)
 
@@ -491,9 +483,7 @@ class TestConcurrentAgents:
                 while True:
                     last = await queue.get_last_sender()
                     if last == "Agent1":
-                        await queue.add_message(
-                            "Agent2", f"A2-{i}", {"tokens": 10}
-                        )
+                        await queue.add_message("Agent2", f"A2-{i}", {"tokens": 10})
                         break
                     await asyncio.sleep(0.01)
 
@@ -546,6 +536,4 @@ class TestStressScenarios:
 
 
 if __name__ == "__main__":
-    pytest.main(
-        [__file__, "-v", "--cov=agents", "--cov=core", "--cov-report=term-missing"]
-    )
+    pytest.main([__file__, "-v", "--cov=agents", "--cov=core", "--cov-report=term-missing"])

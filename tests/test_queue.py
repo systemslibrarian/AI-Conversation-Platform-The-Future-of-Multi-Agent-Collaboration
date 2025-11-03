@@ -20,6 +20,7 @@ from core.config import config
 # FIXTURES
 # ============================================================================
 
+
 @pytest.fixture
 def temp_db():
     """Create temporary database"""
@@ -56,6 +57,7 @@ def mock_redis():
 # SQLITE QUEUE - BASIC TESTS
 # ============================================================================
 
+
 class TestSQLiteQueueBasic:
     """Basic SQLite queue functionality tests"""
 
@@ -72,15 +74,15 @@ class TestSQLiteQueueBasic:
     async def test_add_and_context(self, temp_db, logger):
         """Test adding messages and retrieving context"""
         queue = SQLiteQueue(temp_db, logger)
-        
+
         await queue.add_message("Claude", "Hello, world!", {"tokens": 10})
         await queue.add_message("ChatGPT", "Second message", {"tokens": 5})
-        
+
         ctx = await queue.get_context(2)
         assert len(ctx) == 2
         assert ctx[0]["sender"] == "Claude"
         assert ctx[1]["sender"] == "ChatGPT"
-        
+
         last = await queue.get_last_sender()
         assert last == "ChatGPT"
 
@@ -88,9 +90,9 @@ class TestSQLiteQueueBasic:
     async def test_termination(self, temp_db, logger):
         """Test conversation termination"""
         queue = SQLiteQueue(temp_db, logger)
-        
+
         assert not await queue.is_terminated()
-        
+
         await queue.mark_terminated("done")
         assert await queue.is_terminated()
         assert (await queue.get_termination_reason()) == "done"
@@ -105,7 +107,7 @@ class TestSQLiteQueueBasic:
                 await queue.add_message(sender, f"m{i}", {"tokens": 1})
 
         await asyncio.gather(add("Claude"), add("ChatGPT"))
-        
+
         data = await queue.load()
         assert len(data["messages"]) == 20
         assert data["metadata"]["total_turns"] == 20
@@ -120,6 +122,7 @@ class TestSQLiteQueueBasic:
 # ============================================================================
 # SQLITE QUEUE - COMPREHENSIVE TESTS
 # ============================================================================
+
 
 class TestSQLiteQueueComprehensive:
     """Comprehensive SQLite queue tests"""
@@ -282,6 +285,7 @@ class TestSQLiteQueueComprehensive:
 # REDIS QUEUE TESTS
 # ============================================================================
 
+
 class TestRedisQueue:
     """Test RedisQueue implementation"""
 
@@ -300,9 +304,7 @@ class TestRedisQueue:
 
             queue = RedisQueue("redis://localhost:6379/0", logger)
 
-            result = await queue.add_message(
-                "Agent1", "Test message", {"tokens": 50}
-            )
+            result = await queue.add_message("Agent1", "Test message", {"tokens": 50})
 
             assert mock_redis.xadd.called
             assert mock_redis.hincrby.called
@@ -418,9 +420,7 @@ class TestRedisQueue:
         with patch("core.queue.redis") as mock_redis_module:
             mock_redis_module.from_url.return_value = mock_redis
 
-            mock_redis.xrange.return_value = [
-                (b"1-0", {"sender": "Agent1", "content": "M1"})
-            ]
+            mock_redis.xrange.return_value = [(b"1-0", {"sender": "Agent1", "content": "M1"})]
             mock_redis.hgetall.return_value = {"total_turns": "1"}
 
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -487,6 +487,7 @@ class TestRedisQueue:
 # FACTORY FUNCTION TESTS
 # ============================================================================
 
+
 class TestQueueFactory:
     """Test queue factory function"""
 
@@ -502,9 +503,7 @@ class TestQueueFactory:
         with patch("core.queue.redis") as mock_redis_module:
             mock_redis_module.from_url.return_value = AsyncMock()
 
-            queue = create_queue(
-                "redis://localhost:6379/0", logger, use_redis=True
-            )
+            queue = create_queue("redis://localhost:6379/0", logger, use_redis=True)
             assert isinstance(queue, RedisQueue)
 
     @pytest.mark.asyncio
@@ -520,6 +519,7 @@ class TestQueueFactory:
 # ============================================================================
 # ERROR HANDLING TESTS
 # ============================================================================
+
 
 class TestErrorHandling:
     """Test error handling in queue operations"""
@@ -546,6 +546,7 @@ class TestErrorHandling:
 # ============================================================================
 # STRESS TESTS
 # ============================================================================
+
 
 class TestStressScenarios:
     """Test under stress conditions"""

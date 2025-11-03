@@ -21,6 +21,7 @@ from core.config import config
 # FIXTURES
 # ============================================================================
 
+
 @pytest.fixture
 def mock_queue():
     """Create a comprehensive mock queue"""
@@ -52,15 +53,17 @@ def logger():
 # MOCK API CLIENTS
 # ============================================================================
 
+
 class DummyOpenAIClient:
     """Mock OpenAI client for testing"""
+
     def __init__(self, *args, **kwargs):
         self.chat = type("Chat", (), {"completions": type("Comps", (), {})()})()
 
         def _create(**kwargs):
-            choice = type("Choice", (), {
-                "message": type("Msg", (), {"content": "Hello, world!"})()
-            })()
+            choice = type(
+                "Choice", (), {"message": type("Msg", (), {"content": "Hello, world!"})()}
+            )()
             usage = type("Usage", (), {"total_tokens": 20})()
             return type("Resp", (), {"choices": [choice], "usage": usage})()
 
@@ -69,6 +72,7 @@ class DummyOpenAIClient:
 
 class DummyAnthropicClient:
     """Mock Anthropic client for testing"""
+
     def __init__(self, *args, **kwargs):
         def _create(**kwargs):
             content = [type("Block", (), {"text": "Hello from Claude!"})()]
@@ -80,6 +84,7 @@ class DummyAnthropicClient:
 
 class DummyGeminiModel:
     """Mock Gemini model for testing"""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -87,12 +92,14 @@ class DummyGeminiModel:
         class Chat:
             def send_message(self, last):
                 return type("Resp", (), {"text": "Gemini says hi"})()
+
         return Chat()
 
 
 # ============================================================================
 # TESTABLE AGENT (for BaseAgent testing)
 # ============================================================================
+
 
 class TestableAgent(BaseAgent):
     """Concrete implementation for testing BaseAgent"""
@@ -132,6 +139,7 @@ def agent(mock_queue, logger):
 # ============================================================================
 # CIRCUIT BREAKER TESTS
 # ============================================================================
+
 
 class TestCircuitBreaker:
     """Comprehensive circuit breaker tests"""
@@ -228,6 +236,7 @@ class TestCircuitBreaker:
 # BASE AGENT INITIALIZATION
 # ============================================================================
 
+
 class TestBaseAgentInitialization:
     """Test agent initialization"""
 
@@ -295,6 +304,7 @@ class TestBaseAgentInitialization:
 # TERMINATION SIGNALS
 # ============================================================================
 
+
 class TestTerminationSignals:
     """Test termination signal detection"""
 
@@ -336,6 +346,7 @@ class TestTerminationSignals:
 # ============================================================================
 # SIMILARITY DETECTION
 # ============================================================================
+
 
 class TestSimilarityDetection:
     """Test similarity detection"""
@@ -397,6 +408,7 @@ class TestSimilarityDetection:
 # TIMEOUT TESTS
 # ============================================================================
 
+
 class TestTimeout:
     """Test timeout functionality"""
 
@@ -427,6 +439,7 @@ class TestTimeout:
 # ============================================================================
 # SHOULD RESPOND LOGIC
 # ============================================================================
+
 
 class TestShouldRespond:
     """Test should_respond logic"""
@@ -472,15 +485,14 @@ class TestShouldRespond:
 # RESPONSE GENERATION
 # ============================================================================
 
+
 class TestGenerateResponse:
     """Test generate_response method"""
 
     @pytest.mark.asyncio
     async def test_successful_generation(self, agent, mock_queue):
         """Test successful response generation"""
-        mock_queue.get_context.return_value = [
-            {"sender": "Partner", "content": "Hello"}
-        ]
+        mock_queue.get_context.return_value = [{"sender": "Partner", "content": "Hello"}]
 
         content, tokens, response_time = await agent.generate_response()
 
@@ -513,6 +525,7 @@ class TestGenerateResponse:
     @pytest.mark.asyncio
     async def test_rate_limit_detection(self, agent):
         """Test rate limit error detection"""
+
         async def failing_api(messages):
             raise Exception("Rate limit exceeded (429)")
 
@@ -525,6 +538,7 @@ class TestGenerateResponse:
 # ============================================================================
 # MESSAGE BUILDING
 # ============================================================================
+
 
 class TestBuildMessages:
     """Test message building"""
@@ -559,6 +573,7 @@ class TestBuildMessages:
 # SYSTEM PROMPT
 # ============================================================================
 
+
 class TestSystemPrompt:
     """Test system prompt building"""
 
@@ -591,6 +606,7 @@ class TestSystemPrompt:
 # ============================================================================
 # SPECIFIC AGENT TESTS - ChatGPT
 # ============================================================================
+
 
 class TestChatGPTAgent:
     """Test ChatGPT agent implementation"""
@@ -637,6 +653,7 @@ class TestChatGPTAgent:
 # SPECIFIC AGENT TESTS - Claude
 # ============================================================================
 
+
 class TestClaudeAgent:
     """Test Claude agent implementation"""
 
@@ -681,6 +698,7 @@ class TestClaudeAgent:
 # SPECIFIC AGENT TESTS - Gemini
 # ============================================================================
 
+
 class TestGeminiAgent:
     """Test Gemini agent implementation"""
 
@@ -707,6 +725,7 @@ class TestGeminiAgent:
 # ============================================================================
 # AGENT FACTORY
 # ============================================================================
+
 
 class TestAgentFactory:
     """Test agent factory function"""
