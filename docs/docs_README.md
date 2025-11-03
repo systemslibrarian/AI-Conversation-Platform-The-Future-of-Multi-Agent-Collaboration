@@ -53,7 +53,7 @@ docker compose up --build
 - [🚀 README](../README.md) — Project overview
 - [⚡ QUICK_START.md](QUICK_START.md) — Fastest setup guide
 - [🐳 DOCKER_README.md](DOCKER_README.md) — Container deployment
-- [🔧 Installation Guide](#installation) — Detailed setup instructions
+- [🔧 Installation Guide](INSTALLATION_GUIDE.md) — Detailed setup instructions
 
 ### 📘 Core Documentation
 - [📋 CHANGELOG](CHANGELOG.md) — Version history and release notes
