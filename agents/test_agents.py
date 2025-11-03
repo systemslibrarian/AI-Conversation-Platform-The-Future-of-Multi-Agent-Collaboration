@@ -1,10 +1,9 @@
 """Comprehensive agent tests for AI Conversation Platform v5.0"""
 
 import pytest
-import asyncio
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, Any
+from typing import Any
 
 from agents import create_agent, ClaudeAgent, ChatGPTAgent, GeminiAgent, GrokAgent, PerplexityAgent
 from agents.base import CircuitBreaker
