@@ -218,9 +218,10 @@ class TestAgentBehavior:
     async def test_similarity_detection(self, mock_queue, logger):
         """Test similarity detection logic"""
         # Patch config values from 'agents.base.config' for predictable testing
-        with patch("agents.base.config.SIMILARITY_THRESHOLD", 0.9), \
-             patch("agents.base.config.MAX_CONSECUTIVE_SIMILAR", 3):
-            
+        with (
+            patch("agents.base.config.SIMILARITY_THRESHOLD", 0.9),
+            patch("agents.base.config.MAX_CONSECUTIVE_SIMILAR", 3),
+        ):
             with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
                 agent = ChatGPTAgent(
                     api_key="test-key",
@@ -233,7 +234,7 @@ class TestAgentBehavior:
 
             test_message = "This is a test message"
             diff_message = "Completely different content here"
-            
+
             # Add an initial response to compare against
             agent.recent_responses.append(test_message)
             assert agent.consecutive_similar == 0
@@ -260,16 +261,15 @@ class TestAgentBehavior:
             # Test 2nd similar message again
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 2
-            
+
             # Test 3rd similar message (should meet threshold of 3)
             # Should NOW return True
             assert agent._check_similarity(test_message) is True
             assert agent.consecutive_similar == 3
-            
+
             # Test that a subsequent different message resets the counter
             assert agent._check_similarity(diff_message) is False
             assert agent.consecutive_similar == 0
-
 
     @pytest.mark.asyncio
     async def test_should_respond(self, mock_queue, logger):
