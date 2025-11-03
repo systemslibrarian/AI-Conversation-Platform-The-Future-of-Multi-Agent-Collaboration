@@ -528,7 +528,6 @@ We welcome contributions! Please see:
 | [UPGRADE_GUIDE.md](docs/UPGRADE_GUIDE.md) | Migration guide from v4.0 to v5.0 |
 | [v5_UPGRADE_NOTES.md](docs/v5_UPGRADE_NOTES.md) | Technical changes and improvements |
 | [MONITORING.md](docs/MONITORING.md) | Observability setup guide |
-| [DOCKER_README.md](docs/DOCKER_README.md) | Docker deployment guide |
 | [SECURITY.md](SECURITY.md) | Security policy and guidelines |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards |
