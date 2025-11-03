@@ -8,7 +8,7 @@ import asyncio
 import tempfile
 import logging
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 from agents import create_agent, ChatGPTAgent, ClaudeAgent
 from core.queue import SQLiteQueue, create_queue

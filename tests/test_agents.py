@@ -8,12 +8,11 @@ import pytest
 import asyncio
 import logging
 import time
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, patch
 from datetime import datetime, timedelta
-from collections import deque
 
-from agents import create_agent, ChatGPTAgent, ClaudeAgent, GeminiAgent, GrokAgent, PerplexityAgent
-from agents.base import BaseAgent, CircuitBreaker, TurnMetadata
+from agents import create_agent, ChatGPTAgent, ClaudeAgent, GeminiAgent
+from agents.base import BaseAgent, CircuitBreaker
 from core.config import config
 
 

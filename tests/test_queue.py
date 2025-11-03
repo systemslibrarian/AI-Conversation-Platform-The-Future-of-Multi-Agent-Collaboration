@@ -9,10 +9,9 @@ import asyncio
 import tempfile
 from pathlib import Path
 import logging
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from core.queue import SQLiteQueue, RedisQueue, create_queue, ValidationError, DatabaseError
+from core.queue import SQLiteQueue, RedisQueue, create_queue
 from core.config import config
 
 
