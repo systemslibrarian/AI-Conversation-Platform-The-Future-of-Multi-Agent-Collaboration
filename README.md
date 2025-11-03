@@ -5,7 +5,9 @@
 <p align="center">
   <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml"><img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
   <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml"><img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-  <img src="https://img.shields.io/badge/coverage-90%25-brightgreen?style=flat&logo=pytest" alt="Coverage 90%">
+  <a href="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
+    <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage"/>
+  </a>
   <img src="https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white" alt="Ruff">
   <img src="https://img.shields.io/badge/type--checked-mypy-blue" alt="mypy">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
@@ -17,6 +19,7 @@
   <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus Metrics">
   <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana Dashboards">
 </p>
+
 
 
 ---
