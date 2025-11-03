@@ -734,7 +734,9 @@ class TestGrokAgent:
     async def test_grok_api_call(self, mock_queue, logger, monkeypatch):
         """Test Grok API call"""
         monkeypatch.setenv("XAI_API_KEY", "test-key")
-        with patch("agents.grok.OpenAI", DummyOpenAIClient):
+        # --- FIX APPLIED HERE ---
+        # Patch 'openai.OpenAI' since Grok agent uses the same local import
+        with patch("openai.OpenAI", DummyOpenAIClient):
             agent = GrokAgent(
                 api_key="dummy",
                 queue=mock_queue,
@@ -760,7 +762,9 @@ class TestPerplexityAgent:
     async def test_perplexity_api_call(self, mock_queue, logger, monkeypatch):
         """Test Perplexity API call"""
         monkeypatch.setenv("PERPLEXITY_API_KEY", "test-key")
-        with patch("agents.perplexity.OpenAI", DummyOpenAIClient):
+        # --- FIX APPLIED HERE ---
+        # Patch 'openai.OpenAI' since Perplexity agent uses the same local import
+        with patch("openai.OpenAI", DummyOpenAIClient):
             agent = PerplexityAgent(
                 api_key="dummy",
                 queue=mock_queue,
@@ -797,7 +801,7 @@ class TestAgentFactory:
 
     def test_create_claude_agent(self, mock_queue, logger):
         """Test creating Claude agent via factory"""
-        with patch.dict("os.environ",  {"ANTHROPIC_API_KEY": "test-key"}):
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
             with patch("agents.claude.anthropic.Anthropic", DummyAnthropicClient):
                 agent = create_agent(
                     agent_type="claude",
@@ -811,7 +815,8 @@ class TestAgentFactory:
     def test_create_grok_agent(self, mock_queue, logger):
         """Test creating Grok agent via factory"""
         with patch.dict("os.environ", {"XAI_API_KEY": "test-key"}):
-            with patch("agents.grok.OpenAI", DummyOpenAIClient):
+            # --- FIX APPLIED HERE ---
+            with patch("openai.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="grok",
                     queue=mock_queue,
@@ -824,7 +829,8 @@ class TestAgentFactory:
     def test_create_perplexity_agent(self, mock_queue, logger):
         """Test creating Perplexity agent via factory"""
         with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
-            with patch("agents.perplexity.OpenAI", DummyOpenAIClient):
+            # --- FIX APPLIED HERE ---
+            with patch("openai.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="perplexity",
                     queue=mock_queue,
