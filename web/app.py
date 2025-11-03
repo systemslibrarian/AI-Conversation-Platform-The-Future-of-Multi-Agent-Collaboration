@@ -153,9 +153,7 @@ def safe_lower_contains(haystack: Optional[str], needle: Optional[str]) -> bool:
 
 
 def main() -> None:
-    st.set_page_config(
-        page_title="AI Conversation Platform", page_icon="🤖", layout="wide"
-    )
+    st.set_page_config(page_title="AI Conversation Platform", page_icon="🤖", layout="wide")
     st.title("🤖 AI Conversation Platform v5.0")
     st.markdown("---")
 
@@ -170,9 +168,7 @@ def main() -> None:
             st.rerun()
         st.markdown("---")
         st.markdown("### Metrics")
-        st.markdown(
-            f"[View Prometheus Metrics](http://localhost:{config.PROMETHEUS_PORT}/metrics)"
-        )
+        st.markdown(f"[View Prometheus Metrics](http://localhost:{config.PROMETHEUS_PORT}/metrics)")
         st.markdown("---")
         st.markdown("### Security")
         st.caption("✓ Path validation enabled")
@@ -198,18 +194,14 @@ def main() -> None:
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        total_turns = (
-            metadata.get("total_turns") if metadata and "total_turns" in metadata else 0
-        )
+        total_turns = metadata.get("total_turns") if metadata and "total_turns" in metadata else 0
         try:
             st.metric("Total Turns", int(total_turns))
         except Exception:
             st.metric("Total Turns", total_turns)
     with col2:
         total_tokens = (
-            metadata.get("total_tokens")
-            if metadata and "total_tokens" in metadata
-            else 0
+            metadata.get("total_tokens") if metadata and "total_tokens" in metadata else 0
         )
         try:
             st.metric("Total Tokens", int(total_tokens))
@@ -217,9 +209,7 @@ def main() -> None:
             st.metric("Total Tokens", total_tokens)
     with col3:
         terminated_val = metadata.get("terminated") if metadata else None
-        status = (
-            "Terminated" if str(terminated_val) in ("1", "true", "True") else "Active"
-        )
+        status = "Terminated" if str(terminated_val) in ("1", "true", "True") else "Active"
         st.metric("Status", status)
     with col4:
         reason = metadata.get("termination_reason", "N/A") if metadata else "N/A"
@@ -250,15 +240,11 @@ def main() -> None:
 
     if sender_filter != "All":
         filtered_messages = [
-            m
-            for m in filtered_messages
-            if (m.get("sender") or "Unknown") == sender_filter
+            m for m in filtered_messages if (m.get("sender") or "Unknown") == sender_filter
         ]
     if search:
         filtered_messages = [
-            m
-            for m in filtered_messages
-            if safe_lower_contains(m.get("content", ""), search)
+            m for m in filtered_messages if safe_lower_contains(m.get("content", ""), search)
         ]
 
     for msg in filtered_messages:
