@@ -19,7 +19,7 @@ import logging
 from core.config import config
 from core.queue import QueueInterface
 from core.common import log_event, simple_similarity, add_jitter
-from core.metrics import record_call, record_latency, record_error, record_tokens
+from core.metrics import record_call, record_latency, record_error
 from core.tracing import get_tracer
 
 
