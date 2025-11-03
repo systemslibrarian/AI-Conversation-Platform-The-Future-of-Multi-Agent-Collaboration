@@ -622,8 +622,8 @@ class TestChatGPTAgent:
     async def test_chatgpt_initialization(self, mock_queue, logger):
         """Test ChatGPT agent initialization"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # Use colon syntax to specify module and object path explicitly
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            # FIXED: Correct patch path for direct import
+            with patch("agents.chatgpt.OpenAI", DummyOpenAIClient):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -641,7 +641,8 @@ class TestChatGPTAgent:
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            # FIXED: Correct patch path for direct import
+            with patch("agents.chatgpt.OpenAI", DummyOpenAIClient):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -797,8 +798,8 @@ class TestAgentFactory:
     def test_create_chatgpt_agent(self, mock_queue, logger):
         """Test creating ChatGPT agent via factory"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # This test also needs the corrected patch path
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            # FIXED: Correct patch path for direct import
+            with patch("agents.chatgpt.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
@@ -856,7 +857,8 @@ class TestAgentFactory:
     def test_create_agent_with_model_override(self, mock_queue, logger):
         """Test agent creation with model override"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt:openai.OpenAI", DummyOpenAIClient):
+            # FIXED: Correct patch path for direct import
+            with patch("agents.chatgpt.OpenAI", DummyOpenAIClient):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
