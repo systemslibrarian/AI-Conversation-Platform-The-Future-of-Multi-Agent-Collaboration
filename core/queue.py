@@ -1,5 +1,4 @@
-"""
-Async Message Queue - v5.0 ENTERPRISE EDITION
+"""Async Message Queue - v5.0 ENTERPRISE EDITION
 - Thread-safe async SQLite implementation
 - Optional Redis backend for distributed deployments
 - Atomic operations with proper transaction management
@@ -11,7 +10,7 @@ import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Protocol
+from typing import Dict, List, Optional, Any, Protocol, cast
 from datetime import datetime
 from filelock import FileLock, Timeout
 
@@ -66,7 +65,7 @@ class QueueInterface(Protocol):
 class SQLiteQueue:
     """Async SQLite-based message queue with atomic operations"""
 
-    def __init__(self, filepath: Path, logger, lock_timeout: int = 30):
+    def __init__(self, filepath: Path, logger, lock_timeout: int = 30) -> None:
         self.filepath = Path(filepath)
         self.logger = logger
         self.lock_timeout = lock_timeout
@@ -81,7 +80,7 @@ class SQLiteQueue:
             self.logger, "queue_initialized", {"filepath": str(self.filepath), "type": "sqlite"}
         )
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         """Initialize database schema"""
         conn = sqlite3.connect(str(self.filepath), timeout=30)
         conn.execute("PRAGMA journal_mode=WAL")
@@ -134,7 +133,7 @@ class SQLiteQueue:
         conn.commit()
         conn.close()
 
-    def _validate_message(self, sender: str, content: str):
+    def _validate_message(self, sender: str, content: str) -> (str, str):
         """Validate and normalize inputs"""
         sender_map = {
             "claude": "Claude",
@@ -154,7 +153,7 @@ class SQLiteQueue:
 
         return sender_normalized, content.strip()
 
-    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict:
+    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Atomically add a message - ALL OPERATIONS IN ONE TRANSACTION
         This eliminates race conditions
@@ -163,7 +162,7 @@ class SQLiteQueue:
 
         sender, content = self._validate_message(sender, content)
 
-        msg = {
+        msg: Dict[str, Any] = {
             "sender": sender,
             "content": content,
             "timestamp": datetime.now().isoformat(),
@@ -219,7 +218,7 @@ class SQLiteQueue:
                             SET value = CAST(CAST(value AS INTEGER) + ? AS TEXT)
                             WHERE key='total_tokens'
                         """,
-                            (metadata["tokens"],),
+                            (int(metadata["tokens"]),),
                         )
 
                     conn.commit()
@@ -242,7 +241,7 @@ class SQLiteQueue:
             log_event(self.logger, "lock_timeout", {"action": "add_message"})
             raise DatabaseError("Failed to acquire lock")
 
-    async def get_context(self, max_messages: int = 10) -> List[Dict]:
+    async def get_context(self, max_messages: int = 10) -> List[Dict[str, Any]]:
         """Get recent conversation context"""
         await asyncio.sleep(0)
 
@@ -254,12 +253,17 @@ class SQLiteQueue:
                 "SELECT * FROM messages ORDER BY id DESC LIMIT ?", (max_messages,)
             ).fetchall()
 
-            messages = [dict(row) for row in reversed(rows)]
+            # convert rows into plain dicts (typing-friendly)
+            messages: List[Dict[str, Any]] = [dict(row) for row in reversed(rows)]
 
             # Parse metadata JSON
             for msg in messages:
                 try:
-                    msg["metadata"] = json.loads(msg["metadata"]) if msg.get("metadata") else {}
+                    raw_meta = msg.get("metadata")
+                    if isinstance(raw_meta, str) and raw_meta:
+                        msg["metadata"] = json.loads(raw_meta)
+                    else:
+                        msg["metadata"] = {}
                 except json.JSONDecodeError:
                     msg["metadata"] = {}
 
@@ -274,7 +278,12 @@ class SQLiteQueue:
         conn = sqlite3.connect(str(self.filepath))
         try:
             row = conn.execute("SELECT sender FROM messages ORDER BY id DESC LIMIT 1").fetchone()
-            return row[0] if row else None
+            if row is None:
+                return None
+            # sqlite3.Row supports mapping access; convert to dict for mypy
+            row_dict = dict(row)
+            sender = row_dict.get("sender")
+            return sender if isinstance(sender, str) else None
         finally:
             conn.close()
 
@@ -285,7 +294,11 @@ class SQLiteQueue:
         conn = sqlite3.connect(str(self.filepath))
         try:
             row = conn.execute("SELECT value FROM metadata WHERE key='terminated'").fetchone()
-            return row and row[0] == "1"
+            if row is None:
+                return False
+            row_dict = dict(row)
+            val = row_dict.get("value")
+            return str(val) == "1"
         finally:
             conn.close()
 
@@ -323,11 +336,17 @@ class SQLiteQueue:
             row = conn.execute(
                 "SELECT value FROM metadata WHERE key='termination_reason'"
             ).fetchone()
-            return row[0] if row and row[0] != "null" else "unknown"
+            if row is None:
+                return "unknown"
+            row_dict = dict(row)
+            val = row_dict.get("value")
+            if val is None or str(val) == "null":
+                return "unknown"
+            return str(val)
         finally:
             conn.close()
 
-    async def load(self) -> Dict:
+    async def load(self) -> Dict[str, Any]:
         """Load all messages and metadata"""
         await asyncio.sleep(0)
 
@@ -335,22 +354,21 @@ class SQLiteQueue:
         conn.row_factory = sqlite3.Row
 
         try:
-            messages = [
-                dict(row) for row in conn.execute("SELECT * FROM messages ORDER BY id").fetchall()
-            ]
+            messages = [dict(row) for row in conn.execute("SELECT * FROM messages ORDER BY id").fetchall()]
 
-            metadata = {
-                row["key"]: row["value"]
-                for row in conn.execute("SELECT key, value FROM metadata").fetchall()
-            }
-
-            # Parse metadata values
-            metadata = {k: (None if v == "null" else v) for k, v in metadata.items()}
-            metadata = {
-                k: (int(v) if isinstance(v, str) and v.isdigit() else v)
-                for k, v in metadata.items()
-            }
-
+            metadata_rows = conn.execute("SELECT key, value FROM metadata").fetchall()
+            metadata: Dict[str, Any] = {}
+            for row in metadata_rows:
+                row_dict = dict(row)
+                k = row_dict.get("key")
+                v = row_dict.get("value")
+                # normalize "null" to None
+                if isinstance(v, str) and v == "null":
+                    metadata[k] = None
+                elif isinstance(v, str) and v.isdigit():
+                    metadata[k] = int(v)
+                else:
+                    metadata[k] = v
             return {"messages": messages, "metadata": metadata}
         finally:
             conn.close()
@@ -359,7 +377,7 @@ class SQLiteQueue:
         """Perform health check"""
         await asyncio.sleep(0)
 
-        health = {"healthy": True, "checks": {}, "timestamp": datetime.now().isoformat()}
+        health: Dict[str, Any] = {"healthy": True, "checks": {}, "timestamp": datetime.now().isoformat()}
 
         # Database connectivity
         try:
@@ -373,16 +391,23 @@ class SQLiteQueue:
 
         # Lock availability
         try:
-            acquired = self.lock.acquire(timeout=1)
+            # FileLock.acquire() returns None on success; use a boolean style check for clarity
+            acquired = False
+            try:
+                self.lock.acquire(timeout=1)
+                acquired = True
+            except Timeout:
+                acquired = False
+
             if acquired:
-                self.lock.release()
+                try:
+                    self.lock.release()
+                except Exception:
+                    pass
                 health["checks"]["lock"] = "ok"
             else:
                 health["checks"]["lock"] = "timeout"
                 health["healthy"] = False
-        except Timeout:
-            health["checks"]["lock"] = "timeout"
-            health["healthy"] = False
         except Exception as e:
             health["checks"]["lock"] = f"error: {e}"
             health["healthy"] = False
@@ -393,9 +418,9 @@ class SQLiteQueue:
 class RedisQueue:
     """Redis-based message queue for distributed deployments"""
 
-    def __init__(self, url: str, logger):
+    def __init__(self, url: str, logger) -> None:
         try:
-            import redis.asyncio as redis
+            import redis.asyncio as redis  # type: ignore
         except ImportError:
             raise ImportError("redis package required for RedisQueue. Install: pip install redis")
 
@@ -405,9 +430,9 @@ class RedisQueue:
 
         log_event(self.logger, "queue_initialized", {"type": "redis", "conv_id": self.conv_id})
 
-    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict:
+    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         """Add message to Redis stream"""
-        msg = {
+        msg: Dict[str, Any] = {
             "sender": sender,
             "content": content,
             "timestamp": datetime.now().isoformat(),
@@ -421,16 +446,16 @@ class RedisQueue:
         await self.r.hincrby(f"{self.conv_id}:meta", f"{sender.lower()}_turns", 1)
 
         if metadata and "tokens" in metadata:
-            await self.r.hincrby(f"{self.conv_id}:meta", "total_tokens", metadata["tokens"])
+            await self.r.hincrby(f"{self.conv_id}:meta", "total_tokens", int(metadata["tokens"]))
 
         log_event(self.logger, "message_added", {"sender": sender, "stream_id": msg_id})
 
         return {**msg, "id": msg_id}
 
-    async def get_context(self, max_messages: int = 10) -> List[Dict]:
+    async def get_context(self, max_messages: int = 10) -> List[Dict[str, Any]]:
         """Get recent messages from Redis stream"""
         entries = await self.r.xrevrange(f"{self.conv_id}:messages", count=max_messages)
-        messages = []
+        messages: List[Dict[str, Any]] = []
 
         for stream_id, fields in reversed(entries):
             msg = dict(fields)
@@ -453,7 +478,7 @@ class RedisQueue:
     async def is_terminated(self) -> bool:
         """Check if conversation terminated"""
         value = await self.r.get(f"{self.conv_id}:terminated")
-        return value == "1"
+        return str(value) == "1"
 
     async def mark_terminated(self, reason: str) -> None:
         """Mark conversation as terminated"""
@@ -468,7 +493,7 @@ class RedisQueue:
         reason = await self.r.get(f"{self.conv_id}:reason")
         return reason or "unknown"
 
-    async def load(self) -> Dict:
+    async def load(self) -> Dict[str, Any]:
         """Load all messages and metadata"""
         # Get all messages
         entries = await self.r.xrange(f"{self.conv_id}:messages")
@@ -481,7 +506,7 @@ class RedisQueue:
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform health check"""
-        health = {"healthy": True, "checks": {}, "timestamp": datetime.now().isoformat()}
+        health: Dict[str, Any] = {"healthy": True, "checks": {}, "timestamp": datetime.now().isoformat()}
 
         try:
             await self.r.ping()
