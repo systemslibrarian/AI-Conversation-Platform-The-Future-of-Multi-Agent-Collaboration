@@ -2,8 +2,6 @@
 
 > **"Because AIs shouldn't monologue — they should *converse*."**
 
-# 🤖 AI Conversation Platform — Multi-Agent Collaboration
-
 [![CI](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml)
 [![Coverage Status](https://img.shields.io/badge/coverage-90%25-brightgreen?style=flat&logo=pytest)](https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/tree/main/tests)
