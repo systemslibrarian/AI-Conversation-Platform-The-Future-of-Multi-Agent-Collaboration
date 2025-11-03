@@ -3,7 +3,6 @@
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from typing import List
 from pydantic import BaseModel, Field, ValidationError
 
 load_dotenv()
