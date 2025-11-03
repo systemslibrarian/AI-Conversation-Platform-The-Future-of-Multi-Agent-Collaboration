@@ -13,10 +13,9 @@ import asyncio
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Protocol
 from datetime import datetime
-from contextlib import asynccontextmanager
 from filelock import FileLock, Timeout
 
-from .common import log_event, hash_message, mask_api_key
+from .common import log_event, hash_message
 from .config import config
 
 
