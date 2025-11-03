@@ -59,7 +59,7 @@ def load_conversation(db_path: Path):
         for msg in messages:
             try:
                 msg["metadata"] = json.loads(msg.get("metadata", "{}"))
-            except (json.JSONDecodeError, ValueError, TypeError):  # FIXED: Specific exceptions
+            except (json.JSONDecodeError, ValueError, TypeError):
                 msg["metadata"] = {}
         
         # Load metadata
@@ -101,7 +101,7 @@ def main():
             help="Enter path to database file (must be in data directory or default location)"
         )
         
-        if st.button("🔄 Refresh", use_container_width=True):  # FIXED: Use the button return value
+        if st.button("🔄 Refresh", use_container_width=True):
             st.rerun()
         
         st.markdown("---")
