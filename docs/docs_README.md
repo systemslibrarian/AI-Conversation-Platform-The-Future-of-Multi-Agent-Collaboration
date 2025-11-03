@@ -8,7 +8,6 @@ Welcome to the **AI Conversation Platform v5.0** documentation hub. This directo
 
 ### Getting Started
 - [🚀 Main README](../README.md) - Project overview and quick start
-- [⚡ Quick Start Guide](#quick-start-guide) - Get running in 5 minutes
 - [🔧 Installation Guide](#installation) - Detailed setup instructions
 
 ### Core Documentation
