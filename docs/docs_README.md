@@ -14,7 +14,7 @@ Welcome to the **AI Conversation Platform v5.0** documentation hub. This directo
 - [📋 CHANGELOG](CHANGELOG.md) - Version history and release notes
 - [📊 MONITORING](MONITORING.md) - Observability setup (Prometheus + Grafana)
 - [🔄 UPGRADE_GUIDE](UPGRADE_GUIDE.md) - Migration from v4.0 to v5.0
-- [📝 v5 UPGRADE NOTES](v5_UPGRADE_NOTES.md) - Technical changes (8.5→10/10)
+- [📝 v5 UPGRADE NOTES](v5_UPGRADE_NOTES.md) - Technical changes
 
 ### Additional Resources
 - [🐳 Docker Guide](DOCKER_README.md) - Container deployment
