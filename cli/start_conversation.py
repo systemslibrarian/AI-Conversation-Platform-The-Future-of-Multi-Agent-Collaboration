@@ -1,5 +1,4 @@
-"""
-Interactive AI-to-AI Conversation Starter v5.0 - ASYNC EDITION with CLI Support
+"""Interactive AI-to-AI Conversation Starter v5.0 - ASYNC EDITION with CLI Support
 """
 
 import asyncio
@@ -148,7 +147,7 @@ class ConversationStarter:
         response = input(f"Enter (default {config.DEFAULT_MAX_TURNS}): ").strip()
         
         if not response:
-            return config.DEFAULT_MAX_TURNS
+            return config.DEFAULT_max_turns if hasattr(config, "DEFAULT_max_turns") else config.DEFAULT_MAX_TURNS
         
         try:
             turns = int(response)
@@ -253,7 +252,9 @@ class ConversationStarter:
             # Non-fatal: continue even if seeding fails
             pass
         # --- END NEW ---
-    increment_conversations()
+
+        # Increment active conversation counter and then run agents
+        increment_conversations()
         
         try:
             # Run both agents concurrently
