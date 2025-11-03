@@ -162,7 +162,7 @@ class TestSetupLogging:
         """Test log directory creation"""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_dir = Path(tmpdir) / "new_logs"
-            logger = setup_logging("test_agent", str(log_dir))
+            _ = setup_logging("test_agent", str(log_dir))
 
             assert log_dir.exists()
 
