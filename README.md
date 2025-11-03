@@ -50,7 +50,6 @@ uv run aic-start --agent1 claude --agent2 chatgpt --topic "The future of AGI" --
 
 ### 🚀 **Production Ready**
 - ✅ **10/10 Enterprise Rating** — Fully production-ready with all best practices
-- ✅ **90%+ Test Coverage** — Comprehensive test suite with async support
 - ✅ **Type Safety** — 100% mypy strict mode compliance
 - ✅ **CI/CD Pipeline** — Automated testing, linting, and security scanning
 - ✅ **Docker Support** — One-command deployment with docker-compose
