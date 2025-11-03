@@ -10,7 +10,7 @@ import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Protocol, cast
+from typing import Dict, List, Optional, Any, Protocol
 from datetime import datetime
 from filelock import FileLock, Timeout
 
