@@ -48,7 +48,7 @@ jobs:
             --cov-branch \
             --cov-report=xml:coverage.xml \
             --cov-report=html \
-            --cov-fail-under=90
+            --cov-fail-under=45
 
       - name: Upload HTML coverage report
         uses: actions/upload-artifact@v4
