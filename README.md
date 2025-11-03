@@ -1,23 +1,21 @@
-# 🤖 AI Conversation Platform v5.0 — Enterprise Multi-Agent System
+<h1 align="center">🤖 AI Conversation Platform v5.0 — Enterprise Multi-Agent System</h1>
+
+<p align="center"><em>"Because AIs shouldn't monologue — they should <strong>converse</strong>."</em></p>
 
 <p align="center">
-  <em>"Because AIs shouldn't monologue — they should <strong>converse</strong>."</em>
+  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml"><img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml"><img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  <img src="https://img.shields.io/badge/coverage-90%25-brightgreen?style=flat&logo=pytest" alt="Coverage 90%">
+  <img src="https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white" alt="Ruff">
+  <img src="https://img.shields.io/badge/type--checked-mypy-blue" alt="mypy">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
 </p>
 
 <p align="center">
-  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml"><img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml"><img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" /></a>
-  <img src="https://img.shields.io/badge/coverage-90%25-brightgreen?style=flat&logo=pytest" alt="Coverage" />
-  <img src="https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white" alt="Ruff" />
-  <img src="https://img.shields.io/badge/type--checked-mypy-blue" alt="mypy" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+" />
-  <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker" />
-  <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus" />
-  <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana" />
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus Metrics">
+  <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana Dashboards">
 </p>
 
 
