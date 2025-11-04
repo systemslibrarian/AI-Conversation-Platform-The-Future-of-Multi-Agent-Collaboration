@@ -1,15 +1,25 @@
 """Interactive AI-to-AI Conversation Starter v5.0 - ASYNC EDITION with CLI Support"""
 
-import asyncio
 import argparse
+import asyncio
 import sys
-from typing import Tuple, Optional
+from pathlib import Path
+from typing import Optional, Tuple
 
-from agents import create_agent, detect_configured_agents, get_agent_info, list_available_agents
-from core.config import config
+from agents import (
+    create_agent,
+    detect_configured_agents,
+    get_agent_info,
+    list_available_agents,
+)
 from core.common import setup_logging
+from core.config import config
+from core.metrics import (
+    decrement_conversations,
+    increment_conversations,
+    start_metrics_server,
+)
 from core.queue import create_queue
-from core.metrics import start_metrics_server, increment_conversations, decrement_conversations
 from core.tracing import setup_tracing
 
 
@@ -18,7 +28,9 @@ class ConversationStarter:
 
     def __init__(self, args: Optional[argparse.Namespace] = None):
         self.available_agents = detect_configured_agents()
-        self.conversation_file = args.db if args and args.db else config.DEFAULT_CONVERSATION_FILE
+        self.conversation_file = (
+            args.db if args and args.db else config.DEFAULT_CONVERSATION_FILE
+        )
         self.args = args
 
     def _print_banner(self):
@@ -65,7 +77,9 @@ class ConversationStarter:
                 print(f"  {info['class'].PROVIDER_NAME} - Set {info['env_key']}")
             print()
 
-    def _select_agent(self, position: str, cli_agent: Optional[str] = None) -> Tuple[str, str]:
+    def _select_agent(
+        self, position: str, cli_agent: Optional[str] = None
+    ) -> Tuple[str, str]:
         """Select agent interactively or from CLI"""
 
         # If CLI argument provided, use it
@@ -90,7 +104,10 @@ class ConversationStarter:
     def _get_topic(self) -> str:
         if self.args and self.args.topic:
             return self.args.topic
-        return input("\nConversation topic (or press Enter for general): ").strip() or "general"
+        return (
+            input("\nConversation topic (or press Enter for general): ").strip()
+            or "general"
+        )
 
     def _get_max_turns(self) -> int:
         if self.args and self.args.turns:
@@ -167,8 +184,12 @@ class ConversationStarter:
 
         self._show_available_agents()
 
-        agent1_type, agent1_model = self._select_agent("first", self.args.agent1 if self.args else None)
-        agent2_type, agent2_model = self._select_agent("second", self.args.agent2 if self.args else None)
+        agent1_type, agent1_model = self._select_agent(
+            "first", self.args.agent1 if self.args else None
+        )
+        agent2_type, agent2_model = self._select_agent(
+            "second", self.args.agent2 if self.args else None
+        )
 
         # Override models if provided via CLI
         if self.args and self.args.model1:
@@ -185,7 +206,9 @@ class ConversationStarter:
         topic = self._get_topic()
         max_turns = self._get_max_turns()
 
-        self._print_summary(agent1_type, agent1_model, agent2_type, agent2_model, topic, max_turns)
+        self._print_summary(
+            agent1_type, agent1_model, agent2_type, agent2_model, topic, max_turns
+        )
 
         if not (self.args and self.args.yes):
             response = input("\nStart conversation? (Y/n): ")
@@ -230,7 +253,9 @@ Examples:
     )
 
     parser.add_argument(
-        "--agent1", type=str, help="First agent (claude, chatgpt, gemini, grok, perplexity)"
+        "--agent1",
+        type=str,
+        help="First agent (claude, chatgpt, gemini, grok, perplexity)",
     )
     parser.add_argument("--agent2", type=str, help="Second agent")
     parser.add_argument("--model1", type=str, help="Model for first agent")
@@ -238,7 +263,9 @@ Examples:
     parser.add_argument("--topic", type=str, help="Conversation topic")
     parser.add_argument("--turns", type=int, help="Maximum number of turns")
     parser.add_argument("--db", type=str, help="Database file path")
-    parser.add_argument("--yes", "-y", action="store_true", help="Auto-confirm all prompts")
+    parser.add_argument(
+        "--yes", "-y", action="store_true", help="Auto-confirm all prompts"
+    )
 
     args = parser.parse_args()
 
