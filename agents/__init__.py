@@ -39,6 +39,7 @@ _AGENT_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "PerplexityAgent": ("agents.perplexity", "PerplexityAgent"),
 }
 
+
 def _load_class(symbol: str) -> Any:
     """Import the module and return the named class."""
     try:
@@ -51,6 +52,7 @@ def _load_class(symbol: str) -> Any:
     except AttributeError as e:
         raise ImportError(f"Cannot import name {class_name!r} from {module_path}") from e
 
+
 def __getattr__(name: str) -> Any:  # PEP 562
     """Expose agent classes lazily as module attributes."""
     if name in _AGENT_SYMBOLS:
@@ -58,6 +60,7 @@ def __getattr__(name: str) -> Any:  # PEP 562
         globals()[name] = obj  # cache for speed
         return obj
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Provider registry uses symbols; real classes are resolved on demand.
 _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
@@ -93,6 +96,7 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     },
 }
 
+
 def _resolve_provider(agent_key: str) -> Tuple[Type[BaseAgent], str, str]:
     """Return (class, env_key, default_model_str) for an agent key."""
     rec = _AGENT_REGISTRY[agent_key]
@@ -101,8 +105,10 @@ def _resolve_provider(agent_key: str) -> Tuple[Type[BaseAgent], str, str]:
     default_model = getattr(cls, rec["default_model_attr"], None) or rec["fallback_model"]
     return cls, env_key, str(default_model)
 
+
 def list_available_agents() -> List[str]:
     return sorted(_AGENT_REGISTRY.keys())
+
 
 def detect_configured_agents() -> List[str]:
     available: List[str] = []
@@ -111,6 +117,7 @@ def detect_configured_agents() -> List[str]:
             available.append(key)
     return sorted(available)
 
+
 def get_agent_info(agent_type: str) -> Dict[str, Any]:
     k = agent_type.strip().lower()
     if k not in _AGENT_REGISTRY:
@@ -118,6 +125,7 @@ def get_agent_info(agent_type: str) -> Dict[str, Any]:
             f"Unknown agent type: {agent_type!r}. Known: {', '.join(list_available_agents())}"
         )
     return _AGENT_REGISTRY[k]
+
 
 def create_agent(
     agent_type: str,
