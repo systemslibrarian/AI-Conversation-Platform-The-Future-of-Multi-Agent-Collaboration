@@ -59,14 +59,15 @@ jobs:
           python-version: '3.11' # Or your project's version
           cache: 'pip'
 
-      # --- THIS IS THE FIX ---
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv pip install -r requirements.txt # This will work now
+        # --- THIS IS THE FIX ---
+        # Add the --system flag to install into the runner's python
+        run: uv pip install --system -r requirements.txt 
 
       - name: Run Pytest
         run: uv run pytest -q --maxfail=1 --disable-warnings
