@@ -60,10 +60,7 @@ class ConversationStarter:
 
         for agent_type in sorted(self.available_agents):
             info = get_agent_info(agent_type)
-            # Load the class dynamically to get PROVIDER_NAME
-            from agents import _load_class
-
-            agent_class = _load_class(info["symbol"])
+            agent_class = info["class"]
             print(f"  {agent_class.PROVIDER_NAME} ({agent_type})")
 
         print()
@@ -74,13 +71,12 @@ class ConversationStarter:
             print("-" * 80)
             for agent_type in sorted(unavailable):
                 info = get_agent_info(agent_type)
-                from agents import _load_class
-
-                agent_class = _load_class(info["symbol"])
-                print(f"  {agent_class.PROVIDER_NAME} - Set {info['env_key']}")
+                print(f"  {info['class'].PROVIDER_NAME} - Set {info['env_key']}")
             print()
 
-    def _select_agent(self, position: str, cli_agent: Optional[str] = None) -> Tuple[str, str]:
+    def _select_agent(
+        self, position: str, cli_agent: Optional[str] = None
+    ) -> Tuple[str, Optional[str]]:
         """Select agent interactively or from CLI"""
 
         # If CLI argument provided, use it
@@ -104,12 +100,12 @@ class ConversationStarter:
 
     def _get_topic(self) -> str:
         if self.args and self.args.topic:
-            return self.args.topic
+            return str(self.args.topic)
         return input("\nConversation topic (or press Enter for general): ").strip() or "general"
 
     def _get_max_turns(self) -> int:
         if self.args and self.args.turns:
-            return self.args.turns
+            return int(self.args.turns)
         while True:
             turns = input("\nMaximum turns per agent (default 50): ").strip()
             if not turns:
@@ -146,7 +142,7 @@ class ConversationStarter:
         topic: str,
         max_turns: int,
     ):
-        logger = setup_logging()
+        logger = setup_logging("conversation")
         queue = create_queue(self.conversation_file, logger)
 
         agent1 = create_agent(
