@@ -66,8 +66,8 @@ jobs:
 
       - name: Install dependencies
         # --- THIS IS THE FIX ---
-        # Add 'pytest' to the install command
-        run: uv pip install --system -r requirements.txt pytest
+        # Added 'pytest-asyncio' to handle async tests
+        run: uv pip install --system -r requirements.txt pytest pytest-asyncio
 
       - name: Run Pytest
         # This command will now find the 'pytest' executable
@@ -91,4 +91,6 @@ jobs:
           languages: python
 
       - name: Perform CodeQL Analysis
-        uses: github/codeGQL-action/analyze@v3
+        # --- THIS IS THE FIX ---
+        # Corrected typo from 'codeGQL-action' to 'codeql-action'
+        uses: github/codeql-action/analyze@v3
