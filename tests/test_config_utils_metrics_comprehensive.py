@@ -265,7 +265,8 @@ class TestSimpleSimilarity:
     def test_empty_strings(self):
         """Test empty strings"""
         sim = simple_similarity("", "")
-        assert sim == 0.0
+        # Two empty strings are identical, so similarity should be 1.0
+        assert sim == 1.0
 
     def test_one_empty_string(self):
         """Test one empty string"""
