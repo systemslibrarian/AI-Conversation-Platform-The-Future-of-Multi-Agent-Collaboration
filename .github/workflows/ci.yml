@@ -5,59 +5,83 @@ on:
     branches: [ main ]
   pull_request:
 
-# Grant permissions for the auto-commit step to write to the repo
+# This gives the "fix-formatting" job permission to commit changes
 permissions:
   contents: write
 
 jobs:
-  # --- JOB 1: The Fixer ---
+  # --- JOB 1: RUNS FIRST ---
+  # This job will fix lint and format issues and commit them
   fix-formatting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # Need to fetch history for the auto-commit to work
+          fetch-depth: 0 
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install ruff
-      - run: ruff check . --fix
-      - run: ruff format .
-      - uses: stefanzweifel/git-auto-commit-action@v5
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff Linter Fix
+        run: ruff check . --fix
+
+      - name: Run Ruff Formatter
+        run: ruff format .
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: auto-fix Ruff issues"
 
-  # --- JOB 2: The Tester ---
+  # --- JOB 2: RUNS SECOND ---
+  # This job will only start after 'fix-formatting' is complete
   run-tests:
-    # This 'needs' keyword forces this job to WAIT
-    # until 'fix-formatting' is 100% complete.
+    # This 'needs' keyword is the magic.
+    # It forces this job to WAIT for 'fix-formatting' to succeed.
     needs: fix-formatting
+    
     runs-on: ubuntu-latest
     steps:
-      # This checkout is CRITICAL. It checks out the
-      # *newest* code from the branch, which includes
-      # the new commit just made by the 'fix-formatting' job.
-      - uses: actions/checkout@v4
+      # This checkout is CRITICAL. It checks out the *newest* code,
+      # which includes the new commit just made by the 'fix-formatting' job.
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      # Now, run your tests on the CLEAN code
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11' # Or your project's version
           cache: 'pip'
-      - run: pip install -r requirements.txt # Or your setup command
-      - run: uv run pytest -q --maxfail=1 --disable-warnings
 
-  # --- JOB 3: CodeQL (if you want) ---
-  codeql-scan:
-    # This job also waits for the fix to be done
+      - name: Install dependencies
+        run: pip install -r requirements.txt # This will work now
+
+      - name: Run Pytest
+        run: uv run pytest -q --maxfail=1 --disable-warnings
+        
+  # --- JOB 3: RUNS IN PARALLEL WITH TESTS ---
+  codeql:
+    # This also waits for the formatting to be fixed
     needs: fix-formatting
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Required for CodeQL
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      # --- Add your CodeQL steps here ---
-      # - name: Initialize CodeQL
-      #   uses: github/codeql-action/init@v3
-      #   with:
-      #     languages: python
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      # - name: Perform CodeQL Analysis
-      #   uses: github/codeql-action/analyze@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
