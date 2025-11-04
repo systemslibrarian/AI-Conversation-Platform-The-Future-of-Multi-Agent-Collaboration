@@ -284,7 +284,8 @@ class TestRedisQueue:
         original_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
-            if name == "redis":
+            # This now catches 'redis' AND 'redis.asyncio'
+            if name.startswith("redis"):
                 raise ImportError("No module named redis")
             return original_import(name, *args, **kwargs)
 
