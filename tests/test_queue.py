@@ -1,5 +1,5 @@
 """
-Comprehensive Queue Tests - Merged Edition
+Comprehensive Queue Tests – Merged Edition
 Combines basic and comprehensive SQLite/Redis queue testing
 Coverage target: 92%+ for core/queue.py
 """
@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 import logging
 from unittest.mock import AsyncMock, patch
-import builtins  # <-- NEW: needed for mocking __import__
+import builtins   # <-- needed for mocking __import__
 
 from core.queue import SQLiteQueue, RedisQueue, create_queue
 from core.config import config
@@ -49,12 +49,13 @@ def mock_redis():
     redis_mock.xrange.return_value = []
     redis_mock.get.return_value = None
     redis_mock.hgetall.return_value = {}
+    redis_mock.hget.return_value = None
     redis_mock.ping.return_value = True
     return redis_mock
 
 
 # ============================================================================
-# SQLITE QUEUE - BASIC TESTS
+# SQLITE QUEUE – BASIC TESTS
 # ============================================================================
 
 
@@ -120,7 +121,7 @@ class TestSQLiteQueueBasic:
 
 
 # ============================================================================
-# SQLITE QUEUE - COMPREHENSIVE TESTS
+# SQLITE QUEUE – COMPREHENSIVE TESTS
 # ============================================================================
 
 
@@ -188,7 +189,6 @@ class TestSQLiteQueueComprehensive:
 
         data = await queue.load()
 
-        # Count turns from messages
         agent1_turns = sum(1 for msg in data["messages"] if msg["sender"] == "Agent1")
         agent2_turns = sum(1 for msg in data["messages"] if msg["sender"] == "Agent2")
 
@@ -201,15 +201,12 @@ class TestSQLiteQueueComprehensive:
         """Test context retrieval respects max messages"""
         queue = SQLiteQueue(temp_db, logger)
 
-        # Add many messages
         for i in range(20):
             await queue.add_message("Agent1", f"Message {i}", {})
 
-        # Get context with limit
         context = await queue.get_context(max_messages=5)
 
         assert len(context) == 5
-        # Should get most recent
         assert "Message 19" in context[-1]["content"]
 
     @pytest.mark.asyncio
@@ -228,10 +225,8 @@ class TestSQLiteQueueComprehensive:
         await queue.add_message("Agent1", "Message", {"tokens": 10})
         await queue.mark_terminated("test_reason")
 
-        # Create new queue instance with same db
         queue2 = SQLiteQueue(temp_db, logger)
 
-        # Termination should persist
         assert await queue2.is_terminated()
         assert await queue2.get_termination_reason() == "test_reason"
 
@@ -240,7 +235,6 @@ class TestSQLiteQueueComprehensive:
         """Test getting termination reason when null"""
         queue = SQLiteQueue(temp_db, logger)
 
-        # Initially should be null/unknown
         reason = await queue.get_termination_reason()
         assert reason == "unknown"
 
@@ -295,7 +289,7 @@ class TestRedisQueue:
     """Test RedisQueue implementation"""
 
     # ------------------------------------------------------------
-    # FIXED TEST – mocks the import of the *redis* package
+    # 1. Test that RedisQueue fails gracefully when redis is missing
     # ------------------------------------------------------------
     @pytest.mark.asyncio
     async def test_redis_init_without_package(self, logger):
@@ -312,16 +306,13 @@ class TestRedisQueue:
             with pytest.raises(ImportError, match="redis package required"):
                 RedisQueue("redis://localhost:6379/0", logger)
 
-    # -----------------------------------------------------------------
-    # The rest of the Redis tests stay unchanged – they run only when
-    # the real `redis` package is installed, so `core.queue.redis` exists.
-    # -----------------------------------------------------------------
+    # ------------------------------------------------------------
+    # 2. All other Redis tests – mock the *redis* module directly
+    # ------------------------------------------------------------
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
 
             result = await queue.add_message("Agent1", "Test message", {"tokens": 50})
@@ -333,28 +324,26 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_get_context(self, logger, mock_redis):
         """Test getting context from Redis"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.xrevrange.return_value = [
+            (
+                b"1234567890-0",
+                {
+                    b"sender": b"Agent1",
+                    b"content": b"Message 1",
+                    b"metadata": b'{"tokens": 10}',
+                },
+            ),
+            (
+                b"1234567891-0",
+                {
+                    b"sender": b"Agent2",
+                    b"content": b"Message 2",
+                    b"metadata": b'{"tokens": 20}',
+                },
+            ),
+        ]
 
-            mock_redis.xrevrange.return_value = [
-                (
-                    b"1234567890-0",
-                    {
-                        b"sender": b"Agent1",
-                        b"content": b"Message 1",
-                        b"metadata": b'{"tokens": 10}',
-                    },
-                ),
-                (
-                    b"1234567891-0",
-                    {
-                        b"sender": b"Agent2",
-                        b"content": b"Message 2",
-                        b"metadata": b'{"tokens": 20}',
-                    },
-                ),
-            ]
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             messages = await queue.get_context(max_messages=10)
 
@@ -365,13 +354,11 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_get_last_sender(self, logger, mock_redis):
         """Test getting last sender from Redis"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.xrevrange.return_value = [
+            (b"1234567890-0", {b"sender": b"Agent1", b"content": b"Last"})
+        ]
 
-            mock_redis.xrevrange.return_value = [
-                (b"1234567890-0", {b"sender": b"Agent1", b"content": b"Last"})
-            ]
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             last_sender = await queue.get_last_sender()
 
@@ -380,11 +367,9 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_get_last_sender_empty(self, logger, mock_redis):
         """Test getting last sender when no messages"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.xrevrange.return_value = []
 
-            mock_redis.xrevrange.return_value = []
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             last_sender = await queue.get_last_sender()
 
@@ -393,24 +378,17 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_is_terminated(self, logger, mock_redis):
         """Test checking if conversation terminated"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.get.side_effect = [b"0", b"1"]
 
-            # Not terminated
-            mock_redis.get.return_value = b"0"
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             assert not await queue.is_terminated()
-
-            # Terminated
-            mock_redis.get.return_value = b"1"
             assert await queue.is_terminated()
 
     @pytest.mark.asyncio
     async def test_mark_terminated(self, logger, mock_redis):
         """Test marking conversation as terminated"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             await queue.mark_terminated("test_reason")
 
@@ -420,29 +398,20 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_get_termination_reason(self, logger, mock_redis):
         """Test getting termination reason"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.hget.side_effect = [b"max_turns", None]
 
-            # With reason
-            mock_redis.hget.return_value = b"max_turns"
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
-            reason = await queue.get_termination_reason()
-            assert reason == "max_turns"
-
-            # Without reason
-            mock_redis.hget.return_value = None
-            reason = await queue.get_termination_reason()
-            assert reason == "unknown"
+            assert await queue.get_termination_reason() == "max_turns"
+            assert await queue.get_termination_reason() == "unknown"
 
     @pytest.mark.asyncio
     async def test_load(self, logger, mock_redis):
         """Test loading all data from Redis"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.xrange.return_value = [(b"1-0", {b"sender": b"Agent1", b"content": b"M1"})]
+        mock_redis.hgetall.return_value = {b"total_turns": b"1"}
 
-            mock_redis.xrange.return_value = [(b"1-0", {b"sender": b"Agent1", b"content": b"M1"})]
-            mock_redis.hgetall.return_value = {b"total_turns": b"1"}
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             data = await queue.load()
 
@@ -453,11 +422,9 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_health_check_healthy(self, logger, mock_redis):
         """Test health check when Redis is healthy"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.ping.return_value = True
 
-            mock_redis.ping.return_value = True
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             health = await queue.health_check()
 
@@ -467,11 +434,9 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_health_check_unhealthy(self, logger, mock_redis):
         """Test health check when Redis fails"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.ping.side_effect = Exception("Connection failed")
 
-            mock_redis.ping.side_effect = Exception("Connection failed")
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             health = await queue.health_check()
 
@@ -481,24 +446,21 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_malformed_json_metadata(self, logger, mock_redis):
         """Test handling malformed JSON in metadata"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = mock_redis
+        mock_redis.xrevrange.return_value = [
+            (
+                b"1-0",
+                {
+                    b"sender": b"Agent1",
+                    b"content": b"Test",
+                    b"metadata": b"not-valid-json",
+                },
+            )
+        ]
 
-            mock_redis.xrevrange.return_value = [
-                (
-                    b"1-0",
-                    {
-                        b"sender": b"Agent1",
-                        b"content": b"Test",
-                        b"metadata": b"not-valid-json",
-                    },
-                )
-            ]
-
+        with patch("redis.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             messages = await queue.get_context(max_messages=10)
 
-            # Should handle gracefully with empty dict
             assert len(messages) == 1
             assert messages[0]["metadata"] == {}
 
@@ -520,18 +482,14 @@ class TestQueueFactory:
     @pytest.mark.asyncio
     async def test_factory_creates_redis_with_flag(self, logger):
         """Test factory creates Redis queue with flag"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = AsyncMock()
-
+        with patch("redis.from_url", return_value=AsyncMock()):
             queue = create_queue("redis://localhost:6379/0", logger, use_redis=True)
             assert isinstance(queue, RedisQueue)
 
     @pytest.mark.asyncio
     async def test_factory_creates_redis_with_url(self, logger):
         """Test factory creates Redis queue from URL"""
-        with patch("core.queue.redis") as mock_redis_module:
-            mock_redis_module.from_url.return_value = AsyncMock()
-
+        with patch("redis.from_url", return_value=AsyncMock()):
             queue = create_queue("redis://localhost:6379/0", logger)
             assert isinstance(queue, RedisQueue)
 
@@ -549,14 +507,11 @@ class TestErrorHandling:
         """Test queue continues working after errors"""
         queue = SQLiteQueue(temp_db, logger)
 
-        # Add a valid message
         await queue.add_message("Agent1", "Valid", {"tokens": 10})
 
-        # Try to add invalid message (empty content)
         with pytest.raises(Exception):
             await queue.add_message("Agent1", "", {"tokens": 10})
 
-        # Queue should still work
         await queue.add_message("Agent2", "Also valid", {"tokens": 10})
 
         data = await queue.load()
@@ -576,7 +531,6 @@ class TestStressScenarios:
         """Test handling many messages"""
         queue = SQLiteQueue(temp_db, logger)
 
-        # Add 100 messages
         for i in range(100):
             sender = f"Agent{i % 3 + 1}"
             await queue.add_message(sender, f"Message {i}", {"tokens": 10})
@@ -590,17 +544,13 @@ class TestStressScenarios:
         """Test rapid termination checking"""
         queue = SQLiteQueue(temp_db, logger)
 
-        # Check termination many times rapidly
         results = await asyncio.gather(*[queue.is_terminated() for _ in range(50)])
+        assert all(not r for r in results)
 
-        assert all(result is False for result in results)
-
-        # Now terminate and check again
         await queue.mark_terminated("test")
 
         results = await asyncio.gather(*[queue.is_terminated() for _ in range(50)])
-
-        assert all(result is True for result in results)
+        assert all(r for r in results)
 
 
 # ============================================================================
