@@ -94,7 +94,7 @@ class TestChatGPTAgent:
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt.OpenAI") as mock_openai:
+            with patch("openai.OpenAI") as mock_openai:
                 # Create a mock client without casting to avoid read-only property issues
                 mock_client = MagicMock()
                 mock_client.chat.completions.create.return_value = MagicMock(
@@ -123,7 +123,7 @@ class TestClaudeAgent:
     async def test_claude_api_call(self, mock_queue, logger):
         """Test Claude API call"""
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            with patch("agents.claude.Anthropic") as mock_anthropic:
+            with patch("anthropic.Anthropic") as mock_anthropic:
                 # Create a mock client without casting to avoid read-only property issues
                 mock_client = MagicMock()
                 mock_client.messages.create.return_value = MagicMock(
