@@ -85,6 +85,11 @@ class IntegrationTestAgent:
                 )
                 self.turn_count += 1
 
+                # Check if this message contains termination signal
+                if "[done]" in content.lower():
+                    await self.queue.mark_terminated("test_termination_signal")
+                    break
+
                 # Check termination
                 if await self.queue.is_terminated():
                     break
