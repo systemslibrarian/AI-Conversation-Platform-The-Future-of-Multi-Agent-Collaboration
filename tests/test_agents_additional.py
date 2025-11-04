@@ -24,6 +24,7 @@ def logger():
 
 class DummyOpenAIClient:
     """Mock OpenAI client for Grok and Perplexity tests"""
+
     def __init__(self, *args, **kwargs):
         self.chat = type("Chat", (), {"completions": type("Comps", (), {})()})()
 
@@ -39,6 +40,7 @@ class DummyOpenAIClient:
 
 class DummyGenAIModel:
     """Mock Google Gemini model"""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -57,7 +59,7 @@ class TestGrokAgent:
     async def test_grok_initialization(self, mock_queue, logger):
         """Test Grok agent initialization"""
         from agents import GrokAgent
-        
+
         with patch.dict("os.environ", {"XAI_API_KEY": "test-key"}):
             # Patch at source: openai.OpenAI
             with patch("openai.OpenAI", DummyOpenAIClient):
@@ -78,7 +80,7 @@ class TestGrokAgent:
     async def test_grok_api_call(self, mock_queue, logger):
         """Test Grok API call"""
         from agents import GrokAgent
-        
+
         with patch.dict("os.environ", {"XAI_API_KEY": "test-key"}):
             # Patch at source: openai.OpenAI
             with patch("openai.OpenAI", DummyOpenAIClient):
@@ -102,7 +104,7 @@ class TestPerplexityAgent:
     async def test_perplexity_initialization(self, mock_queue, logger):
         """Test Perplexity agent initialization"""
         from agents import PerplexityAgent
-        
+
         with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
             # Patch at source: openai.OpenAI
             with patch("openai.OpenAI", DummyOpenAIClient):
@@ -123,7 +125,7 @@ class TestPerplexityAgent:
     async def test_perplexity_api_call(self, mock_queue, logger):
         """Test Perplexity API call"""
         from agents import PerplexityAgent
-        
+
         with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
             # Patch at source: openai.OpenAI
             with patch("openai.OpenAI", DummyOpenAIClient):
@@ -147,7 +149,7 @@ class TestGeminiAgent:
     async def test_gemini_initialization(self, mock_queue, logger):
         """Test Gemini agent initialization"""
         from agents import GeminiAgent
-        
+
         with patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"}):
             # Patch at source: google.generativeai module
             with patch("google.generativeai.configure"):
@@ -169,7 +171,7 @@ class TestGeminiAgent:
     async def test_gemini_api_call(self, mock_queue, logger):
         """Test Gemini API call"""
         from agents import GeminiAgent
-        
+
         with patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"}):
             # Patch at source: google.generativeai module
             with patch("google.generativeai.configure"):
