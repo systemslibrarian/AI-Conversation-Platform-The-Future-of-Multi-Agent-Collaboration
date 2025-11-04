@@ -3,7 +3,6 @@
 import asyncio
 import argparse
 import sys
-from pathlib import Path
 from typing import Tuple, Optional
 
 from agents import create_agent, detect_configured_agents, get_agent_info, list_available_agents
