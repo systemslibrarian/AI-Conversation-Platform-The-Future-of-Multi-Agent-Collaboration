@@ -6,7 +6,7 @@ import os
 from typing import Dict, List, Type
 
 from .base import BaseAgent
-from .chatgpt import ChatGPTAgent
+from .chatgpt import ChatGPTAgent  # type: ignore[attr-defined]
 from .claude import ClaudeAgent
 from .gemini import GeminiAgent
 from .grok import GrokAgent
