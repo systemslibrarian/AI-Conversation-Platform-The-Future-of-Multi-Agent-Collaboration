@@ -11,7 +11,7 @@ from openai import OpenAI
 from anthropic import Anthropic
 
 # We patch 'agents.base.config' so we must import from agents.base
-from agents import create_agent, ClaudeAgent, ChatGPTAgent
+from agents import ClaudeAgent, ChatGPTAgent
 from agents.base import CircuitBreaker
 
 
