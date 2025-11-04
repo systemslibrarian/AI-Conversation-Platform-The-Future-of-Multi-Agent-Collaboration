@@ -1,6 +1,6 @@
 """Anthropic Claude Agent v5.0 with async support"""
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 import asyncio
 
 from .base import BaseAgent
@@ -14,41 +14,33 @@ class ClaudeAgent(BaseAgent):
     DEFAULT_MODEL = config.CLAUDE_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        # Merge api_key into kwargs for parent class
         kwargs["api_key"] = api_key
         super().__init__(*args, **kwargs)
 
         try:
-            import anthropic
+            from anthropic import Anthropic
 
-            self.client = anthropic.Anthropic(api_key=api_key)
-        except ImportError:
+            self.client: Any = Anthropic(api_key=api_key)
+        except ImportError:  # pragma: no cover
             raise ImportError("Install: pip install anthropic")
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Claude API asynchronously"""
         system = self._build_system_prompt()
 
-        # Run blocking API call in executor
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: self.client.messages.create(
+            lambda: self.client.messages.create(  # type: ignore[attr-defined]
                 model=self.model,
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
                 system=system,
-                messages=messages,  # type: ignore[arg-type]
+                messages=messages,  # list[dict] is acceptable for SDK
             ),
         )
 
-        # Handle TextBlock union - extract text from first content block
         content_block = response.content[0]
-        if hasattr(content_block, "text"):
-            content = content_block.text
-        else:
-            content = str(content_block)
-
+        content = content_block.text if hasattr(content_block, "text") else str(content_block)
         tokens = response.usage.input_tokens + response.usage.output_tokens
-
         return content, tokens

@@ -1,17 +1,17 @@
-"""Anthropic Claude Agent v5.0 with async support"""
+"""OpenAI ChatGPT Agent v5.0 with async support"""
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 import asyncio
 
 from .base import BaseAgent
 from core.config import config
 
 
-class ClaudeAgent(BaseAgent):
-    """Anthropic Claude agent with async API calls"""
+class ChatGPTAgent(BaseAgent):
+    """OpenAI ChatGPT agent with async API calls"""
 
-    PROVIDER_NAME = "Claude"
-    DEFAULT_MODEL = config.CLAUDE_DEFAULT_MODEL
+    PROVIDER_NAME = "ChatGPT"
+    DEFAULT_MODEL = config.CHATGPT_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
         # Merge api_key into kwargs for parent class
@@ -19,37 +19,29 @@ class ClaudeAgent(BaseAgent):
         super().__init__(*args, **kwargs)
 
         try:
-            # ✅ FIXED: import Anthropic directly so tests can patch agents.claude.Anthropic
-            from anthropic import Anthropic
+            from openai import OpenAI
 
-            self.client = Anthropic(api_key=api_key)
-        except ImportError:
-            raise ImportError("Install: pip install anthropic")
+            # Explicitly non-Optional for mypy
+            self.client: Any = OpenAI(api_key=api_key)
+        except ImportError:  # pragma: no cover
+            raise ImportError("Install: pip install openai")
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
-        """Call Claude API asynchronously"""
+        """Call OpenAI API asynchronously"""
         system = self._build_system_prompt()
+        api_messages = [{"role": "system", "content": system}] + messages
 
-        # Run blocking API call in executor
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: self.client.messages.create(
+            lambda: self.client.chat.completions.create(  # type: ignore[attr-defined]
                 model=self.model,
+                messages=api_messages,
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
-                system=system,
-                messages=messages,  # type: ignore[arg-type]
             ),
         )
 
-        # Handle TextBlock union - extract text from first content block
-        content_block = response.content[0]
-        if hasattr(content_block, "text"):
-            content = content_block.text
-        else:
-            content = str(content_block)
-
-        tokens = response.usage.input_tokens + response.usage.output_tokens
-
+        content = response.choices[0].message.content or ""
+        tokens = response.usage.total_tokens if response.usage else 0
         return content, tokens
