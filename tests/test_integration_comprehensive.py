@@ -308,7 +308,7 @@ class TestFactoryAndAgentCreation:
         queue = SQLiteQueue(temp_db, logger)
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt.OpenAI"):
+            with patch("openai.OpenAI"):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=queue,
@@ -325,7 +325,7 @@ class TestFactoryAndAgentCreation:
         queue = SQLiteQueue(temp_db, logger)
 
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            with patch("agents.claude.anthropic.Anthropic"):
+            with patch("anthropic.Anthropic"):
                 agent = create_agent(
                     agent_type="claude",
                     queue=queue,
@@ -342,7 +342,7 @@ class TestFactoryAndAgentCreation:
         queue = SQLiteQueue(temp_db, logger)
 
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt.OpenAI"):
+            with patch("openai.OpenAI"):
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=queue,
