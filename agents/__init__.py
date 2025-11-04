@@ -42,6 +42,7 @@ _AGENT_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "PerplexityAgent": ("agents.perplexity", "PerplexityAgent"),
 }
 
+
 def _load_class(symbol: str) -> Any:
     """Import the module and return the named class."""
     try:
@@ -54,6 +55,7 @@ def _load_class(symbol: str) -> Any:
     except AttributeError as e:
         raise ImportError(f"Cannot import name {class_name!r} from {module_path}") from e
 
+
 def __getattr__(name: str) -> Any:  # PEP 562
     """Lazy expose agent classes as module attributes."""
     if name in _AGENT_SYMBOLS:
@@ -61,6 +63,7 @@ def __getattr__(name: str) -> Any:  # PEP 562
         globals()[name] = obj  # cache for subsequent lookups
         return obj
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # ---- Registry (uses lazy loading) -------------------------------------------
 
@@ -98,6 +101,7 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     },
 }
 
+
 def _resolve_provider(agent_key: str) -> Tuple[Type[BaseAgent], str, str]:
     """
     Return (class, env_key, default_model_str) for an agent key.
@@ -110,11 +114,14 @@ def _resolve_provider(agent_key: str) -> Tuple[Type[BaseAgent], str, str]:
     default_model = getattr(cls, rec["default_model_attr"], None) or rec["fallback_model"]
     return cls, env_key, str(default_model)
 
+
 # ---- Public helpers ----------------------------------------------------------
+
 
 def list_available_agents() -> List[str]:
     """Return all agent keys known to the registry."""
     return sorted(_AGENT_REGISTRY.keys())
+
 
 def detect_configured_agents() -> List[str]:
     """Return agents with required API keys present in the environment."""
@@ -123,6 +130,7 @@ def detect_configured_agents() -> List[str]:
         if os.getenv(str(meta["env_key"])):
             available.append(key)
     return sorted(available)
+
 
 def get_agent_info(agent_type: str) -> Dict[str, Any]:
     """Return the registry record for an agent type (case-insensitive)."""
@@ -133,7 +141,9 @@ def get_agent_info(agent_type: str) -> Dict[str, Any]:
         )
     return _AGENT_REGISTRY[k]
 
+
 # ---- Factory ----------------------------------------------------------------
+
 
 def create_agent(
     agent_type: str,
