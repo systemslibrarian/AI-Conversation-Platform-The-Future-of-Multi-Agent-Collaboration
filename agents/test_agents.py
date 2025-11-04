@@ -168,19 +168,24 @@ class TestSimilarity:
             test_message = "I am a repetitive message."
             diff_message = "Something completely different."
 
-            # First similar message
+            # Seed with first occurrence
+            agent.recent_responses.append(test_message)
+
+            # Check second occurrence (compares to first)
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 1
+            agent.recent_responses.append(test_message)
 
-            # Second similar message
+            # Check third occurrence (compares to second)
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 2
+            agent.recent_responses.append(test_message)
 
-            # Third similar message → triggers threshold
+            # Check fourth occurrence (compares to third) - triggers threshold
             assert agent._check_similarity(test_message) is True
             assert agent.consecutive_similar == 3
 
-            # Different message resets
+            # Check different message (compares to last test_message) - resets counter
             assert agent._check_similarity(diff_message) is False
             assert agent.consecutive_similar == 0
 
