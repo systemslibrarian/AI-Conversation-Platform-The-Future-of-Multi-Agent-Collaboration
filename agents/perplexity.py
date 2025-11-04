@@ -28,6 +28,7 @@ class PerplexityAgent(BaseAgent):
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Perplexity API asynchronously"""
         assert self.client is not None, "Client not initialized"
+        client = self.client  # Capture for lambda
         system = self._build_system_prompt()
         api_messages = [{"role": "system", "content": system}] + messages
 
@@ -35,7 +36,7 @@ class PerplexityAgent(BaseAgent):
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: self.client.chat.completions.create(
+            lambda: client.chat.completions.create(
                 model=self.model,
                 messages=api_messages,
                 max_tokens=config.MAX_TOKENS,
