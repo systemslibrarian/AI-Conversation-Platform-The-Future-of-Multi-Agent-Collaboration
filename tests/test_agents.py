@@ -4,11 +4,6 @@ import pytest
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 import importlib.util
-from typing import cast
-
-# Import real client types for casting
-from openai import OpenAI
-from anthropic import Anthropic
 
 # We patch 'agents.base.config' so we must import from agents.base
 from agents import ClaudeAgent, ChatGPTAgent
@@ -100,12 +95,13 @@ class TestChatGPTAgent:
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             with patch("agents.chatgpt.OpenAI") as mock_openai:
-                mock_client = cast(OpenAI, mock_openai.return_value)
-                mock_client.chat = MagicMock()
+                # Create a mock client without casting to avoid read-only property issues
+                mock_client = MagicMock()
                 mock_client.chat.completions.create.return_value = MagicMock(
                     choices=[MagicMock(message=MagicMock(content="Hello"))],
                     usage=MagicMock(total_tokens=10),
                 )
+                mock_openai.return_value = mock_client
 
                 agent = ChatGPTAgent(
                     api_key="test-key",
@@ -128,12 +124,13 @@ class TestClaudeAgent:
         """Test Claude API call"""
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
             with patch("agents.claude.Anthropic") as mock_anthropic:
-                mock_client = cast(Anthropic, mock_anthropic.return_value)
-                mock_client.messages = MagicMock()
+                # Create a mock client without casting to avoid read-only property issues
+                mock_client = MagicMock()
                 mock_client.messages.create.return_value = MagicMock(
                     content=[MagicMock(text="Hi from Claude")],
                     usage=MagicMock(input_tokens=5, output_tokens=6),
                 )
+                mock_anthropic.return_value = mock_client
 
                 agent = ClaudeAgent(
                     api_key="test-key",
@@ -150,7 +147,7 @@ class TestClaudeAgent:
 
 # ----------------------------------------------------------------------
 # The rest of the original test file (similarity checks, should_respond, etc.)
-# is unchanged – only the two API-call tests were fixed with `cast`.
+# is unchanged – only the two API-call tests were fixed to use MagicMock.
 # ----------------------------------------------------------------------
 
 
