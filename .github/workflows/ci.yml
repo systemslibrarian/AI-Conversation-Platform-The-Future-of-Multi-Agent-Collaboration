@@ -43,14 +43,13 @@ jobs:
   # --- JOB 2: RUNS SECOND ---
   # This job will only start after 'fix-formatting' is complete
   run-tests:
-    # This 'needs' keyword is the magic.
-    # It forces this job to WAIT for 'fix-formatting' to succeed.
+    # This 'needs' keyword forces this job to WAIT for 'fix-formatting' to succeed.
     needs: fix-formatting
     
     runs-on: ubuntu-latest
     steps:
-      # This checkout is CRITICAL. It checks out the *newest* code,
-      # which includes the new commit just made by the 'fix-formatting' job.
+      # This checkout gets the *newest* code,
+      # which includes the commit from the 'fix-formatting' job.
       - name: Check out repository
         uses: actions/checkout@v4
 
@@ -60,8 +59,14 @@ jobs:
           python-version: '3.11' # Or your project's version
           cache: 'pip'
 
+      # --- THIS IS THE FIX ---
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
-        run: pip install -r requirements.txt # This will work now
+        run: uv pip install -r requirements.txt # This will work now
 
       - name: Run Pytest
         run: uv run pytest -q --maxfail=1 --disable-warnings
