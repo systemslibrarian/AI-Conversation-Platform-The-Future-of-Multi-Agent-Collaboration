@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 import logging
 from unittest.mock import AsyncMock, patch
+import builtins   # <-- NEW: needed for mocking __import__
 
 from core.queue import SQLiteQueue, RedisQueue, create_queue
 from core.config import config
@@ -293,13 +294,28 @@ class TestSQLiteQueueComprehensive:
 class TestRedisQueue:
     """Test RedisQueue implementation"""
 
+    # ------------------------------------------------------------
+    # FIXED TEST – mocks the import of the *redis* package
+    # ------------------------------------------------------------
     @pytest.mark.asyncio
     async def test_redis_init_without_package(self, logger):
         """Test Redis queue fails gracefully without redis package"""
-        with patch("core.queue.redis", side_effect=ImportError()):
+
+        original_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "redis":
+                raise ImportError("No module named redis")
+            return original_import(name, *args, **kwargs)
+
+        with patch.object(builtins, "__import__", side_effect=mock_import):
             with pytest.raises(ImportError, match="redis package required"):
                 RedisQueue("redis://localhost:6379/0", logger)
 
+    # -----------------------------------------------------------------
+    # The rest of the Redis tests stay unchanged – they run only when
+    # the real `redis` package is installed, so `core.queue.redis` exists.
+    # -----------------------------------------------------------------
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
@@ -324,17 +340,17 @@ class TestRedisQueue:
                 (
                     b"1234567890-0",
                     {
-                        "sender": "Agent1",
-                        "content": "Message 1",
-                        "metadata": '{"tokens": 10}',
+                        b"sender": b"Agent1",
+                        b"content": b"Message 1",
+                        b"metadata": b'{"tokens": 10}',
                     },
                 ),
                 (
                     b"1234567891-0",
                     {
-                        "sender": "Agent2",
-                        "content": "Message 2",
-                        "metadata": '{"tokens": 20}',
+                        b"sender": b"Agent2",
+                        b"content": b"Message 2",
+                        b"metadata": b'{"tokens": 20}',
                     },
                 ),
             ]
@@ -353,7 +369,7 @@ class TestRedisQueue:
             mock_redis_module.from_url.return_value = mock_redis
 
             mock_redis.xrevrange.return_value = [
-                (b"1234567890-0", {"sender": "Agent1", "content": "Last"})
+                (b"1234567890-0", {b"sender": b"Agent1", b"content": b"Last"})
             ]
 
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -381,12 +397,12 @@ class TestRedisQueue:
             mock_redis_module.from_url.return_value = mock_redis
 
             # Not terminated
-            mock_redis.get.return_value = "0"
+            mock_redis.get.return_value = b"0"
             queue = RedisQueue("redis://localhost:6379/0", logger)
             assert not await queue.is_terminated()
 
             # Terminated
-            mock_redis.get.return_value = "1"
+            mock_redis.get.return_value = b"1"
             assert await queue.is_terminated()
 
     @pytest.mark.asyncio
@@ -408,13 +424,13 @@ class TestRedisQueue:
             mock_redis_module.from_url.return_value = mock_redis
 
             # With reason
-            mock_redis.get.return_value = "max_turns"
+            mock_redis.hget.return_value = b"max_turns"
             queue = RedisQueue("redis://localhost:6379/0", logger)
             reason = await queue.get_termination_reason()
             assert reason == "max_turns"
 
             # Without reason
-            mock_redis.get.return_value = None
+            mock_redis.hget.return_value = None
             reason = await queue.get_termination_reason()
             assert reason == "unknown"
 
@@ -424,8 +440,8 @@ class TestRedisQueue:
         with patch("core.queue.redis") as mock_redis_module:
             mock_redis_module.from_url.return_value = mock_redis
 
-            mock_redis.xrange.return_value = [(b"1-0", {"sender": "Agent1", "content": "M1"})]
-            mock_redis.hgetall.return_value = {"total_turns": "1"}
+            mock_redis.xrange.return_value = [(b"1-0", {b"sender": b"Agent1", b"content": b"M1"})]
+            mock_redis.hgetall.return_value = {b"total_turns": b"1"}
 
             queue = RedisQueue("redis://localhost:6379/0", logger)
             data = await queue.load()
@@ -472,9 +488,9 @@ class TestRedisQueue:
                 (
                     b"1-0",
                     {
-                        "sender": "Agent1",
-                        "content": "Test",
-                        "metadata": "not-valid-json",
+                        b"sender": b"Agent1",
+                        b"content": b"Test",
+                        b"metadata": b"not-valid-json",
                     },
                 )
             ]
