@@ -295,6 +295,7 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
+        # Patch the function in its original module: 'redis.asyncio'
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             result = await queue.add_message("Agent1", "Test message", {"tokens": 50})
