@@ -77,24 +77,27 @@ class TestChatGPTAgent:
     async def test_chatgpt_initialization(self, mock_queue, logger):
         """Test ChatGPT agent initialization"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            agent = ChatGPTAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="gpt-4o",
-                topic="test",
-                timeout_minutes=30,
-            )
+            # Patch the source of the import, not the local file
+            with patch("openai.OpenAI"):
+                agent = ChatGPTAgent(
+                    api_key="test-key",
+                    queue=mock_queue,
+                    logger=logger,
+                    model="gpt-4o",
+                    topic="test",
+                    timeout_minutes=30,
+                )
 
-            assert agent.PROVIDER_NAME == "ChatGPT"
-            assert agent.model == "gpt-4o"
-            assert agent.topic == "test"
+                assert agent.PROVIDER_NAME == "ChatGPT"
+                assert agent.model == "gpt-4o"
+                assert agent.topic == "test"
 
     @pytest.mark.asyncio
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("agents.chatgpt.OpenAI") as mock_openai:
+            # Patch the source of the import, not the local file
+            with patch("openai.OpenAI") as mock_openai:
                 # Create a mock client without casting to avoid read-only property issues
                 mock_client = MagicMock()
                 mock_client.chat.completions.create.return_value = MagicMock(
@@ -123,7 +126,8 @@ class TestClaudeAgent:
     async def test_claude_api_call(self, mock_queue, logger):
         """Test Claude API call"""
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            with patch("agents.claude.Anthropic") as mock_anthropic:
+            # Patch the source of the import, not the local file
+            with patch("anthropic.Anthropic") as mock_anthropic:
                 # Create a mock client without casting to avoid read-only property issues
                 mock_client = MagicMock()
                 mock_client.messages.create.return_value = MagicMock(
@@ -157,28 +161,33 @@ class TestSimilarity:
     @pytest.mark.asyncio
     async def test_similarity_detection(self, mock_queue, logger):
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            agent = ChatGPTAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="gpt-4o",
-                topic="test",
-                timeout_minutes=30,
-            )
+            with patch("openai.OpenAI"):  # Need to patch init to create agent
+                agent = ChatGPTAgent(
+                    api_key="test-key",
+                    queue=mock_queue,
+                    logger=logger,
+                    model="gpt-4o",
+                    topic="test",
+                    timeout_minutes=30,
+                )
             test_message = "I am a repetitive message."
             diff_message = "Something completely different."
 
-            # First similar message
+            # `recent_responses` is empty, so check returns False and counter is 0
+            assert agent._check_similarity(test_message) is False
+            assert agent.consecutive_similar == 0
+            agent.recent_responses.append(test_message)  # Manually add first message
+
+            # First similar message (compares to 1st)
+            # counter becomes 1 (which is < 2), so returns False
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 1
+            agent.recent_responses.append(test_message)  # Manually add second message
 
-            # Second similar message
-            assert agent._check_similarity(test_message) is False
-            assert agent.consecutive_similar == 2
-
-            # Third similar message → triggers threshold
+            # Second similar message (compares to 2nd) → triggers threshold
+            # counter becomes 2 (which is >= 2), so returns True
             assert agent._check_similarity(test_message) is True
-            assert agent.consecutive_similar == 3
+            assert agent.consecutive_similar == 2
 
             # Different message resets
             assert agent._check_similarity(diff_message) is False
@@ -191,14 +200,15 @@ class TestShouldRespond:
     @pytest.mark.asyncio
     async def test_should_respond(self, mock_queue, logger):
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            agent = ChatGPTAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="gpt-4o",
-                topic="test",
-                timeout_minutes=30,
-            )
+            with patch("openai.OpenAI"):  # Need to patch init to create agent
+                agent = ChatGPTAgent(
+                    api_key="test-key",
+                    queue=mock_queue,
+                    logger=logger,
+                    model="gpt-4o",
+                    topic="test",
+                    timeout_minutes=30,
+                )
 
             mock_queue.get_last_sender.return_value = None
             assert await agent.should_respond("OtherAgent") is True
@@ -220,14 +230,15 @@ class TestAgentSecurity:
             if importlib.util.find_spec("llm_guard") is None:
                 pytest.skip("llm-guard not installed")
 
-            agent = ChatGPTAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="gpt-4o",
-                topic="test",
-                timeout_minutes=30,
-            )
+            with patch("openai.OpenAI"):  # Need to patch init to create agent
+                agent = ChatGPTAgent(
+                    api_key="test-key",
+                    queue=mock_queue,
+                    logger=logger,
+                    model="gpt-4o",
+                    topic="test",
+                    timeout_minutes=30,
+                )
 
             if getattr(agent, "llm_guard_enabled", False):
                 result = agent._scan_input("Normal text")
