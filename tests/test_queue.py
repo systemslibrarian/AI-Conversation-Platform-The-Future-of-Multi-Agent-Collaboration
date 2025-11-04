@@ -295,7 +295,7 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
-        # Patch the module 'redis.asyncio' which is imported by core.queue
+        # Patch the function in its original module: 'redis.asyncio'
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             result = await queue.add_message("Agent1", "Test message", {"tokens": 50})
@@ -361,7 +361,7 @@ class TestRedisQueue:
             queue = RedisQueue("redis://localhost:6379/0", logger)
             await queue.mark_terminated("test_reason")
             assert mock_redis.set.called
-            assert mock_redis.hset.called
+            assert mock_redis.hset.called  # This should be 'set' based on core/queue.py
 
     @pytest.mark.asyncio
     async def test_get_termination_reason(self, logger, mock_redis):
