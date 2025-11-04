@@ -28,13 +28,14 @@ class ClaudeAgent(BaseAgent):
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Claude API asynchronously"""
         assert self.client is not None, "Client not initialized"
+        client = self.client  # Capture for lambda
         system = self._build_system_prompt()
 
         # Run blocking API call in executor
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: self.client.messages.create(
+            lambda: client.messages.create(
                 model=self.model,
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
