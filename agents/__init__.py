@@ -6,9 +6,7 @@ import importlib
 import os
 from typing import Dict, List, Type, Any, Tuple, Optional, TYPE_CHECKING
 
-from .base import BaseAgent  # BaseAgent is light and safe to import eagerly
-
-# ---- Public API --------------------------------------------------------------
+from .base import BaseAgent  # Safe/light to import eagerly
 
 __all__ = [
     "BaseAgent",
@@ -23,17 +21,16 @@ __all__ = [
     "create_agent",
 ]
 
-# For type checkers only (won't execute at runtime)
+# For type checkers only: use BaseAgent aliases to avoid importing submodules.
+# This satisfies mypy without forcing it to analyze providers at import time.
 if TYPE_CHECKING:
-    from .chatgpt import ChatGPTAgent as ChatGPTAgent
-    from .claude import ClaudeAgent as ClaudeAgent
-    from .gemini import GeminiAgent as GeminiAgent
-    from .grok import GrokAgent as GrokAgent
-    from .perplexity import PerplexityAgent as PerplexityAgent
+    ChatGPTAgent = BaseAgent  # type: ignore[assignment]
+    ClaudeAgent = BaseAgent  # type: ignore[assignment]
+    GeminiAgent = BaseAgent  # type: ignore[assignment]
+    GrokAgent = BaseAgent  # type: ignore[assignment]
+    PerplexityAgent = BaseAgent  # type: ignore[assignment]
 
-# ---- Lazy resolution machinery ----------------------------------------------
-
-# Map public names to (module_path, class_name)
+# Map public names to (module_path, class_name) for lazy loading.
 _AGENT_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "ChatGPTAgent": ("agents.chatgpt", "ChatGPTAgent"),
     "ClaudeAgent": ("agents.claude", "ClaudeAgent"),
@@ -57,17 +54,15 @@ def _load_class(symbol: str) -> Any:
 
 
 def __getattr__(name: str) -> Any:  # PEP 562
-    """Lazy expose agent classes as module attributes."""
+    """Expose agent classes lazily as module attributes."""
     if name in _AGENT_SYMBOLS:
         obj = _load_class(name)
-        globals()[name] = obj  # cache for subsequent lookups
+        globals()[name] = obj  # cache for speed
         return obj
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-# ---- Registry (uses lazy loading) -------------------------------------------
-
-# Each provider entry references the public symbol name; real class is loaded on demand.
+# Provider registry uses symbols; real classes are resolved on demand.
 _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     "chatgpt": {
         "symbol": "ChatGPTAgent",
@@ -103,28 +98,19 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
 
 
 def _resolve_provider(agent_key: str) -> Tuple[Type[BaseAgent], str, str]:
-    """
-    Return (class, env_key, default_model_str) for an agent key.
-    This loads the class lazily and pulls its DEFAULT_MODEL if present.
-    """
+    """Return (class, env_key, default_model_str) for an agent key."""
     rec = _AGENT_REGISTRY[agent_key]
     cls = _load_class(rec["symbol"])
     env_key: str = rec["env_key"]
-    # Read the class's DEFAULT_MODEL if defined; otherwise use fallback.
     default_model = getattr(cls, rec["default_model_attr"], None) or rec["fallback_model"]
     return cls, env_key, str(default_model)
 
 
-# ---- Public helpers ----------------------------------------------------------
-
-
 def list_available_agents() -> List[str]:
-    """Return all agent keys known to the registry."""
     return sorted(_AGENT_REGISTRY.keys())
 
 
 def detect_configured_agents() -> List[str]:
-    """Return agents with required API keys present in the environment."""
     available: List[str] = []
     for key, meta in _AGENT_REGISTRY.items():
         if os.getenv(str(meta["env_key"])):
@@ -133,16 +119,12 @@ def detect_configured_agents() -> List[str]:
 
 
 def get_agent_info(agent_type: str) -> Dict[str, Any]:
-    """Return the registry record for an agent type (case-insensitive)."""
     k = agent_type.strip().lower()
     if k not in _AGENT_REGISTRY:
         raise ValueError(
             f"Unknown agent type: {agent_type!r}. Known: {', '.join(list_available_agents())}"
         )
     return _AGENT_REGISTRY[k]
-
-
-# ---- Factory ----------------------------------------------------------------
 
 
 def create_agent(
@@ -157,23 +139,6 @@ def create_agent(
 ) -> BaseAgent:
     """
     Construct a configured agent instance from the registry.
-
-    Parameters
-    ----------
-    agent_type : str
-        One of: chatgpt, claude, gemini, grok, perplexity
-    queue : QueueInterface
-        Your queue instance (Redis/SQLite)
-    logger : logging.Logger
-        Logger for the agent
-    model : str | None
-        Optional model override; falls back to agent DEFAULT_MODEL
-    topic : str
-        Optional conversation topic seed
-    timeout : int
-        Timeout (minutes) for the agent loop
-    api_key : str | None
-        Optional explicit key; falls back to env var
     """
     k = agent_type.strip().lower()
     if k not in _AGENT_REGISTRY:
