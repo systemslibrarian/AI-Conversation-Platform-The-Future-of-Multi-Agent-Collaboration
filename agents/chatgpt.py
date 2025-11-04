@@ -1,4 +1,4 @@
-"""OpenAI ChatGPT Agent v5.0 with async support"""
+"""Anthropic Claude Agent v5.0 with async support"""
 
 from typing import List, Dict, Tuple
 import asyncio
@@ -7,11 +7,11 @@ from .base import BaseAgent
 from core.config import config
 
 
-class ChatGPTAgent(BaseAgent):
-    """OpenAI ChatGPT agent with async API calls"""
+class ClaudeAgent(BaseAgent):
+    """Anthropic Claude agent with async API calls"""
 
-    PROVIDER_NAME = "ChatGPT"
-    DEFAULT_MODEL = config.CHATGPT_DEFAULT_MODEL
+    PROVIDER_NAME = "Claude"
+    DEFAULT_MODEL = config.CLAUDE_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
         # Merge api_key into kwargs for parent class
@@ -19,30 +19,37 @@ class ChatGPTAgent(BaseAgent):
         super().__init__(*args, **kwargs)
 
         try:
-            from openai import OpenAI
+            # ✅ FIXED: import Anthropic directly so tests can patch agents.claude.Anthropic
+            from anthropic import Anthropic
 
-            self.client = OpenAI(api_key=api_key)
+            self.client = Anthropic(api_key=api_key)
         except ImportError:
-            raise ImportError("Install: pip install openai")
+            raise ImportError("Install: pip install anthropic")
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
-        """Call OpenAI API asynchronously"""
+        """Call Claude API asynchronously"""
         system = self._build_system_prompt()
-        api_messages = [{"role": "system", "content": system}] + messages
 
         # Run blocking API call in executor
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: self.client.chat.completions.create(
+            lambda: self.client.messages.create(
                 model=self.model,
-                messages=api_messages,
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
+                system=system,
+                messages=messages,  # type: ignore[arg-type]
             ),
         )
 
-        content = response.choices[0].message.content or ""
-        tokens = response.usage.total_tokens if response.usage else 0
+        # Handle TextBlock union - extract text from first content block
+        content_block = response.content[0]
+        if hasattr(content_block, "text"):
+            content = content_block.text
+        else:
+            content = str(content_block)
+
+        tokens = response.usage.input_tokens + response.usage.output_tokens
 
         return content, tokens
