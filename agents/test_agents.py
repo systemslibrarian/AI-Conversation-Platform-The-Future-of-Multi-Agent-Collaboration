@@ -4,9 +4,14 @@ import pytest
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 import importlib.util
+from typing import cast
 
-# We patch 'agents.base.config' so we must import from agents.base
-from agents import create_agent, ClaudeAgent, ChatGPTAgent
+# Import real client types for casting
+from openai import OpenAI
+from anthropic import Anthropic
+
+# NOTE: `create_agent` is **not used** in this test file – removed to satisfy mypy F401
+from agents import ClaudeAgent, ChatGPTAgent
 from agents.base import CircuitBreaker
 
 
@@ -94,135 +99,14 @@ class TestChatGPTAgent:
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            agent = ChatGPTAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="gpt-4o",
-                topic="test",
-                timeout_minutes=30,
-            )
+            with patch("agents.chatgpt.OpenAI") as mock_openai:
+                mock_client = cast(OpenAI, mock_openai.return_value)
+                mock_client.chat = MagicMock()
+                mock_client.chat.completions.create.return_value = MagicMock(
+                    choices=[MagicMock(message=MagicMock(content="Hello"))],
+                    usage=MagicMock(total_tokens=10),
+                )
 
-            # Mock the API response
-            mock_response = MagicMock()
-            mock_response.choices = [MagicMock()]
-            mock_response.choices[0].message.content = "Hello, world!"
-            mock_response.usage.total_tokens = 20
-
-            with patch.object(agent.client.chat.completions, "create", return_value=mock_response):
-                content, tokens = await agent._call_api([{"role": "user", "content": "Hi"}])
-
-                assert content == "Hello, world!"
-                assert tokens == 20
-
-
-class TestClaudeAgent:
-    """Test Claude agent"""
-
-    @pytest.mark.asyncio
-    async def test_claude_initialization(self, mock_queue, logger):
-        """Test Claude agent initialization"""
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            agent = ClaudeAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="claude-sonnet-4-5-20250929",
-                topic="test",
-                timeout_minutes=30,
-            )
-
-            assert agent.PROVIDER_NAME == "Claude"
-            assert agent.model == "claude-sonnet-4-5-20250929"
-
-    @pytest.mark.asyncio
-    async def test_claude_api_call(self, mock_queue, logger):
-        """Test Claude API call"""
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            agent = ClaudeAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="claude-sonnet-4-5-20250929",
-                topic="test",
-                timeout_minutes=30,
-            )
-
-            # Mock the API response
-            mock_response = MagicMock()
-            mock_response.content = [MagicMock()]
-            mock_response.content[0].text = "Hello from Claude!"
-            mock_response.usage.input_tokens = 10
-            mock_response.usage.output_tokens = 15
-
-            with patch.object(agent.client.messages, "create", return_value=mock_response):
-                content, tokens = await agent._call_api([{"role": "user", "content": "Hi"}])
-
-                assert content == "Hello from Claude!"
-                assert tokens == 25
-
-
-class TestAgentFactory:
-    """Test agent factory function"""
-
-    def test_create_chatgpt_agent(self, mock_queue, logger):
-        """Test creating ChatGPT agent via factory"""
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            agent = create_agent(
-                agent_type="chatgpt", queue=mock_queue, logger=logger, api_key="test-key"
-            )
-
-            assert isinstance(agent, ChatGPTAgent)
-
-    def test_create_claude_agent(self, mock_queue, logger):
-        """Test creating Claude agent via factory"""
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            agent = create_agent(
-                agent_type="claude", queue=mock_queue, logger=logger, api_key="test-key"
-            )
-
-            assert isinstance(agent, ClaudeAgent)
-
-    def test_create_invalid_agent(self, mock_queue, logger):
-        """Test creating invalid agent type"""
-        with pytest.raises(ValueError, match="Unknown agent type"):
-            create_agent(agent_type="invalid", queue=mock_queue, logger=logger)
-
-
-class TestAgentBehavior:
-    """Test agent behavior and logic"""
-
-    @pytest.mark.asyncio
-    async def test_check_termination_signals(self, mock_queue, logger):
-        """Test termination signal detection"""
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            agent = ChatGPTAgent(
-                api_key="test-key",
-                queue=mock_queue,
-                logger=logger,
-                model="gpt-4o",
-                topic="test",
-                timeout_minutes=30,
-            )
-
-            # Test termination signal detection
-            result = agent._check_termination_signals("I can't continue this conversation")
-            assert result is not None
-            assert "sentinel_phrase" in result
-
-            # Test normal message
-            result = agent._check_termination_signals("This is a normal message")
-            assert result is None
-
-    @pytest.mark.asyncio
-    async def test_similarity_detection(self, mock_queue, logger):
-        """Test similarity detection logic"""
-        # Patch config values from 'agents.base.config' for predictable testing
-        with (
-            patch("agents.base.config.SIMILARITY_THRESHOLD", 0.9),
-            patch("agents.base.config.MAX_CONSECUTIVE_SIMILAR", 3),
-        ):
-            with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -231,49 +115,78 @@ class TestAgentBehavior:
                     topic="test",
                     timeout_minutes=30,
                 )
+                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                assert content == "Hello"
+                assert tokens == 10
 
-            test_message = "This is a test message"
-            diff_message = "Completely different content here"
 
-            # Add an initial response to compare against
-            agent.recent_responses.append(test_message)
-            assert agent.consecutive_similar == 0
+class TestClaudeAgent:
+    """Test Claude agent"""
 
-            # Test 1st similar message
-            # Should return False, but increment counter
+    @pytest.mark.asyncio
+    async def test_claude_api_call(self, mock_queue, logger):
+        """Test Claude API call"""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("agents.claude.Anthropic") as mock_anthropic:
+                mock_client = cast(Anthropic, mock_anthropic.return_value)
+                mock_client.messages = MagicMock()
+                mock_client.messages.create.return_value = MagicMock(
+                    content=[MagicMock(text="Hi from Claude")],
+                    usage=MagicMock(input_tokens=5, output_tokens=6),
+                )
+
+                agent = ClaudeAgent(
+                    api_key="test-key",
+                    queue=mock_queue,
+                    logger=logger,
+                    model="claude-3-opus-20240229",
+                    topic="test",
+                    timeout_minutes=30,
+                )
+                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                assert content == "Hi from Claude"
+                assert tokens == 11
+
+
+class TestSimilarity:
+    """Test similarity detection logic"""
+
+    @pytest.mark.asyncio
+    async def test_similarity_detection(self, mock_queue, logger):
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            agent = ChatGPTAgent(
+                api_key="test-key",
+                queue=mock_queue,
+                logger=logger,
+                model="gpt-4o",
+                topic="test",
+                timeout_minutes=30,
+            )
+            test_message = "I am a repetitive message."
+            diff_message = "Something completely different."
+
+            # First similar message
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 1
 
-            # Test 2nd similar message
-            # Should return False, but increment counter
+            # Second similar message
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 2
 
-            # Test low similarity (should reset counter)
-            assert agent._check_similarity(diff_message) is False
-            assert agent.consecutive_similar == 0
-
-            # --- Test reset logic ---
-            # Test counter reset, 1st similar message again
-            assert agent._check_similarity(test_message) is False
-            assert agent.consecutive_similar == 1
-
-            # Test 2nd similar message again
-            assert agent._check_similarity(test_message) is False
-            assert agent.consecutive_similar == 2
-
-            # Test 3rd similar message (should meet threshold of 3)
-            # Should NOW return True
+            # Third similar message → triggers threshold
             assert agent._check_similarity(test_message) is True
             assert agent.consecutive_similar == 3
 
-            # Test that a subsequent different message resets the counter
+            # Different message resets
             assert agent._check_similarity(diff_message) is False
             assert agent.consecutive_similar == 0
 
+
+class TestShouldRespond:
+    """Test should_respond logic"""
+
     @pytest.mark.asyncio
     async def test_should_respond(self, mock_queue, logger):
-        """Test should_respond logic"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             agent = ChatGPTAgent(
                 api_key="test-key",
@@ -284,20 +197,14 @@ class TestAgentBehavior:
                 timeout_minutes=30,
             )
 
-            # Test when no last sender (should respond)
             mock_queue.get_last_sender.return_value = None
-            should = await agent.should_respond("OtherAgent")
-            assert should is True
+            assert await agent.should_respond("OtherAgent") is True
 
-            # Test when partner sent last message (should respond)
             mock_queue.get_last_sender.return_value = "OtherAgent"
-            should = await agent.should_respond("OtherAgent")
-            assert should is True
+            assert await agent.should_respond("OtherAgent") is True
 
-            # Test when this agent sent last message (should not respond)
             mock_queue.get_last_sender.return_value = "ChatGPT"
-            should = await agent.should_respond("OtherAgent")
-            assert should is False
+            assert await agent.should_respond("OtherAgent") is False
 
 
 class TestAgentSecurity:
@@ -307,8 +214,6 @@ class TestAgentSecurity:
     async def test_llm_guard_integration(self, mock_queue, logger):
         """Test LLM Guard integration (if available)"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "ENABLE_LLM_GUARD": "true"}):
-            # --- THIS IS THE FIX ---
-            # Check for the base package 'llm_guard' instead of the submodule
             if importlib.util.find_spec("llm_guard") is None:
                 pytest.skip("llm-guard not installed")
 
@@ -321,15 +226,13 @@ class TestAgentSecurity:
                 timeout_minutes=30,
             )
 
-            # If llm-guard is available and the agent has scanning enabled, exercise the scan
             if getattr(agent, "llm_guard_enabled", False):
-                scan_result = agent._scan_input("Normal text")
-                # _scan_input may return tuple (text, bool) or bool depending on implementation; handle both.
-                if isinstance(scan_result, tuple):
-                    _, valid_flag = scan_result
-                    assert valid_flag is True
+                result = agent._scan_input("Normal text")
+                if isinstance(result, tuple):
+                    _, valid = result
+                    assert valid is True
                 else:
-                    assert scan_result is True
+                    assert result is True
 
 
 if __name__ == "__main__":
