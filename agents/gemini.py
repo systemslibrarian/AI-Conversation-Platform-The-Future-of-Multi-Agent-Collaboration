@@ -28,6 +28,7 @@ class GeminiAgent(BaseAgent):
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Gemini API asynchronously"""
+        assert self.client is not None, "Client not initialized"
         # Build history
         history = []
         last_message = None
@@ -43,6 +44,7 @@ class GeminiAgent(BaseAgent):
         loop = asyncio.get_event_loop()
 
         def _sync_call():
+            assert self.client is not None  # For mypy inside closure
             chat = self.client.start_chat(history=history)
             return chat.send_message(last_message or "Continue.")
 
