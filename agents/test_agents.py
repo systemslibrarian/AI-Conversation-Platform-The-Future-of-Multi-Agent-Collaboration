@@ -147,7 +147,7 @@ class TestClaudeAgent:
 
 # ----------------------------------------------------------------------
 # The rest of the original test file (similarity checks, should_respond, etc.)
-# is unchanged – only the two API-call tests were fixed with `cast`.
+# is unchanged – only the two API-call tests were fixed to use MagicMock.
 # ----------------------------------------------------------------------
 
 
