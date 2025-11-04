@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 import logging
 from unittest.mock import AsyncMock, patch
-import builtins   # <-- needed for mocking __import__
+import builtins  # <-- needed for mocking __import__
 
 from core.queue import SQLiteQueue, RedisQueue, create_queue
 from core.config import config
