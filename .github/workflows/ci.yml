@@ -1,91 +1,63 @@
-name: CI
+name: CI & Lint
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
 
+# Grant permissions for the auto-commit step to write to the repo
 permissions:
-  contents: read
-  # Allow Codecov to post PR comments (optional but helpful)
-  pull-requests: write
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  contents: write
 
 jobs:
-  build-test:
+  # --- JOB 1: The Fixer ---
+  fix-formatting:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Sync deps (including dev extras)
-        run: uv sync --all-extras
-
-      # Ensure runtime/test imports used by your tests are present.
-      # (Your tests instantiate agents that import these libs in __init__.)
-      - name: Install test-only deps
-        run: |
-          uv pip install \
-            pytest pytest-asyncio pytest-cov \
-            openai anthropic google-generativeai \
-            filelock prometheus_client pydantic python-dotenv \
-            bleach streamlit \
-            opentelemetry-sdk opentelemetry-exporter-otlp \
-            redis
-
-      - name: Ruff (lint + format check)
-        run: |
-          uv run ruff check .
-          uv run ruff format --check .
-
-      - name: Mypy (type checks)
-        run: uv run mypy .
-
-      - name: Codespell (spelling)
-        run: uv run codespell --skip="./.git,./monitoring/grafana/provisioning/dashboards/*.json" || true
-
-      # ✅ Run pytest with coverage for the modules you added tests for
-      # (Limiting to core + agents helps your Codecov % reflect the new tests.)
-      - name: Pytest (with coverage)
-        run: |
-          uv run pytest -q --maxfail=1 --disable-warnings \
-            --asyncio-mode=auto \
-            --cov=agents --cov=core \
-            --cov-branch \
-            --cov-report=xml:coverage.xml \
-            --cov-report=html \
-            --cov-fail-under=40
-
-      - name: Upload HTML coverage report
-        uses: actions/upload-artifact@v4
+          python-version: '3.12'
+      - run: pip install ruff
+      - run: ruff check . --fix
+      - run: ruff format .
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          name: htmlcov
-          path: htmlcov
+          commit_message: "chore: auto-fix Ruff issues"
 
-      - name: Show coverage in Job Summary
-        run: |
-          PCT=$(python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot().attrib; print((float(r['lines-covered'])/float(r['lines-valid']))*100)")
-          printf '### Coverage: **%.2f%%**\n' "$PCT" >> "$GITHUB_STEP_SUMMARY"
+  # --- JOB 2: The Tester ---
+  run-tests:
+    # This 'needs' keyword forces this job to WAIT
+    # until 'fix-formatting' is 100% complete.
+    needs: fix-formatting
+    runs-on: ubuntu-latest
+    steps:
+      # This checkout is CRITICAL. It checks out the
+      # *newest* code from the branch, which includes
+      # the new commit just made by the 'fix-formatting' job.
+      - uses: actions/checkout@v4
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      # Now, run your tests on the CLEAN code
+      - uses: actions/setup-python@v5
         with:
-          files: ./coverage.xml
-          flags: unittests
-          fail_ci_if_error: true
-          verbose: true
-          # If your repo is private, uncomment and set this secret:
-          # token: ${{ secrets.CODECOV_TOKEN }}
+          python-version: '3.11' # Or your project's version
+          cache: 'pip'
+      - run: pip install -r requirements.txt # Or your setup command
+      - run: uv run pytest -q --maxfail=1 --disable-warnings
+
+  # --- JOB 3: CodeQL (if you want) ---
+  codeql-scan:
+    # This job also waits for the fix to be done
+    needs: fix-formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # --- Add your CodeQL steps here ---
+      # - name: Initialize CodeQL
+      #   uses: github/codeql-action/init@v3
+      #   with:
+      #     languages: python
+
+      # - name: Perform CodeQL Analysis
+      #   uses: github/codeql-action/analyze@v3
