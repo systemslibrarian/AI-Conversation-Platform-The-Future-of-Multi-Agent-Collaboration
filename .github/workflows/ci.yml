@@ -66,10 +66,11 @@ jobs:
 
       - name: Install dependencies
         # --- THIS IS THE FIX ---
-        # Add the --system flag to install into the runner's python
-        run: uv pip install --system -r requirements.txt 
+        # Add 'pytest' to the install command
+        run: uv pip install --system -r requirements.txt pytest
 
       - name: Run Pytest
+        # This command will now find the 'pytest' executable
         run: uv run pytest -q --maxfail=1 --disable-warnings
         
   # --- JOB 3: RUNS IN PARALLEL WITH TESTS ---
@@ -90,4 +91,4 @@ jobs:
           languages: python
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeGQL-action/analyze@v3
