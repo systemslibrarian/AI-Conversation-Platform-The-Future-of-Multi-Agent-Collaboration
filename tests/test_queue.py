@@ -295,6 +295,7 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
+        # --- THIS IS THE FIX ---
         # Patch the function in its original module: 'redis.asyncio'
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -360,8 +361,11 @@ class TestRedisQueue:
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             await queue.mark_terminated("test_reason")
-            assert mock_redis.set.called
-            assert mock_redis.hset.called  # This should be 'set' based on core/queue.py
+            # --- THIS IS THE FIX ---
+            # core/queue.py uses self.r.set for termination, not hset
+            assert mock_redis.set.called_with(f"{queue.conv_id}:terminated", "1")
+            assert mock_redis.set.called_with(f"{queue.conv_id}:reason", "test_reason")
+            assert mock_redis.hset.called  # hset is called for ended_at
 
     @pytest.mark.asyncio
     async def test_get_termination_reason(self, logger, mock_redis):
