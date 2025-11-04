@@ -27,9 +27,7 @@ class ConversationStarter:
 
     def __init__(self, args: Optional[argparse.Namespace] = None):
         self.available_agents = detect_configured_agents()
-        self.conversation_file = (
-            args.db if args and args.db else config.DEFAULT_CONVERSATION_FILE
-        )
+        self.conversation_file = args.db if args and args.db else config.DEFAULT_CONVERSATION_FILE
         self.args = args
 
     def _print_banner(self):
@@ -82,9 +80,7 @@ class ConversationStarter:
                 print(f"  {agent_class.PROVIDER_NAME} - Set {info['env_key']}")
             print()
 
-    def _select_agent(
-        self, position: str, cli_agent: Optional[str] = None
-    ) -> Tuple[str, str]:
+    def _select_agent(self, position: str, cli_agent: Optional[str] = None) -> Tuple[str, str]:
         """Select agent interactively or from CLI"""
 
         # If CLI argument provided, use it
@@ -109,10 +105,7 @@ class ConversationStarter:
     def _get_topic(self) -> str:
         if self.args and self.args.topic:
             return self.args.topic
-        return (
-            input("\nConversation topic (or press Enter for general): ").strip()
-            or "general"
-        )
+        return input("\nConversation topic (or press Enter for general): ").strip() or "general"
 
     def _get_max_turns(self) -> int:
         if self.args and self.args.turns:
@@ -211,9 +204,7 @@ class ConversationStarter:
         topic = self._get_topic()
         max_turns = self._get_max_turns()
 
-        self._print_summary(
-            agent1_type, agent1_model, agent2_type, agent2_model, topic, max_turns
-        )
+        self._print_summary(agent1_type, agent1_model, agent2_type, agent2_model, topic, max_turns)
 
         if not (self.args and self.args.yes):
             response = input("\nStart conversation? (Y/n): ")
@@ -268,9 +259,7 @@ Examples:
     parser.add_argument("--topic", type=str, help="Conversation topic")
     parser.add_argument("--turns", type=int, help="Maximum number of turns")
     parser.add_argument("--db", type=str, help="Database file path")
-    parser.add_argument(
-        "--yes", "-y", action="store_true", help="Auto-confirm all prompts"
-    )
+    parser.add_argument("--yes", "-y", action="store_true", help="Auto-confirm all prompts")
 
     args = parser.parse_args()
 
