@@ -94,7 +94,7 @@ class TestChatGPTAgent:
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("openai.OpenAI") as mock_openai:
+            with patch("agents.chatgpt.OpenAI") as mock_openai:
                 # Create a mock client without casting to avoid read-only property issues
                 mock_client = MagicMock()
                 mock_client.chat.completions.create.return_value = MagicMock(
@@ -123,7 +123,7 @@ class TestClaudeAgent:
     async def test_claude_api_call(self, mock_queue, logger):
         """Test Claude API call"""
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            with patch("anthropic.Anthropic") as mock_anthropic:
+            with patch("agents.claude.Anthropic") as mock_anthropic:
                 # Create a mock client without casting to avoid read-only property issues
                 mock_client = MagicMock()
                 mock_client.messages.create.return_value = MagicMock(
@@ -168,24 +168,23 @@ class TestSimilarity:
             test_message = "I am a repetitive message."
             diff_message = "Something completely different."
 
-            # Seed with first occurrence
-            agent.recent_responses.append(test_message)
+            # `recent_responses` is empty, so check returns False and counter is 0
+            assert agent._check_similarity(test_message) is False
+            assert agent.consecutive_similar == 0
+            agent.recent_responses.append(test_message)  # Manually add first message
 
-            # Check second occurrence (compares to first)
+            # First similar message (compares to 1st)
+            # counter becomes 1 (which is < 2), so returns False
             assert agent._check_similarity(test_message) is False
             assert agent.consecutive_similar == 1
-            agent.recent_responses.append(test_message)
+            agent.recent_responses.append(test_message)  # Manually add second message
 
-            # Check third occurrence (compares to second)
-            assert agent._check_similarity(test_message) is False
-            assert agent.consecutive_similar == 2
-            agent.recent_responses.append(test_message)
-
-            # Check fourth occurrence (compares to third) - triggers threshold
+            # Second similar message (compares to 2nd) → triggers threshold
+            # counter becomes 2 (which is >= 2), so returns True
             assert agent._check_similarity(test_message) is True
-            assert agent.consecutive_similar == 3
+            assert agent.consecutive_similar == 2
 
-            # Check different message (compares to last test_message) - resets counter
+            # Different message resets
             assert agent._check_similarity(diff_message) is False
             assert agent.consecutive_similar == 0
 
