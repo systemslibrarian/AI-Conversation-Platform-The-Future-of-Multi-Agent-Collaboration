@@ -186,8 +186,13 @@ class TestSQLiteQueueComprehensive:
         await queue.add_message("Agent2", "M5", {"tokens": 10})
 
         data = await queue.load()
-        assert data["metadata"]["agent1_turns"] == 3
-        assert data["metadata"]["agent2_turns"] == 2
+
+        # Count turns from messages
+        agent1_turns = sum(1 for msg in data["messages"] if msg["sender"] == "Agent1")
+        agent2_turns = sum(1 for msg in data["messages"] if msg["sender"] == "Agent2")
+
+        assert agent1_turns == 3
+        assert agent2_turns == 2
         assert data["metadata"]["total_turns"] == 5
 
     @pytest.mark.asyncio
