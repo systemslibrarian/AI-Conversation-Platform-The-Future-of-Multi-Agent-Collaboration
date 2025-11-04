@@ -27,6 +27,7 @@ class GrokAgent(BaseAgent):
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Grok API asynchronously"""
+        assert self.client is not None, "Client not initialized"
         system = self._build_system_prompt()
         api_messages = [{"role": "system", "content": system}] + messages
 
