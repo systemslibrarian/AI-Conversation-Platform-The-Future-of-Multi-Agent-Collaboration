@@ -27,6 +27,7 @@ class ClaudeAgent(BaseAgent):
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Claude API asynchronously"""
+        assert self.client is not None, "Client not initialized"
         system = self._build_system_prompt()
 
         # Run blocking API call in executor
