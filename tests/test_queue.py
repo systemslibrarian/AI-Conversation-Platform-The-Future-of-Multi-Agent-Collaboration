@@ -295,8 +295,6 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
-        # --- THIS IS THE FIX ---
-        # Patch the function in its original module: 'redis.asyncio'
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             result = await queue.add_message("Agent1", "Test message", {"tokens": 50})
@@ -307,21 +305,22 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_get_context(self, logger, mock_redis):
+        """Test getting context from Redis"""
         mock_redis.xrevrange.return_value = [
             (
-                "1234567890-0",
+                "1234567891-0",  # Newest message
                 {
                     "sender": "Agent1",
-                    "content": "Message 1",
-                    "metadata": '{"tokens": 10}',
+                    "content": "Message 2",
+                    "metadata": '{"tokens": 20}',
                 },
             ),
             (
-                "1234567891-0",
+                "1234567890-0",  # Older message
                 {
                     "sender": "Agent2",
-                    "content": "Message 2",
-                    "metadata": '{"tokens": 20}',
+                    "content": "Message 1",
+                    "metadata": '{"tokens": 10}',
                 },
             ),
         ]
@@ -329,11 +328,17 @@ class TestRedisQueue:
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             messages = await queue.get_context(max_messages=10)
+
+            # --- THIS IS THE FIX ---
+            # The list is reversed to be in chronological order
+            # So messages[0] is the OLDEST message
             assert len(messages) == 2
-            assert messages[0]["sender"] == "Agent1"
+            assert messages[0]["sender"] == "Agent2"
+            assert messages[1]["sender"] == "Agent1"
 
     @pytest.mark.asyncio
     async def test_get_last_sender(self, logger, mock_redis):
+        """Test getting last sender from Redis"""
         mock_redis.xrevrange.return_value = [
             ("1234567890-0", {"sender": "Agent1", "content": "Last"})
         ]
@@ -343,6 +348,7 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_get_last_sender_empty(self, logger, mock_redis):
+        """Test getting last sender when no messages"""
         mock_redis.xrevrange.return_value = []
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -350,6 +356,7 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_is_terminated(self, logger, mock_redis):
+        """Test checking if conversation terminated"""
         mock_redis.get.side_effect = ["0", "1"]
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -358,18 +365,20 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_mark_terminated(self, logger, mock_redis):
+        """Test marking conversation as terminated"""
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             await queue.mark_terminated("test_reason")
-            # --- THIS IS THE FIX ---
-            # core/queue.py uses self.r.set for termination, not hset
-            assert mock_redis.set.called_with(f"{queue.conv_id}:terminated", "1")
-            assert mock_redis.set.called_with(f"{queue.conv_id}:reason", "test_reason")
-            assert mock_redis.hset.called  # hset is called for ended_at
+
+            # Check all calls based on core/queue.py
+            assert mock_redis.set.call_count == 2
+            mock_redis.set.assert_any_call(f"{queue.conv_id}:terminated", "1")
+            mock_redis.set.assert_any_call(f"{queue.conv_id}:reason", "test_reason")
+            assert mock_redis.hset.called  # For 'ended_at'
 
     @pytest.mark.asyncio
     async def test_get_termination_reason(self, logger, mock_redis):
-        # This matches the implementation in core/queue.py (uses 'get')
+        """Test getting termination reason"""
         mock_redis.get.side_effect = ["max_turns", None]
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -378,6 +387,7 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_load(self, logger, mock_redis):
+        """Test loading all data from Redis"""
         mock_redis.xrange.return_value = [("1-0", {"sender": "Agent1", "content": "M1"})]
         mock_redis.hgetall.return_value = {"total_turns": "1"}
         with patch("redis.asyncio.from_url", return_value=mock_redis):
@@ -387,6 +397,7 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_health_check_healthy(self, logger, mock_redis):
+        """Test health check when Redis is healthy"""
         mock_redis.ping.return_value = True
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -395,6 +406,7 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_health_check_unhealthy(self, logger, mock_redis):
+        """Test health check when Redis fails"""
         mock_redis.ping.side_effect = Exception("Connection failed")
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
@@ -403,6 +415,7 @@ class TestRedisQueue:
 
     @pytest.mark.asyncio
     async def test_malformed_json_metadata(self, logger, mock_redis):
+        """Test handling malformed JSON in metadata"""
         mock_redis.xrevrange.return_value = [
             (
                 "1-0",
