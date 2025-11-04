@@ -1,4 +1,4 @@
-"""Comprehensive agent tests for AI Conversation Platform v5.0"""
+"""Comprehensive agent tests for AI Conversation Platform v5.0 - FIXED"""
 
 import pytest
 import logging
@@ -77,7 +77,8 @@ class TestChatGPTAgent:
     async def test_chatgpt_initialization(self, mock_queue, logger):
         """Test ChatGPT agent initialization"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # Patch the source of the import, not the local file
+            # CRITICAL: Patch at the SOURCE of the import (openai.OpenAI)
+            # NOT where it's used (agents.chatgpt.OpenAI doesn't exist)
             with patch("openai.OpenAI"):
                 agent = ChatGPTAgent(
                     api_key="test-key",
@@ -96,9 +97,9 @@ class TestChatGPTAgent:
     async def test_chatgpt_api_call(self, mock_queue, logger):
         """Test ChatGPT API call"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            # Patch the source of the import, not the local file
+            # CRITICAL: Patch at the SOURCE of the import (openai.OpenAI)
             with patch("openai.OpenAI") as mock_openai:
-                # Create a mock client without casting to avoid read-only property issues
+                # Create a mock client
                 mock_client = MagicMock()
                 mock_client.chat.completions.create.return_value = MagicMock(
                     choices=[MagicMock(message=MagicMock(content="Hello"))],
@@ -123,12 +124,31 @@ class TestClaudeAgent:
     """Test Claude agent"""
 
     @pytest.mark.asyncio
+    async def test_claude_initialization(self, mock_queue, logger):
+        """Test Claude agent initialization"""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            # CRITICAL: Patch at the SOURCE of the import (anthropic.Anthropic)
+            with patch("anthropic.Anthropic"):
+                agent = ClaudeAgent(
+                    api_key="test-key",
+                    queue=mock_queue,
+                    logger=logger,
+                    model="claude-3-opus-20240229",
+                    topic="test",
+                    timeout_minutes=30,
+                )
+
+                assert agent.PROVIDER_NAME == "Claude"
+                assert agent.model == "claude-3-opus-20240229"
+                assert agent.topic == "test"
+
+    @pytest.mark.asyncio
     async def test_claude_api_call(self, mock_queue, logger):
         """Test Claude API call"""
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            # Patch the source of the import, not the local file
+            # CRITICAL: Patch at the SOURCE of the import (anthropic.Anthropic)
             with patch("anthropic.Anthropic") as mock_anthropic:
-                # Create a mock client without casting to avoid read-only property issues
+                # Create a mock client
                 mock_client = MagicMock()
                 mock_client.messages.create.return_value = MagicMock(
                     content=[MagicMock(text="Hi from Claude")],
@@ -149,19 +169,13 @@ class TestClaudeAgent:
                 assert tokens == 11
 
 
-# ----------------------------------------------------------------------
-# The rest of the original test file (similarity checks, should_respond, etc.)
-# is unchanged – only the two API-call tests were fixed to use MagicMock.
-# ----------------------------------------------------------------------
-
-
 class TestSimilarity:
     """Test similarity detection logic"""
 
     @pytest.mark.asyncio
     async def test_similarity_detection(self, mock_queue, logger):
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("openai.OpenAI"):  # Need to patch init to create agent
+            with patch("openai.OpenAI"):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -200,7 +214,7 @@ class TestShouldRespond:
     @pytest.mark.asyncio
     async def test_should_respond(self, mock_queue, logger):
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("openai.OpenAI"):  # Need to patch init to create agent
+            with patch("openai.OpenAI"):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
@@ -230,7 +244,7 @@ class TestAgentSecurity:
             if importlib.util.find_spec("llm_guard") is None:
                 pytest.skip("llm-guard not installed")
 
-            with patch("openai.OpenAI"):  # Need to patch init to create agent
+            with patch("openai.OpenAI"):
                 agent = ChatGPTAgent(
                     api_key="test-key",
                     queue=mock_queue,
