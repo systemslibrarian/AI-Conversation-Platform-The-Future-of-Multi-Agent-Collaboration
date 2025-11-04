@@ -62,7 +62,10 @@ class ConversationStarter:
 
         for agent_type in sorted(self.available_agents):
             info = get_agent_info(agent_type)
-            agent_class = info["class"]
+            # Load the class dynamically to get PROVIDER_NAME
+            from agents import _load_class
+
+            agent_class = _load_class(info["symbol"])
             print(f"  {agent_class.PROVIDER_NAME} ({agent_type})")
 
         print()
@@ -73,7 +76,10 @@ class ConversationStarter:
             print("-" * 80)
             for agent_type in sorted(unavailable):
                 info = get_agent_info(agent_type)
-                print(f"  {info['class'].PROVIDER_NAME} - Set {info['env_key']}")
+                from agents import _load_class
+
+                agent_class = _load_class(info["symbol"])
+                print(f"  {agent_class.PROVIDER_NAME} - Set {info['env_key']}")
             print()
 
     def _select_agent(
