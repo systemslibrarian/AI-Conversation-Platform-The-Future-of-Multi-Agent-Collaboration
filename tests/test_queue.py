@@ -333,7 +333,7 @@ class TestRedisQueue:
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             messages = await queue.get_context(max_messages=10)
-            
+
             # This is the failing part
             assert len(messages) == 2
             assert messages[0]["sender"] == "Agent2"
@@ -372,12 +372,12 @@ class TestRedisQueue:
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             await queue.mark_terminated("test_reason")
-            
+
             # Check all calls based on core/queue.py
             assert mock_redis.set.call_count == 2
             mock_redis.set.assert_any_call(f"{queue.conv_id}:terminated", "1")
             mock_redis.set.assert_any_call(f"{queue.conv_id}:reason", "test_reason")
-            assert mock_redis.hset.called # For 'ended_at'
+            assert mock_redis.hset.called  # For 'ended_at'
 
     @pytest.mark.asyncio
     async def test_get_termination_reason(self, logger, mock_redis):
