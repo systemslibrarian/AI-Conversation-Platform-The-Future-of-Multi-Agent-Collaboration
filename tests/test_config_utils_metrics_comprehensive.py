@@ -195,6 +195,7 @@ class TestLogEvent:
         """Test log event creates proper JSON"""
         logger = logging.getLogger("test")
         handler = MagicMock()
+        handler.level = logging.DEBUG  # Mock handlers need a numeric level attribute
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
 
