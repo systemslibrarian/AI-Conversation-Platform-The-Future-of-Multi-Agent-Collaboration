@@ -5,8 +5,6 @@ import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 import importlib.util
 
-# Import real client types if needed for type checking
-
 # We patch 'agents.base.config' so we must import from agents.base
 from agents import ClaudeAgent, ChatGPTAgent
 from agents.base import CircuitBreaker
