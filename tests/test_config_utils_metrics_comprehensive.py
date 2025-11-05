@@ -6,6 +6,10 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 import os
+from pydantic import BaseModel  # Import BaseModel for mocking Pydantic
+import warnings # For testing import warning path
+import sys # For testing import warning path
+
 
 from core.config import Config, ConfigValidation
 from core.common import (
@@ -124,6 +128,69 @@ class TestConfigClass:
         # Should not raise
         Config.validate()
 
+    # --- covers import-time warning path in core.config ---
+    def test_config_import_warning(self, monkeypatch):
+        """
+        Force Config.validate() to fail during module import so we hit the
+        try/except + warnings.warn(...) branch executed at import time.
+        """
+        
+        # Make validation fail by supplying an invalid env var (e.g., low port)
+        monkeypatch.setenv("PROMETHEUS_PORT", "80")
+
+        # Ensure a fresh import triggers module-level validation
+        sys.modules.pop("core.config", None)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            import core.config  # noqa: F401  # re-import to trigger module-level validate
+
+        assert any("Configuration validation" in str(rec.message) for rec in w)
+    # --- END NEW TEST ---
+
+    # --- ensure validate() overwrites attributes ---
+    def test_validate_updates_attributes(self):
+        """Test successful validation overwrites live class attributes."""
+
+        # Mock the validated model result with new values
+        class MockValidation(BaseModel):
+            # Must contain all fields defined in ConfigValidation
+            TEMPERATURE: float = 0.5
+            MAX_TOKENS: int = 2000
+            SIMILARITY_THRESHOLD: float = 0.80
+            MAX_CONSECUTIVE_SIMILAR: int = 3
+            DEFAULT_MAX_TURNS: int = 60
+            DEFAULT_TIMEOUT_MINUTES: int = 40
+            MAX_CONTEXT_MSGS: int = 15
+            PROMETHEUS_PORT: int = 9000
+
+        # Store original values for cleanup
+        original_temp = Config.TEMPERATURE
+        original_max = Config.MAX_TOKENS
+        original_port = Config.PROMETHEUS_PORT
+        original_max_context = Config.MAX_CONTEXT_MSGS
+
+        try:
+            # 1. Patch the Pydantic validation class to return our mock
+            with patch("core.config.ConfigValidation", MockValidation):
+                Config.validate()
+
+            # 2. Assert that the actual Config class attributes were updated (hitting the setter line)
+            assert Config.TEMPERATURE == 0.5
+            assert Config.MAX_TOKENS == 2000
+            assert Config.PROMETHEUS_PORT == 9000
+            assert Config.MAX_CONTEXT_MSGS == 15
+
+        finally:
+            # 3. Clean up: Restore original values
+            Config.TEMPERATURE = original_temp
+            Config.MAX_TOKENS = original_max
+            Config.PROMETHEUS_PORT = original_port
+            Config.MAX_CONTEXT_MSGS = original_max_context
+            # Re-validate to ensure all non-tested attributes are reset to defaults
+            Config.validate()
+    # --- END NEW TEST ---
+
     def test_validate_invalid_temperature(self):
         """Test validation catches invalid temperature"""
         original_temp = Config.TEMPERATURE
@@ -181,11 +248,13 @@ class TestSetupLogging:
             logger1 = setup_logging("test_agent", tmpdir)
             handler_count1 = len(logger1.handlers)
 
-            logger2 = setup_logging("test_agent", tmpdir)
+        with tempfile.TemporaryDirectory() as tmpdir2:
+            # We must use a different directory or the RotationFileHandler will be the same
+            logger2 = setup_logging("test_agent", tmpdir2)
             handler_count2 = len(logger2.handlers)
 
-            # Should have same number (old ones removed)
-            assert handler_count1 == handler_count2
+        # Should have same number (old ones removed)
+        assert handler_count1 == handler_count2
 
 
 class TestLogEvent:
@@ -319,6 +388,12 @@ class TestAddJitter:
         for _ in range(50):
             jittered = add_jitter(10.0, jitter_range=0.5)
             assert 5.0 <= jittered <= 15.0
+    
+    # --- NEW TEST: zero jitter branch (no randomness path) ---
+    def test_add_jitter_zero_range(self):
+        """With zero jitter, value should be returned unchanged (no clamp needed)."""
+        assert add_jitter(10.0, jitter_range=0.0) == 10.0
+    # --- END NEW TEST ---
 
 
 class TestMaskApiKey:
