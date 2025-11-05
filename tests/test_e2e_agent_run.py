@@ -27,6 +27,7 @@ TERMINATION_TOKEN = "[done]"
 
 # --- Fixtures ---
 
+
 @pytest.fixture
 def temp_db(tmp_path):
     """Provide a temporary DB path as a string (what create_queue expects)."""
@@ -51,6 +52,7 @@ def logger():
 
 
 # --- The E2E Test ---
+
 
 @pytest.mark.asyncio
 async def test_real_agent_run_loop(temp_db, logger, caplog):
@@ -83,14 +85,15 @@ async def test_real_agent_run_loop(temp_db, logger, caplog):
     # Both agents import their clients *locally* inside their __init__ methods.
     # Therefore, we must patch both at their original source.
     #
-    with patch("openai.OpenAI", return_value=mock_openai_client), \
-         patch("anthropic.Anthropic", return_value=mock_anthropic_client), \
-         patch.dict(
-             os.environ,
-             {"OPENAI_API_KEY": "fake-key", "ANTHROPIC_API_KEY": "fake-key"},
-             clear=True,  # fully isolate env to only the fake keys
-         ):
-
+    with (
+        patch("openai.OpenAI", return_value=mock_openai_client),
+        patch("anthropic.Anthropic", return_value=mock_anthropic_client),
+        patch.dict(
+            os.environ,
+            {"OPENAI_API_KEY": "fake-key", "ANTHROPIC_API_KEY": "fake-key"},
+            clear=True,  # fully isolate env to only the fake keys
+        ),
+    ):
         queue = create_queue(temp_db, logger, use_redis=False)
 
         # Real agents
@@ -120,10 +123,9 @@ async def test_real_agent_run_loop(temp_db, logger, caplog):
         assert {"Claude", "ChatGPT"} <= senders
 
         # Strong assertion: the termination signal should be present
-        assert any(
-            TERMINATION_TOKEN in (m.get("content") or "")
-            for m in messages
-        ), f"Expected termination token {TERMINATION_TOKEN!r} in messages."
+        assert any(TERMINATION_TOKEN in (m.get("content") or "") for m in messages), (
+            f"Expected termination token {TERMINATION_TOKEN!r} in messages."
+        )
 
         # Even stronger: ensure the terminator came from ChatGPT specifically
         assert any(
