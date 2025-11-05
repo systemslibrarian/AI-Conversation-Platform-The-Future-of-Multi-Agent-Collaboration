@@ -15,6 +15,7 @@ AGENTS = ["claude", "chatgpt", "grok", "perplexity", "gemini"]
 # RETRY ON TIMEOUT
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_retry_on_timeout(agent_name):
@@ -25,7 +26,9 @@ async def test_retry_on_timeout(agent_name):
     mock_client = AsyncMock()
     mock_client.messages.create.side_effect = [
         asyncio.TimeoutError,
-        MagicMock(content=[MagicMock(text="success")], usage=MagicMock(input_tokens=1, output_tokens=1))
+        MagicMock(
+            content=[MagicMock(text="success")], usage=MagicMock(input_tokens=1, output_tokens=1)
+        ),
     ]
 
     with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
@@ -40,6 +43,7 @@ async def test_retry_on_timeout(agent_name):
 # 429 + EXPONENTIAL BACKOFF
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_429_backoff_respects_retry_after(agent_name):
@@ -52,14 +56,12 @@ async def test_429_backoff_respects_retry_after(agent_name):
     mock_429.status = 429
     mock_429.headers = {"Retry-After": "0.1"}
 
-    mock_client.messages.create.side_effect = [
-        mock_429,
-        MagicMock(content=[MagicMock(text="ok")])
-    ]
+    mock_client.messages.create.side_effect = [mock_429, MagicMock(content=[MagicMock(text="ok")])]
 
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client), \
-         patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-
+    with (
+        patch(f"agents.{agent_name}.get_client", return_value=mock_client),
+        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
         agent = AgentClass(model="test")
         await agent.say("hello")
 
@@ -71,6 +73,7 @@ async def test_429_backoff_respects_retry_after(agent_name):
 # CIRCUIT BREAKER SKIP
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_circuit_breaker_skips_when_open(agent_name):
@@ -80,9 +83,10 @@ async def test_circuit_breaker_skips_when_open(agent_name):
 
     mock_client = AsyncMock()
 
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client), \
-         patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True):
-
+    with (
+        patch(f"agents.{agent_name}.get_client", return_value=mock_client),
+        patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True),
+    ):
         agent = AgentClass(model="test")
         response = await agent.say("hello")
 
@@ -93,6 +97,7 @@ async def test_circuit_breaker_skips_when_open(agent_name):
 # ============================================================================
 # MALFORMED RESPONSE FALLBACK
 # ============================================================================
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
@@ -116,6 +121,7 @@ async def test_malformed_response_returns_fallback(agent_name):
 # CONNECTION ERROR RETRY
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_retry_on_connection_error(agent_name):
@@ -126,7 +132,7 @@ async def test_retry_on_connection_error(agent_name):
     mock_client = AsyncMock()
     mock_client.messages.create.side_effect = [
         ConnectionError("Network down"),
-        MagicMock(content=[MagicMock(text="recovered")])
+        MagicMock(content=[MagicMock(text="recovered")]),
     ]
 
     with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
