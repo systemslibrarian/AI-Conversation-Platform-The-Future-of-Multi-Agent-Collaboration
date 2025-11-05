@@ -169,7 +169,7 @@ class TestConfigClass:
         # Re-import to ensure we have the module in sys.modules for patching
         import core.config
         from core.config import Config
-        
+
         original_temp = Config.TEMPERATURE
         original_max = Config.MAX_TOKENS
         original_port = Config.PROMETHEUS_PORT
@@ -196,7 +196,7 @@ class TestConfigClass:
             # Create a mock that bypasses validation and returns an object with model_dump()
             mock_validated = MagicMock()
             mock_validated.model_dump.return_value = mock_data
-            
+
             # Mock the ConfigValidation class itself to return our mock when called
             with patch.object(core.config, "ConfigValidation", return_value=mock_validated):
                 Config.validate()
