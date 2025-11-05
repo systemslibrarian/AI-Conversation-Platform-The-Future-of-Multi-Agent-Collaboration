@@ -26,6 +26,7 @@ from core.tracing import get_tracer
 @dataclass
 class TurnMetadata:
     """Metadata for a conversation turn"""
+
     model: str
     tokens: int
     response_time: float
@@ -251,7 +252,7 @@ class BaseAgent(ABC):
                 error_type = (
                     "rate_limit" if ("rate" in str(e).lower() or "429" in str(e)) else "api_error"
                 )
-                
+
                 # --- THIS IS THE ROBUST FIX ---
                 # Check for the word "timeout" in the error string OR class name
                 error_str_lower = str(e).lower()
@@ -340,7 +341,7 @@ class BaseAgent(ABC):
 
             except Exception as e:
                 error_str = str(e).lower()
-                
+
                 # --- THIS IS THE ROBUST FIX ---
                 # Check for "timeout" in the error's string OR its class name
                 error_class_name_lower = type(e).__name__.lower()
@@ -374,7 +375,7 @@ class BaseAgent(ABC):
 
                 else:
                     # All other unknown errors
-                    print(f"✗ Error: {str(e)}") # Use str(e) not error_str
+                    print(f"✗ Error: {str(e)}")  # Use str(e) not error_str
 
                     if self.consecutive_errors >= self.max_consecutive_errors:
                         await self.queue.mark_terminated("consecutive_errors")
