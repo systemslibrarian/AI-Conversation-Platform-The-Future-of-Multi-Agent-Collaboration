@@ -15,6 +15,7 @@ AGENTS = ["claude", "chatgpt", "grok", "perplexity", "gemini"]
 # RETRY ON TIMEOUT
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_agent_retries_on_timeout(agent_name):
@@ -25,7 +26,7 @@ async def test_agent_retries_on_timeout(agent_name):
     mock_client = AsyncMock()
     mock_client.messages.create.side_effect = [
         asyncio.TimeoutError,
-        {"content": [{"text": "success"}]}
+        {"content": [{"text": "success"}]},
     ]
 
     with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
@@ -39,6 +40,7 @@ async def test_agent_retries_on_timeout(agent_name):
 # ============================================================================
 # RATE LIMIT (429) WITH EXPONENTIAL BACKOFF
 # ============================================================================
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
@@ -54,12 +56,13 @@ async def test_agent_backoff_on_429(agent_name):
 
     mock_client.messages.create.side_effect = [
         mock_response_429,
-        {"content": [{"text": "ok after backoff"}]}
+        {"content": [{"text": "ok after backoff"}]},
     ]
 
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client), \
-         patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-
+    with (
+        patch(f"agents.{agent_name}.get_client", return_value=mock_client),
+        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
         agent = AgentClass(model="test-model")
         response = await agent.say("hello")
 
@@ -72,6 +75,7 @@ async def test_agent_backoff_on_429(agent_name):
 # CIRCUIT BREAKER – SKIP CALL WHEN OPEN
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_circuit_breaker_skips_call_when_open(agent_name):
@@ -81,9 +85,10 @@ async def test_circuit_breaker_skips_call_when_open(agent_name):
 
     mock_client = AsyncMock()
 
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client), \
-         patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True):
-
+    with (
+        patch(f"agents.{agent_name}.get_client", return_value=mock_client),
+        patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True),
+    ):
         agent = AgentClass(model="test-model")
         response = await agent.say("hello")
 
@@ -94,6 +99,7 @@ async def test_circuit_breaker_skips_call_when_open(agent_name):
 # ============================================================================
 # MALFORMED RESPONSE HANDLING (BONUS COVERAGE)
 # ============================================================================
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
@@ -117,6 +123,7 @@ async def test_malformed_response_returns_fallback(agent_name):
 # NETWORK ERROR – RETRY ON CONNECTIONERROR
 # ============================================================================
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_agent_retries_on_connection_error(agent_name):
@@ -127,7 +134,7 @@ async def test_agent_retries_on_connection_error(agent_name):
     mock_client = AsyncMock()
     mock_client.messages.create.side_effect = [
         ConnectionError("Network unreachable"),
-        {"content": [{"text": "recovered"}]}
+        {"content": [{"text": "recovered"}]},
     ]
 
     with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
