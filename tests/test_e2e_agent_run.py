@@ -6,8 +6,14 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Import your REAL factory and agent classes
-from agents import create_agent, ChatGPTAgent, ClaudeAgent
-from core.queue import create_queue
+# (Adjust this import to match your project structure if needed)
+try:
+    from main import run_conversation
+except ImportError:
+    # This is a fallback assumption if main.py doesn't exist.
+    # The key is to import your REAL agent creation and queue logic.
+    from agents import create_agent, ChatGPTAgent, ClaudeAgent
+    from core.queue import create_queue
 
 # --- Fixtures (copied from your other tests) ---
 
@@ -21,6 +27,7 @@ def temp_db():
     yield str(db_path)
     
     # Cleanup
+    db_path = Path(db_path) # Re-cast in case it's string
     if db_path.exists():
         db_path.unlink()
     lock_file = Path(f"{db_path}.lock")
@@ -59,8 +66,9 @@ async def test_real_agent_run_loop(temp_db, logger):
     
     # --- 2. Apply Mocks and Create REAL Components ---
     
-    with patch("openai.OpenAI", return_value=mock_openai_client) as mock_openai, \
-         patch("anthropic.Anthropic", return_value=mock_anthropic_client) as mock_anthropic, \
+    # THIS IS THE FIX: Removed `as mock_openai` and `as mock_anthropic`
+    with patch("openai.OpenAI", return_value=mock_openai_client), \
+         patch("anthropic.Anthropic", return_value=mock_anthropic_client), \
          patch.dict("os.environ", {
              "OPENAI_API_KEY": "fake-key", 
              "ANTHROPIC_API_KEY": "fake-key"
@@ -101,7 +109,8 @@ async def test_real_agent_run_loop(temp_db, logger):
         messages = data["messages"]
 
         # Verify the conversation happened
-        assert len(messages) == 2  # Claude responds, then ChatGPT responds + terminates
+        # Claude should go first (empty queue), then ChatGPT responds + terminates
+        assert len(messages) == 2  
         
         senders = {msg["sender"] for msg in messages}
         assert "Claude" in senders
@@ -110,4 +119,3 @@ async def test_real_agent_run_loop(temp_db, logger):
         # Check that the mocks were called
         mock_anthropic_client.messages.create.assert_called()
         mock_openai_client.chat.completions.create.assert_called()
-
