@@ -61,7 +61,7 @@ Detailed testing documentation:
 - Writing new tests (patterns, fixtures, best practices)
 - CI/CD integration
 - Troubleshooting guide
-- Coverage requirements (90%+ target)
+- Coverage requirements (70%+ target)
 
 ### For Contributors
 **Start with**: [CONTRIBUTING.md](computer:///mnt/user-data/outputs/CONTRIBUTING.md)
@@ -170,7 +170,7 @@ pytest --cov=agents --cov=core --cov-report=html
 1. **Code of Conduct** - Community standards
 2. **Getting Started** - Fork, clone, setup
 3. **Development Process** - Branching, commits, testing
-4. **Testing Requirements** - 90%+ coverage, how to run tests
+4. **Testing Requirements** - 70%+ coverage, how to run tests
 5. **Code Style** - PEP 8, Ruff, type hints, docstrings
 6. **Pull Request Process** - Checklist, template, review process
 7. **Reporting Bugs** - Template for bug reports
@@ -231,15 +231,6 @@ pytest --cov=agents --cov=core --cov-report=html
 ├─────────────────────────────────────────┤
 │  Core (Config, Utils, Security)         │
 └─────────────────────────────────────────┘
-```
-
-**Test Coverage Table** (in TESTING.md):
-```
-| Module          | Target | Current |
-|-----------------|--------|---------|
-| agents/base.py  | 90%    | 92%     |
-| core/queue.py   | 95%    | 96%     |
-| ...             | ...    | ...     |
 ```
 
 **File Structure Tree** (in README.md):
