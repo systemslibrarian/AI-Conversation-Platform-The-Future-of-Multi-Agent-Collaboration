@@ -7,6 +7,7 @@ Coverage target: 92%+ for core/queue.py
 import pytest
 import asyncio
 import tempfile
+import json  # <-- FIX 1: Added json import
 from pathlib import Path
 import logging
 from unittest.mock import AsyncMock, patch
@@ -14,6 +15,13 @@ import builtins
 
 from core.queue import SQLiteQueue, RedisQueue, create_queue
 from core.config import config
+
+# === Detect if redis is available ===
+has_redis = True
+try:
+    import redis.asyncio  # noqa: F401
+except ImportError:
+    has_redis = False
 
 
 # ============================================================================
@@ -116,11 +124,7 @@ class TestSQLiteQueueBasic:
         assert len(data["messages"]) == 20
         assert data["metadata"]["total_turns"] == 20
 
-    @pytest.mark.asyncio
-    async def test_factory(self, temp_db, logger):
-        """Test queue factory creates SQLite queue"""
-        q = create_queue(str(temp_db), logger, use_redis=False)
-        assert isinstance(q, SQLiteQueue)
+    # <-- FIX 2: Removed duplicate test_factory
 
 
 # ============================================================================
@@ -275,12 +279,16 @@ class TestSQLiteQueueComprehensive:
 # ============================================================================
 
 
+# <-- FIX 3: Applied skipif to the entire class
+@pytest.mark.skipif(not has_redis, reason="redis package not installed")
 class TestRedisQueue:
     """Test RedisQueue implementation"""
 
     @pytest.mark.asyncio
     async def test_redis_init_without_package(self, logger):
         """Test Redis queue fails gracefully without redis package"""
+        # This test will be skipped by the class decorator,
+        # but is a good example of how to mock imports.
         original_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
@@ -295,7 +303,6 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_add_message(self, logger, mock_redis):
         """Test adding message to Redis"""
-        # Patch the function in its original module: 'redis.asyncio'
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             queue = RedisQueue("redis://localhost:6379/0", logger)
             result = await queue.add_message("Agent1", "Test message", {"tokens": 50})
@@ -307,21 +314,22 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_get_context(self, logger, mock_redis):
         """Test getting context from Redis"""
+        # <-- FIX 4: Use json.dumps for mock data
         mock_redis.xrevrange.return_value = [
             (
-                "1234567891-0",  # Newest message
+                "1234567891-0",
                 {
                     "sender": "Agent1",
                     "content": "Message 2",
-                    "metadata": '{"tokens": 20}',
+                    "metadata": json.dumps({"tokens": 20}),
                 },
             ),
             (
-                "1234567890-0",  # Older message
+                "1234567890-0",
                 {
                     "sender": "Agent2",
                     "content": "Message 1",
-                    "metadata": '{"tokens": 10}',
+                    "metadata": json.dumps({"tokens": 10}),
                 },
             ),
         ]
@@ -330,12 +338,10 @@ class TestRedisQueue:
             queue = RedisQueue("redis://localhost:6379/0", logger)
             messages = await queue.get_context(max_messages=10)
 
-            # --- THIS IS THE FIX ---
-            # The list is reversed to be in chronological order
-            # So messages[0] is the OLDEST message
             assert len(messages) == 2
             assert messages[0]["sender"] == "Agent2"
             assert messages[1]["sender"] == "Agent1"
+            assert messages[1]["metadata"]["tokens"] == 20
 
     @pytest.mark.asyncio
     async def test_get_last_sender(self, logger, mock_redis):
@@ -368,14 +374,13 @@ class TestRedisQueue:
     async def test_mark_terminated(self, logger, mock_redis):
         """Test marking conversation as terminated"""
         with patch("redis.asyncio.from_url", return_value=mock_redis):
-            queue = RedisQueue("redis://localhost:6379/0", logger)
+            queue = RedisQueue("redis://localhost:6T379/0", logger)
             await queue.mark_terminated("test_reason")
 
-            # Check all calls based on core/queue.py
             assert mock_redis.set.call_count == 2
             mock_redis.set.assert_any_call(f"{queue.conv_id}:terminated", "1")
             mock_redis.set.assert_any_call(f"{queue.conv_id}:reason", "test_reason")
-            assert mock_redis.hset.called  # For 'ended_at'
+            assert mock_redis.hset.called
 
     @pytest.mark.asyncio
     async def test_get_termination_reason(self, logger, mock_redis):
@@ -448,6 +453,7 @@ class TestQueueFactory:
         assert isinstance(queue, SQLiteQueue)
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(not has_redis, reason="redis package not installed")
     async def test_factory_creates_redis_with_flag(self, logger):
         """Test factory creates Redis queue with flag"""
         with patch("redis.asyncio.from_url", return_value=AsyncMock()):
@@ -455,6 +461,7 @@ class TestQueueFactory:
             assert isinstance(queue, RedisQueue)
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(not has_redis, reason="redis package not installed")
     async def test_factory_creates_redis_with_url(self, logger):
         """Test factory creates Redis queue from URL"""
         with patch("redis.asyncio.from_url", return_value=AsyncMock()):
