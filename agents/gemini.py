@@ -24,16 +24,13 @@ class GeminiAgent(BaseAgent):
 
             # 2. Use the local 'api_key' variable to configure
             genai.configure(api_key=api_key)
-            
+
             # --- THIS IS THE FIX ---
             # Add system prompt to the model configuration
             system_instruction = self._build_system_prompt()
-            self.client = genai.GenerativeModel(
-                self.model,
-                system_instruction=system_instruction
-            )
+            self.client = genai.GenerativeModel(self.model, system_instruction=system_instruction)
             # --- END OF FIX ---
-            
+
         except ImportError:
             raise ImportError("Install: pip install google-generativeai")
 
@@ -41,12 +38,12 @@ class GeminiAgent(BaseAgent):
         """Call Gemini API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for closure
-        
+
         # --- THIS IS THE FIX ---
         # Gemini wants history in a specific format.
         # The system prompt is already in self.client.
         # BaseAgent's _build_messages gives us user/assistant roles.
-        
+
         history = []
         last_message = None
 

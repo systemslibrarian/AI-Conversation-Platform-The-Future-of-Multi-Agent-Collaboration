@@ -31,7 +31,7 @@ class GrokAgent(BaseAgent):
         """Call Grok API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for lambda
-        
+
         # --- THIS IS THE FIX ---
         # Get the system prompt and add it to the messages list
         system = self._build_system_prompt()
@@ -44,7 +44,7 @@ class GrokAgent(BaseAgent):
             None,
             lambda: client.chat.completions.create(
                 model=self.model,
-                messages=api_messages, # Use the modified list
+                messages=api_messages,  # Use the modified list
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
             ),

@@ -31,7 +31,7 @@ class ClaudeAgent(BaseAgent):
         """Call Claude API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for lambda
-        
+
         # --- THIS IS THE FIX ---
         # Get the system prompt. Claude uses a dedicated 'system' param.
         system = self._build_system_prompt()
@@ -47,7 +47,7 @@ class ClaudeAgent(BaseAgent):
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
                 system=system,  # Pass system prompt here
-                messages=messages, # Pass history here
+                messages=messages,  # Pass history here
             ),
         )
 
