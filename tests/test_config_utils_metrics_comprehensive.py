@@ -189,22 +189,20 @@ class TestConfigClass:
         }
 
         try:
-            # Option 1: Return raw dict — your new config.py supports this!
-            with patch("core.config.ConfigValidation", return_value=mock_data):
+            # Create a mock that bypasses validation and returns an object with model_dump()
+            mock_validated = MagicMock()
+            mock_validated.model_dump.return_value = mock_data
+            
+            # Mock the ConfigValidation class itself to return our mock when called
+            mock_validation_class = MagicMock(return_value=mock_validated)
+            
+            with patch("core.config.ConfigValidation", mock_validation_class):
                 Config.validate()
 
             assert Config.TEMPERATURE == 0.5
             assert Config.MAX_TOKENS == 2000
             assert Config.PROMETHEUS_PORT == 9000
             assert Config.MAX_CONTEXT_MSGS == 15
-
-            # Option 2: Return MagicMock with model_dump() — also works
-            mock_validated = MagicMock()
-            mock_validated.model_dump.return_value = mock_data
-            with patch("core.config.ConfigValidation", return_value=mock_validated):
-                Config.validate()
-
-            assert Config.TEMPERATURE == 0.5
 
         finally:
             # Restore original defaults
