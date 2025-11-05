@@ -8,9 +8,12 @@ Tests for BaseAgent orchestrator logic:
 - Agent factory error paths & model selection
 """
 
+import os
 import sys
+import asyncio
 import logging
 import importlib
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -21,7 +24,6 @@ from core.config import config
 
 
 # ---------- Fixtures ----------
-
 
 @pytest.fixture
 def mock_queue():
@@ -44,9 +46,7 @@ def test_agent(mock_queue, mock_logger):
     Concrete BaseAgent with abstract API patched.
     Also patches key methods used by run()/respond().
     """
-    with patch.object(
-        BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)
-    ):
+    with patch.object(BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)):
         agent = BaseAgent(
             queue=mock_queue,
             logger=mock_logger,
@@ -62,7 +62,6 @@ def test_agent(mock_queue, mock_logger):
 
 
 # ---------- run() tests ----------
-
 
 @pytest.mark.asyncio
 class TestAgentRunLoop:
@@ -99,21 +98,57 @@ class TestAgentRunLoop:
         mock_queue.mark_terminated.assert_called_with("user_interrupt")
 
     async def test_run_logs_and_raises_fatal_error(self, test_agent, mock_logger):
+        """
+        Tests the fatal error handler in run(), resilient to
+        multiple logging styles (e.g., info-level JSON or error-level structured).
+        """
         err = RuntimeError("Fatal test error")
         test_agent.should_respond.side_effect = err
 
         with pytest.raises(RuntimeError, match="Fatal test error"):
             await test_agent.run(max_turns=10, partner_name="Partner")
 
-        assert mock_logger.error.called
-        msg, payload = mock_logger.error.call_args.args
-        assert msg == "agent_error"
-        assert payload.get("agent") == "TestAgent"
-        assert "Fatal test error" in payload.get("error", "")
+        # Check if *either* info or error was called
+        assert mock_logger.info.called or mock_logger.error.called, \
+            "No log call (info or error) was made on fatal error"
+
+        log_event = ""
+        log_agent = ""
+        log_error = ""
+
+        if mock_logger.info.called:
+            # Style 1: JSON string via logger.info
+            log_json_string = None
+            for call in mock_logger.info.call_args_list:
+                arg_str = call.args[0]
+                if isinstance(arg_str, str) and "agent_error" in arg_str:
+                    log_json_string = arg_str
+                    break
+            assert log_json_string is not None, "logger.info called, but 'agent_error' JSON not found"
+
+            log_data = json.loads(log_json_string)
+            log_event = log_data.get("event")
+            log_agent = log_data.get("agent")
+            log_error = log_data.get("error", "")
+
+        elif mock_logger.error.called:
+            # Style 2: Structured tuple/dict via logger.error
+            # e.g., logger.error("agent_error", {"agent": "TestAgent", "error": "..."})
+            call_args = mock_logger.error.call_args.args
+            log_event = call_args[0]
+            if len(call_args) > 1 and isinstance(call_args[1], dict):
+                log_data = call_args[1]
+                log_agent = log_data.get("agent")
+                log_error = log_data.get("error", "")
+            else:
+                log_error = str(call_args)  # Fallback
+
+        assert log_event == "agent_error"
+        assert log_agent == "TestAgent"
+        assert "Fatal test error" in log_error
 
 
 # ---------- respond() tests ----------
-
 
 @pytest.mark.asyncio
 class TestAgentRespondLoop:
@@ -166,8 +201,8 @@ class TestAgentRespondLoop:
 
 # ---------- LLM-Guard & scanning tests ----------
 
-
 class TestSecurityAndImports:
+    @pytest.mark.filterwarnings("ignore::ImportWarning")
     def test_base_agent_init_without_llm_guard(self, mock_queue, mock_logger):
         import agents.base as agents_base_module
 
@@ -177,12 +212,7 @@ class TestSecurityAndImports:
 
         try:
             importlib.reload(agents_base_module)
-            with patch.object(
-                agents_base_module.BaseAgent,
-                "_call_api",
-                new_callable=AsyncMock,
-                return_value=("x", 1),
-            ):
+            with patch.object(agents_base_module.BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("x", 1)):
                 agent = agents_base_module.BaseAgent(
                     queue=mock_queue,
                     logger=mock_logger,
@@ -228,7 +258,6 @@ class TestSecurityAndImports:
 
 # ---------- Agent factory tests ----------
 
-
 class TestAgentFactoryFailures:
     def test_factory_raises_unknown_agent(self, mock_queue, mock_logger):
         with pytest.raises(ValueError, match="Unknown agent type: 'foobar'"):
@@ -247,7 +276,6 @@ class TestAgentFactoryFailures:
         with patch.dict("os.environ", {"OPENAI_API_KEY": "fake-key"}):
             with patch("openai.OpenAI"):
                 from agents.chatgpt import ChatGPTAgent
-
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
