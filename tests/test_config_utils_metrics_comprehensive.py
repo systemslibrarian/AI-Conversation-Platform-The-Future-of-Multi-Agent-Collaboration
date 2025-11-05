@@ -7,8 +7,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import os
 from pydantic import BaseModel  # Import BaseModel for mocking Pydantic
-import warnings  # For testing import warning path
-import sys  # For testing import warning path
+import warnings # For testing import warning path
+import sys # For testing import warning path
 
 
 from core.config import Config, ConfigValidation
@@ -134,7 +134,7 @@ class TestConfigClass:
         Force Config.validate() to fail during module import so we hit the
         try/except + warnings.warn(...) branch executed at import time.
         """
-
+        
         # Make validation fail by supplying an invalid env var (e.g., low port)
         monkeypatch.setenv("PROMETHEUS_PORT", "80")
 
@@ -146,51 +146,59 @@ class TestConfigClass:
             import core.config  # noqa: F401  # re-import to trigger module-level validate
 
         assert any("Configuration validation" in str(rec.message) for rec in w)
-
     # --- END NEW TEST ---
 
     # --- ensure validate() overwrites attributes ---
     def test_validate_updates_attributes(self):
         """Test successful validation overwrites live class attributes."""
 
-        # Mock the validated model result with new values
-        class MockValidation(BaseModel):
-            # Must contain all fields defined in ConfigValidation
-            TEMPERATURE: float = 0.5
-            MAX_TOKENS: int = 2000
-            SIMILARITY_THRESHOLD: float = 0.80
-            MAX_CONSECUTIVE_SIMILAR: int = 3
-            DEFAULT_MAX_TURNS: int = 60
-            DEFAULT_TIMEOUT_MINUTES: int = 40
-            MAX_CONTEXT_MSGS: int = 15
-            PROMETHEUS_PORT: int = 9000
-
         # Store original values for cleanup
         original_temp = Config.TEMPERATURE
         original_max = Config.MAX_TOKENS
         original_port = Config.PROMETHEUS_PORT
         original_max_context = Config.MAX_CONTEXT_MSGS
+        
+        # 0. Set initial values different from mock target to prove setter runs
+        Config.TEMPERATURE = 99.0
+        Config.MAX_TOKENS = 1
+        Config.PROMETHEUS_PORT = 1000
+        Config.MAX_CONTEXT_MSGS = 1
+
+        # Mock the validated model result (model_dump)
+        MOCK_DUMP = {
+            "TEMPERATURE": 0.5,
+            "MAX_TOKENS": 2000,
+            "SIMILARITY_THRESHOLD": 0.80,
+            "MAX_CONSECUTIVE_SIMILAR": 3,
+            "DEFAULT_MAX_TURNS": 60,
+            "DEFAULT_TIMEOUT_MINUTES": 40,
+            "MAX_CONTEXT_MSGS": 15,
+            "PROMETHEUS_PORT": 9000
+        }
 
         try:
-            # 1. Patch the Pydantic validation class to return our mock
-            with patch("core.config.ConfigValidation", MockValidation):
+            # 1. Patch the Pydantic validation class constructor.
+            with patch("core.config.ConfigValidation") as MockPydanticClass:
+                # Mock the return instance's model_dump() method to return our data
+                MockPydanticClass.return_value.model_dump.return_value = MOCK_DUMP
+                
+                # 2. Run validation (which triggers the internal Pydantic call and the setter loop)
                 Config.validate()
 
-            # 2. Assert that the actual Config class attributes were updated (hitting the setter line)
+            # 3. Assert that the actual Config class attributes were updated (hitting the setter line)
             assert Config.TEMPERATURE == 0.5
             assert Config.MAX_TOKENS == 2000
             assert Config.PROMETHEUS_PORT == 9000
             assert Config.MAX_CONTEXT_MSGS == 15
 
         finally:
-            # 3. Clean up: Restore original values
+            # 4. Clean up: Restore original values
             Config.TEMPERATURE = original_temp
             Config.MAX_TOKENS = original_max
             Config.PROMETHEUS_PORT = original_port
             Config.MAX_CONTEXT_MSGS = original_max_context
             # Re-validate to ensure all non-tested attributes are reset to defaults
             Config.validate()
-
     # --- END NEW TEST ---
 
     def test_validate_invalid_temperature(self):
@@ -390,12 +398,11 @@ class TestAddJitter:
         for _ in range(50):
             jittered = add_jitter(10.0, jitter_range=0.5)
             assert 5.0 <= jittered <= 15.0
-
+    
     # --- NEW TEST: zero jitter branch (no randomness path) ---
     def test_add_jitter_zero_range(self):
         """With zero jitter, value should be returned unchanged (no clamp needed)."""
         assert add_jitter(10.0, jitter_range=0.0) == 10.0
-
     # --- END NEW TEST ---
 
 
