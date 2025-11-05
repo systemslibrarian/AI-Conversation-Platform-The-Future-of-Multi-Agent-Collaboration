@@ -34,9 +34,21 @@ async def test_retry_on_timeout(agent_name):
         mock_chat.send_message.side_effect = [asyncio.TimeoutError, MagicMock(text="success")]
         mock_client.start_chat.return_value = mock_chat
     elif agent_name == "claude":
-        mock_client.messages.create.side_effect = [asyncio.TimeoutError, MagicMock(content=[MagicMock(text="success")], usage=MagicMock(input_tokens=1, output_tokens=1))]
+        mock_client.messages.create.side_effect = [
+            asyncio.TimeoutError,
+            MagicMock(
+                content=[MagicMock(text="success")],
+                usage=MagicMock(input_tokens=1, output_tokens=1),
+            ),
+        ]
     else:
-        mock_client.chat.completions.create.side_effect = [asyncio.TimeoutError, MagicMock(choices=[MagicMock(message=MagicMock(content="success"))], usage=MagicMock(total_tokens=2))]
+        mock_client.chat.completions.create.side_effect = [
+            asyncio.TimeoutError,
+            MagicMock(
+                choices=[MagicMock(message=MagicMock(content="success"))],
+                usage=MagicMock(total_tokens=2),
+            ),
+        ]
 
     # --- 2. BUILD THE LIST OF PATCHES ---
     patches_to_apply = [patch(patch_path, return_value=mock_client)]
@@ -50,7 +62,7 @@ async def test_retry_on_timeout(agent_name):
 
         agent = AgentClass(api_key="test", model="test")
         response = await agent.say("hello")
-    # --- END OF FIX ---
+        # --- END OF FIX ---
 
         assert "success" in response
 
@@ -78,9 +90,15 @@ async def test_429_backoff_respects_retry_after(agent_name):
         mock_chat.send_message.side_effect = [mock_429, MagicMock(text="ok")]
         mock_client.start_chat.return_value = mock_chat
     elif agent_name == "claude":
-        mock_client.messages.create.side_effect = [mock_429, MagicMock(content=[MagicMock(text="ok")])]
+        mock_client.messages.create.side_effect = [
+            mock_429,
+            MagicMock(content=[MagicMock(text="ok")]),
+        ]
     else:
-        mock_client.chat.completions.create.side_effect = [mock_429, MagicMock(choices=[MagicMock(message=MagicMock(content="ok"))])]
+        mock_client.chat.completions.create.side_effect = [
+            mock_429,
+            MagicMock(choices=[MagicMock(message=MagicMock(content="ok"))]),
+        ]
 
     # --- FIX 2: BUILD PATCH LIST ---
     patches_to_apply = [patch(patch_path, return_value=mock_client)]
@@ -91,7 +109,7 @@ async def test_429_backoff_respects_retry_after(agent_name):
     with ExitStack() as stack:
         for p in patches_to_apply:
             stack.enter_context(p)
-        
+
         # This is how you handle the patch with the 'as' keyword
         mock_sleep = stack.enter_context(patch("asyncio.sleep", new_callable=AsyncMock))
 
@@ -99,7 +117,7 @@ async def test_429_backoff_respects_retry_after(agent_name):
         await agent.say("hello")
 
         mock_sleep.assert_called_once_with(0.1)
-    # --- END OF FIX ---
+        # --- END OF FIX ---
 
         if agent_name == "gemini":
             assert mock_chat.send_message.call_count == 2
@@ -122,7 +140,7 @@ async def test_circuit_breaker_skips_when_open(agent_name):
     # --- FIX 3: BUILD PATCH LIST ---
     patches_to_apply = [
         patch(patch_path, return_value=mock_client),
-        patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True)
+        patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True),
     ]
     if agent_name == "gemini":
         patches_to_apply.append(patch("google.generativeai.configure", return_value=None))
@@ -134,7 +152,7 @@ async def test_circuit_breaker_skips_when_open(agent_name):
 
         agent = AgentClass(api_key="test", model="test")
         response = await agent.say("hello")
-    # --- END OF FIX ---
+        # --- END OF FIX ---
 
         assert "[Circuit breaker open" in response
 
