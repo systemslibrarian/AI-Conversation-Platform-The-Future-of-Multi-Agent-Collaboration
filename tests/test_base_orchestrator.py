@@ -8,21 +8,22 @@ Tests for BaseAgent orchestrator logic:
 - Agent factory error paths & model selection
 """
 
+import os
 import sys
+import asyncio
 import logging
-import importlib
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# Import agents.base so we can patch its config
+import agents.base
 from agents.base import BaseAgent
 from agents import create_agent
-from core.config import config
 
 
 # ---------- Fixtures ----------
-
 
 @pytest.fixture
 def mock_queue():
@@ -43,11 +44,10 @@ def mock_logger():
 def test_agent(mock_queue, mock_logger):
     """
     Concrete BaseAgent with abstract API patched.
-    Also patches key methods used by run()/respond().
+    Keep generate_response REAL so internal counters/logic run.
     """
-    with patch.object(
-        BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)
-    ):
+    # Mock only the abstract _call_api; attach it for per-test control
+    with patch.object(BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)) as mock_call_api:
         agent = BaseAgent(
             queue=mock_queue,
             logger=mock_logger,
@@ -56,14 +56,15 @@ def test_agent(mock_queue, mock_logger):
             timeout_minutes=1,
             agent_name="TestAgent",
         )
-        agent.generate_response = AsyncMock(return_value=("Test response", 10, 0.1))
+        agent._call_api = mock_call_api  # allow tests to set side effects
+
+        # Orchestrator helpers used by run()
         agent.should_respond = AsyncMock(return_value=True)
         agent._is_timeout = AsyncMock(return_value=False)
         yield agent
 
 
 # ---------- run() tests ----------
-
 
 @pytest.mark.asyncio
 class TestAgentRunLoop:
@@ -76,6 +77,7 @@ class TestAgentRunLoop:
 
             mock_queue.mark_terminated.assert_called_with("timeout")
             mock_respond.assert_not_called()
+            assert mock_queue.mark_terminated.call_count == 1
 
     async def test_run_terminates_on_max_turns(self, test_agent, mock_queue):
         test_agent.should_respond.return_value = True
@@ -83,7 +85,6 @@ class TestAgentRunLoop:
         async def respond_and_increment():
             test_agent.turn_count += 1
 
-        # Patch respond to control call count
         with patch.object(test_agent, "respond", new_callable=AsyncMock) as mock_respond:
             mock_respond.side_effect = respond_and_increment
 
@@ -91,6 +92,7 @@ class TestAgentRunLoop:
 
             assert mock_respond.call_count == 3
             mock_queue.mark_terminated.assert_called_with("max_turns_reached")
+            assert mock_queue.mark_terminated.call_count == 1
 
     async def test_run_terminates_on_keyboard_interrupt(self, test_agent, mock_queue):
         test_agent.should_respond.side_effect = KeyboardInterrupt
@@ -98,11 +100,13 @@ class TestAgentRunLoop:
         await test_agent.run(max_turns=10, partner_name="Partner")
 
         mock_queue.mark_terminated.assert_called_with("user_interrupt")
+        assert mock_queue.mark_terminated.call_count == 1
 
     async def test_run_logs_and_raises_fatal_error(self, test_agent, mock_logger):
         """
-        Tests the fatal error handler in run(), resilient to
-        multiple logging styles (e.g., info-level JSON or error-level structured).
+        Tests fatal error handler in run(), resilient to both logging styles:
+        - logger.error("agent_error", {...})
+        - logger.info('{"event":"agent_error", ...}')
         """
         err = RuntimeError("Fatal test error")
         test_agent.should_respond.side_effect = err
@@ -110,58 +114,47 @@ class TestAgentRunLoop:
         with pytest.raises(RuntimeError, match="Fatal test error"):
             await test_agent.run(max_turns=10, partner_name="Partner")
 
-        # Check if *either* info or error was called
-        assert mock_logger.info.called or mock_logger.error.called, (
-            "No log call (info or error) was made on fatal error"
-        )
+        # Search .error calls first (structured), then .info (JSON string)
+        found = False
 
-        log_event = ""
-        log_agent = ""
-        log_error = ""
+        for call in mock_logger.error.call_args_list:
+            args = call.args
+            if args and isinstance(args[0], str) and args[0] == "agent_error":
+                payload = args[1] if len(args) > 1 and isinstance(args[1], dict) else {}
+                assert payload.get("agent") == "TestAgent"
+                assert "Fatal test error" in payload.get("error", "")
+                found = True
+                break
 
-        if mock_logger.info.called:
-            # Style 1: JSON string via logger.info
-            log_json_string = None
+        if not found:
             for call in mock_logger.info.call_args_list:
-                arg_str = call.args[0]
-                if isinstance(arg_str, str) and "agent_error" in arg_str:
-                    log_json_string = arg_str
-                    break
-            assert log_json_string is not None, (
-                "logger.info called, but 'agent_error' JSON not found"
-            )
+                args = call.args
+                if not args or not isinstance(args[0], str) or "agent_error" not in args[0]:
+                    continue
+                try:
+                    data = json.loads(args[0])
+                except Exception:
+                    continue
+                assert data.get("event") == "agent_error"
+                assert data.get("agent") == "TestAgent"
+                assert "Fatal test error" in data.get("error", "")
+                found = True
+                break
 
-            log_data = json.loads(log_json_string)
-            log_event = log_data.get("event")
-            log_agent = log_data.get("agent")
-            log_error = log_data.get("error", "")
-
-        elif mock_logger.error.called:
-            # Style 2: Structured tuple/dict via logger.error
-            # e.g., logger.error("agent_error", {"agent": "TestAgent", "error": "..."})
-            call_args = mock_logger.error.call_args.args
-            log_event = call_args[0]
-            if len(call_args) > 1 and isinstance(call_args[1], dict):
-                log_data = call_args[1]
-                log_agent = log_data.get("agent")
-                log_error = log_data.get("error", "")
-            else:
-                log_error = str(call_args)  # Fallback
-
-        assert log_event == "agent_error"
-        assert log_agent == "TestAgent"
-        assert "Fatal test error" in log_error
+        assert found, "No matching agent_error log found on logger.error or logger.info"
 
 
 # ---------- respond() tests ----------
 
-
 @pytest.mark.asyncio
 class TestAgentRespondLoop:
     async def test_respond_terminates_on_consecutive_errors(self, test_agent, mock_queue):
-        test_agent.generate_response.side_effect = Exception("Generic API error")
+        """
+        Make the REAL generate_response run and fail via _call_api exception,
+        so internal counters (consecutive_errors) are incremented.
+        """
+        test_agent._call_api.side_effect = Exception("Generic API error")
         test_agent.max_consecutive_errors = 3
-        test_agent.max_retries = 1  # keep each attempt fast
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             await test_agent.respond()
@@ -178,20 +171,32 @@ class TestAgentRespondLoop:
                 await test_agent.respond()
         assert test_agent.consecutive_errors == 3
         mock_queue.mark_terminated.assert_called_with("consecutive_errors")
+        assert mock_queue.mark_terminated.call_count == 1
 
     async def test_respond_terminates_on_too_many_retries(self, test_agent, mock_queue):
-        test_agent.generate_response.side_effect = TimeoutError("API timeout")
+        """
+        _call_api times out; respond() retries generate_response max_retries times.
+        """
+        test_agent._call_api.side_effect = TimeoutError("API timeout")
         test_agent.max_retries = 5
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             await test_agent.respond()
 
-        assert test_agent.generate_response.call_count == 5
+        # Number of inner API calls should match configured retries
+        assert test_agent._call_api.call_count == test_agent.max_retries
         mock_queue.mark_terminated.assert_called_with("too_many_retries")
+        assert mock_queue.mark_terminated.call_count == 1
 
     async def test_respond_terminates_on_repetition(self, test_agent, mock_queue, monkeypatch):
-        test_agent.generate_response.return_value = ("I am a robot", 10, 0.1)
-        monkeypatch.setattr(config, "MAX_CONSECUTIVE_SIMILAR", 2, raising=False)
+        """
+        Return the same content from _call_api to trigger repetition detection
+        inside the real generate_response/respond pipeline.
+        """
+        test_agent._call_api.return_value = ("I am a robot", 10)
+
+        # Patch config on the module where BaseAgent reads it
+        monkeypatch.setattr(agents.base.config, "MAX_CONSECUTIVE_SIMILAR", 2)
 
         await test_agent.respond()
         assert test_agent.consecutive_similar == 0
@@ -203,46 +208,33 @@ class TestAgentRespondLoop:
 
         await test_agent.respond()
         mock_queue.mark_terminated.assert_called_with("repetition_detected")
+        assert mock_queue.mark_terminated.call_count == 1
 
 
 # ---------- LLM-Guard & scanning tests ----------
 
-
 class TestSecurityAndImports:
-    @pytest.mark.filterwarnings("ignore::ImportWarning")
     def test_base_agent_init_without_llm_guard(self, mock_queue, mock_logger):
-        import agents.base as agents_base_module
+        """
+        Simulate llm_guard not installed by patching sys.modules.
+        No reload is needed if BaseAgent tries to import lazily in __init__.
+        """
+        # Force-enable the feature flag to exercise the branch
+        with patch("agents.base.config.ENABLE_LLM_GUARD", True):
+            with patch.dict("sys.modules", {"llm_guard.input_scanners": None}):
+                with patch.object(BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("x", 1)):
+                    agent = BaseAgent(
+                        queue=mock_queue,
+                        logger=mock_logger,
+                        model="m",
+                        topic="t",
+                        timeout_minutes=1,
+                    )
 
-        prior_llm_guard = sys.modules.pop("llm_guard", None)
-        prior_input = sys.modules.pop("llm_guard.input_scanners", None)
-        prior_output = sys.modules.pop("llm_guard.output_scanners", None)
-
-        try:
-            importlib.reload(agents_base_module)
-            with patch.object(
-                agents_base_module.BaseAgent,
-                "_call_api",
-                new_callable=AsyncMock,
-                return_value=("x", 1),
-            ):
-                agent = agents_base_module.BaseAgent(
-                    queue=mock_queue,
-                    logger=mock_logger,
-                    model="m",
-                    topic="t",
-                    timeout_minutes=1,
-                )
-            assert agent.llm_guard_enabled is False
-            assert mock_logger.warning.called
-            assert "llm-guard" in (mock_logger.warning.call_args.args[0] or "").lower()
-        finally:
-            if prior_llm_guard:
-                sys.modules["llm_guard"] = prior_llm_guard
-            if prior_input:
-                sys.modules["llm_guard.input_scanners"] = prior_input
-            if prior_output:
-                sys.modules["llm_guard.output_scanners"] = prior_output
-            importlib.reload(agents_base_module)
+        assert agent.llm_guard_enabled is False
+        mock_logger.warning.assert_called_with(
+            "llm-guard not installed, security features disabled"
+        )
 
     def test_scan_input_handles_exception(self, test_agent, mock_logger):
         test_agent.llm_guard_enabled = True
@@ -270,7 +262,6 @@ class TestSecurityAndImports:
 
 # ---------- Agent factory tests ----------
 
-
 class TestAgentFactoryFailures:
     def test_factory_raises_unknown_agent(self, mock_queue, mock_logger):
         with pytest.raises(ValueError, match="Unknown agent type: 'foobar'"):
@@ -289,7 +280,6 @@ class TestAgentFactoryFailures:
         with patch.dict("os.environ", {"OPENAI_API_KEY": "fake-key"}):
             with patch("openai.OpenAI"):
                 from agents.chatgpt import ChatGPTAgent
-
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
