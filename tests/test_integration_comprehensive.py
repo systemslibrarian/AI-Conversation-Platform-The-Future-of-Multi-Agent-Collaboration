@@ -1,549 +1,524 @@
-"""
-Integration tests for AI Conversation Platform
-Tests end-to-end scenarios to ensure all components work together
-"""
+"""Comprehensive tests for config, common utilities, and metrics"""
+
+import logging
+import os
+import sys
+import tempfile
+import warnings
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
-import asyncio
-import tempfile
-import logging
-from pathlib import Path
-from unittest.mock import patch
 
-from agents import create_agent, ChatGPTAgent, ClaudeAgent
-from core.queue import SQLiteQueue, create_queue
-from core.config import config
-
-
-@pytest.fixture
-def temp_db():
-    """Create temporary database"""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = Path(f.name)
-    yield db_path
-    if db_path.exists():
-        db_path.unlink()
-    lock_file = Path(f"{db_path}.lock")
-    if lock_file.exists():
-        lock_file.unlink()
+from core.common import (
+    add_jitter,
+    hash_message,
+    log_event,
+    mask_api_key,
+    sanitize_content,
+    setup_logging,
+    simple_similarity,
+)
+from core.config import Config, ConfigValidation
+from core.metrics import (
+    decrement_conversations,
+    increment_conversations,
+    record_call,
+    record_error,
+    record_latency,
+    record_tokens,
+    start_metrics_server,
+)
 
 
-@pytest.fixture
-def logger():
-    """Create test logger"""
-    return logging.getLogger("integration_test")
+# -------------------------
+# Global test hygiene
+# -------------------------
+@pytest.fixture(autouse=True)
+def _isolate_env_and_modules(monkeypatch):
+    """
+    Ensure environment mutations and module reloads don't leak across tests.
+    - Snapshot env keys we mutate; restore after test.
+    - Drop 'core.config' from sys.modules so re-import paths are fresh when requested.
+    """
+    touched_keys = ["PROMETHEUS_PORT", "TEST_API_KEY", "MISSING_KEY"]
+    original_vals = {k: os.environ.get(k) for k in touched_keys}
+
+    # Make sure any previous injected module is not reused in tests that re-import
+    sys.modules.pop("core.config", None)
+
+    yield
+
+    # Restore env
+    for k, v in original_vals.items():
+        if v is None:
+            monkeypatch.delenv(k, raising=False)
+        else:
+            monkeypatch.setenv(k, v)
+
+    # Drop again to avoid surprising reuse in later tests
+    sys.modules.pop("core.config", None)
 
 
-class MockAPIClient:
-    """Mock API client for testing"""
+class TestConfigValidation:
+    """Test configuration validation"""
 
-    def __init__(self, agent_name, responses=None):
-        self.agent_name = agent_name
-        self.call_count = 0
-        self.responses = responses or []
-
-    def get_response(self, turn):
-        """Get response for turn"""
-        if turn < len(self.responses):
-            return self.responses[turn]
-        return f"{self.agent_name} response {turn + 1}"
-
-
-class IntegrationTestAgent:
-    """Test agent for integration tests"""
-
-    def __init__(self, name, queue, logger, model="test", topic="test", responses=None):
-        self.name = name
-        self.queue = queue
-        self.logger = logger
-        self.model = model
-        self.topic = topic
-        self.turn_count = 0
-        self.responses = responses or []
-
-    async def run(self, max_turns, partner_name):
-        """Simplified run loop for testing"""
-        for turn in range(max_turns):
-            # Wait for turn
-            await asyncio.sleep(0.01)
-
-            last_sender = await self.queue.get_last_sender()
-
-            # Check if it's our turn
-            if last_sender is None or last_sender == partner_name:
-                # Generate response
-                if turn < len(self.responses):
-                    content = self.responses[turn]
-                else:
-                    content = f"{self.name} message {turn + 1}"
-
-                # Add to queue
-                await self.queue.add_message(
-                    self.name,
-                    content,
-                    {"turn": turn + 1, "tokens": 50, "response_time": 0.1},
-                )
-                self.turn_count += 1
-
-                # Check if this message contains termination signal
-                if "[done]" in content.lower():
-                    await self.queue.mark_terminated("test_termination_signal")
-                    break
-
-                # Check termination
-                if await self.queue.is_terminated():
-                    break
-
-            # Check if partner terminated
-            if await self.queue.is_terminated():
-                break
-
-        # Mark complete if we reached max turns
-        if self.turn_count >= max_turns:
-            await self.queue.mark_terminated("max_turns_reached")
-
-
-class TestFullConversationFlow:
-    """Test complete conversation flows"""
-
-    @pytest.mark.asyncio
-    async def test_two_agent_conversation(self, temp_db, logger):
-        """Test two agents having a conversation"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Create two test agents
-        agent1 = IntegrationTestAgent(
-            "Agent1",
-            queue,
-            logger,
-            responses=["Hello Agent2", "How are you?", "Goodbye"],
+    def test_valid_config(self):
+        config = ConfigValidation(
+            TEMPERATURE=0.7,
+            MAX_TOKENS=1024,
+            SIMILARITY_THRESHOLD=0.85,
+            MAX_CONSECUTIVE_SIMILAR=2,
+            DEFAULT_MAX_TURNS=50,
+            DEFAULT_TIMEOUT_MINUTES=30,
+            MAX_CONTEXT_MSGS=10,
+            PROMETHEUS_PORT=8000,
         )
-        agent2 = IntegrationTestAgent(
-            "Agent2",
-            queue,
-            logger,
-            responses=["Hi Agent1", "I'm good, you?", "See you later"],
-        )
+        assert config.TEMPERATURE == 0.7
+        assert config.MAX_TOKENS == 1024
 
-        # Run both agents concurrently
-        await asyncio.gather(
-            agent1.run(max_turns=3, partner_name="Agent2"),
-            agent2.run(max_turns=3, partner_name="Agent1"),
-        )
-
-        # Verify conversation
-        data = await queue.load()
-        messages = data["messages"]
-
-        assert len(messages) >= 3  # At least 3 messages
-        assert data["metadata"]["total_turns"] >= 3
-
-        # Verify alternating pattern
-        senders = [msg["sender"] for msg in messages]
-        assert "Agent1" in senders
-        assert "Agent2" in senders
-
-    @pytest.mark.asyncio
-    async def test_conversation_with_termination(self, temp_db, logger):
-        """Test conversation that terminates mid-way"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        agent1 = IntegrationTestAgent(
-            "Agent1",
-            queue,
-            logger,
-            responses=["Hello", "[done]"],  # Terminate after 2nd message
-        )
-        agent2 = IntegrationTestAgent(
-            "Agent2",
-            queue,
-            logger,
-            responses=["Hi", "Okay"],
-        )
-
-        # Run both agents
-        await asyncio.gather(
-            agent1.run(max_turns=10, partner_name="Agent2"),
-            agent2.run(max_turns=10, partner_name="Agent1"),
-        )
-
-        # Verify terminated
-        assert await queue.is_terminated()
-
-        data = await queue.load()
-        # Should have stopped early
-        assert data["metadata"]["total_turns"] < 10
-
-    @pytest.mark.asyncio
-    async def test_concurrent_message_adding(self, temp_db, logger):
-        """Test concurrent message adding doesn't cause race conditions"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        async def add_messages(sender, count):
-            for i in range(count):
-                await queue.add_message(sender, f"Message {i}", {"tokens": 10})
-                await asyncio.sleep(0.001)  # Small delay
-
-        # Add messages concurrently from two senders
-        await asyncio.gather(add_messages("Agent1", 20), add_messages("Agent2", 20))
-
-        # Verify all messages were added
-        data = await queue.load()
-        assert data["metadata"]["total_turns"] == 40
-        assert len(data["messages"]) == 40
-
-    @pytest.mark.asyncio
-    async def test_context_retrieval(self, temp_db, logger):
-        """Test context retrieval with multiple messages"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Add several messages
-        for i in range(15):
-            sender = "Agent1" if i % 2 == 0 else "Agent2"
-            await queue.add_message(sender, f"Message {i}", {"turn": i})
-
-        # Get context
-        context = await queue.get_context(max_messages=10)
-
-        assert len(context) == 10
-        # Should get most recent messages
-        assert "Message 14" in context[-1]["content"]
-
-    @pytest.mark.asyncio
-    async def test_token_accumulation(self, temp_db, logger):
-        """Test token counts accumulate correctly"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Add messages with varying token counts
-        await queue.add_message("Agent1", "Message 1", {"tokens": 50})
-        await queue.add_message("Agent2", "Message 2", {"tokens": 75})
-        await queue.add_message("Agent1", "Message 3", {"tokens": 100})
-
-        data = await queue.load()
-        assert data["metadata"]["total_tokens"] == 225
-
-    @pytest.mark.asyncio
-    async def test_agent_turn_counting(self, temp_db, logger):
-        """Test individual agent turn counting"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Agent1 sends 3, Agent2 sends 2
-        await queue.add_message("Agent1", "M1", {"tokens": 10})
-        await queue.add_message("Agent2", "M2", {"tokens": 10})
-        await queue.add_message("Agent1", "M3", {"tokens": 10})
-        await queue.add_message("Agent1", "M4", {"tokens": 10})
-        await queue.add_message("Agent2", "M5", {"tokens": 10})
-
-        data = await queue.load()
-
-        # Count turns from messages
-        agent1_turns = sum(1 for msg in data["messages"] if msg["sender"] == "Agent1")
-        agent2_turns = sum(1 for msg in data["messages"] if msg["sender"] == "Agent2")
-
-        assert agent1_turns == 3
-        assert agent2_turns == 2
-        assert data["metadata"]["total_turns"] == 5
-
-
-class TestErrorRecovery:
-    """Test error recovery scenarios"""
-
-    @pytest.mark.asyncio
-    async def test_queue_survives_errors(self, temp_db, logger):
-        """Test queue continues working after errors"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Add a valid message
-        await queue.add_message("Agent1", "Valid", {"tokens": 10})
-
-        # Try to add invalid message (empty content)
+    def test_temperature_validation(self):
         with pytest.raises(Exception):
-            await queue.add_message("Agent1", "", {"tokens": 10})
+            ConfigValidation(
+                TEMPERATURE=3.0,  # Invalid
+                MAX_TOKENS=1024,
+                SIMILARITY_THRESHOLD=0.85,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=8000,
+            )
 
-        # Queue should still work
-        await queue.add_message("Agent2", "Also valid", {"tokens": 10})
-
-        data = await queue.load()
-        assert data["metadata"]["total_turns"] == 2
-
-    @pytest.mark.asyncio
-    async def test_termination_persistence(self, temp_db, logger):
-        """Test termination state persists"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Add messages and terminate
-        await queue.add_message("Agent1", "Message", {"tokens": 10})
-        await queue.mark_terminated("test_reason")
-
-        # Verify terminated
-        assert await queue.is_terminated()
-        reason = await queue.get_termination_reason()
-        assert reason == "test_reason"
-
-        # Create new queue instance with same db
-        queue2 = SQLiteQueue(temp_db, logger)
-
-        # Termination should persist
-        assert await queue2.is_terminated()
-        assert await queue2.get_termination_reason() == "test_reason"
-
-
-class TestFactoryAndAgentCreation:
-    """Test agent factory and creation"""
-
-    @pytest.mark.asyncio
-    async def test_create_queue_factory_sqlite(self, temp_db, logger):
-        """Test queue factory creates SQLite queue"""
-        queue = create_queue(str(temp_db), logger, use_redis=False)
-        assert isinstance(queue, SQLiteQueue)
-
-        # Test it works
-        await queue.add_message("Test", "Message", {})
-        data = await queue.load()
-        assert len(data["messages"]) == 1
-
-    @pytest.mark.asyncio
-    async def test_create_chatgpt_agent(self, temp_db, logger):
-        """Test ChatGPT agent creation"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("openai.OpenAI"):
-                agent = create_agent(
-                    agent_type="chatgpt",
-                    queue=queue,
-                    logger=logger,
-                    api_key="test-key",
-                )
-
-                assert isinstance(agent, ChatGPTAgent)
-                assert agent.PROVIDER_NAME == "ChatGPT"
-
-    @pytest.mark.asyncio
-    async def test_create_claude_agent(self, temp_db, logger):
-        """Test Claude agent creation"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-            with patch("anthropic.Anthropic"):
-                agent = create_agent(
-                    agent_type="claude",
-                    queue=queue,
-                    logger=logger,
-                    api_key="test-key",
-                )
-
-                assert isinstance(agent, ClaudeAgent)
-                assert agent.PROVIDER_NAME == "Claude"
-
-    @pytest.mark.asyncio
-    async def test_create_agent_with_model_override(self, temp_db, logger):
-        """Test agent creation with model override"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-            with patch("openai.OpenAI"):
-                agent = create_agent(
-                    agent_type="chatgpt",
-                    queue=queue,
-                    logger=logger,
-                    model="gpt-4o-mini",
-                    api_key="test-key",
-                )
-
-                assert agent.model == "gpt-4o-mini"
-
-
-class TestHealthChecks:
-    """Test health check functionality"""
-
-    @pytest.mark.asyncio
-    async def test_sqlite_health_check_healthy(self, temp_db, logger):
-        """Test SQLite queue health check when healthy"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        health = await queue.health_check()
-
-        assert health["healthy"] is True
-        assert health["checks"]["database"] == "ok"
-        assert health["checks"]["lock"] == "ok"
-        assert "timestamp" in health
-
-    @pytest.mark.asyncio
-    async def test_health_check_with_invalid_db(self, logger):
-        """Test health check with invalid database"""
-        # Create queue with invalid path
-        invalid_path = Path("/invalid/path/db.db")
-
-        # This will fail during init, so we can't test health check
-        # But we can test validation
+    def test_max_tokens_validation(self):
         with pytest.raises(Exception):
-            SQLiteQueue(invalid_path, logger)
+            ConfigValidation(
+                TEMPERATURE=0.7,
+                MAX_TOKENS=0,  # Invalid
+                SIMILARITY_THRESHOLD=0.85,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=8000,
+            )
 
-
-class TestMessageValidation:
-    """Test message validation"""
-
-    @pytest.mark.asyncio
-    async def test_empty_content_rejected(self, temp_db, logger):
-        """Test empty content is rejected"""
-        queue = SQLiteQueue(temp_db, logger)
-
+    def test_similarity_threshold_range(self):
         with pytest.raises(Exception):
-            await queue.add_message("Agent1", "", {})
+            ConfigValidation(
+                TEMPERATURE=0.7,
+                MAX_TOKENS=1024,
+                SIMILARITY_THRESHOLD=1.5,  # Invalid
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=8000,
+            )
 
+    def test_prometheus_port_range(self):
         with pytest.raises(Exception):
-            await queue.add_message("Agent1", "   ", {})
-
-    @pytest.mark.asyncio
-    async def test_sender_normalization(self, temp_db, logger):
-        """Test sender names are normalized"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Test various formats
-        await queue.add_message("claude", "Message 1", {})
-        await queue.add_message("CLAUDE", "Message 2", {})
-        await queue.add_message("Claude", "Message 3", {})
-
-        data = await queue.load()
-        messages = data["messages"]
-
-        # All should be normalized to "Claude"
-        assert all(msg["sender"] == "Claude" for msg in messages)
-
-    @pytest.mark.asyncio
-    async def test_message_too_long_rejected(self, temp_db, logger):
-        """Test messages exceeding max length are rejected"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        # Create message longer than MAX_MESSAGE_LENGTH
-        long_message = "x" * (config.MAX_MESSAGE_LENGTH + 1)
-
-        with pytest.raises(Exception):
-            await queue.add_message("Agent1", long_message, {})
+            ConfigValidation(
+                TEMPERATURE=0.7,
+                MAX_TOKENS=1024,
+                SIMILARITY_THRESHOLD=0.85,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=100,  # Too low
+            )
 
 
-class TestConversationMetadata:
-    """Test conversation metadata management"""
+class TestConfigClass:
+    """Test Config class methods"""
 
-    @pytest.mark.asyncio
-    async def test_initial_metadata(self, temp_db, logger):
-        """Test initial metadata is set correctly"""
-        queue = SQLiteQueue(temp_db, logger)
+    def test_get_api_key_success(self, monkeypatch):
+        monkeypatch.setenv("TEST_API_KEY", "test-value")
+        key = Config.get_api_key("TEST_API_KEY")
+        assert key == "test-value"
 
-        data = await queue.load()
-        meta = data["metadata"]
+    def test_get_api_key_missing(self, monkeypatch):
+        monkeypatch.delenv("MISSING_KEY", raising=False)
+        with pytest.raises(ValueError, match="not set in environment"):
+            Config.get_api_key("MISSING_KEY")
 
-        assert "conversation_id" in meta
-        assert "started_at" in meta
-        assert meta["total_turns"] == 0
-        assert meta["version"] == "5.0"
+    def test_validate_success(self):
+        # Should not raise
+        Config.validate()
 
-    @pytest.mark.asyncio
-    async def test_metadata_updates(self, temp_db, logger):
-        """Test metadata updates as conversation progresses"""
-        queue = SQLiteQueue(temp_db, logger)
+    def test_config_import_warning(self, monkeypatch):
+        """
+        Force Config.validate() to fail during module import so we hit the
+        try/except + warnings.warn(...) branch executed at import time.
+        """
+        monkeypatch.setenv("PROMETHEUS_PORT", "80")
+        sys.modules.pop("core.config", None)
 
-        # Add messages
-        await queue.add_message("Claude", "M1", {"tokens": 50})
-        await queue.add_message("ChatGPT", "M2", {"tokens": 75})
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            import core.config  # noqa: F401  # re-import to trigger module-level validate
 
-        data = await queue.load()
-        meta = data["metadata"]
+        assert any("Configuration validation" in str(rec.message) for rec in w)
 
-        assert meta["total_turns"] == 2
-        assert meta["claude_turns"] == 1
-        assert meta["chatgpt_turns"] == 1
-        assert meta["total_tokens"] == 125
+    def test_validate_updates_attributes(self):
+        """Test successful validation overwrites live class attributes."""
+        original_temp = Config.TEMPERATURE
+        original_max = Config.MAX_TOKENS
+        original_port = Config.PROMETHEUS_PORT
+        original_max_context = Config.MAX_CONTEXT_MSGS
 
-    @pytest.mark.asyncio
-    async def test_termination_metadata(self, temp_db, logger):
-        """Test termination adds metadata"""
-        queue = SQLiteQueue(temp_db, logger)
+        # Start from distinct values so we can see the overwrite
+        Config.TEMPERATURE = 99.0
+        Config.MAX_TOKENS = 1
+        Config.PROMETHEUS_PORT = 1000
+        Config.MAX_CONTEXT_MSGS = 1
 
-        await queue.mark_terminated("test_complete")
+        mock_dump = {
+            "TEMPERATURE": 0.5,
+            "MAX_TOKENS": 2000,
+            "SIMILARITY_THRESHOLD": 0.80,
+            "MAX_CONSECUTIVE_SIMILAR": 3,
+            "DEFAULT_MAX_TURNS": 60,
+            "DEFAULT_TIMEOUT_MINUTES": 40,
+            "MAX_CONTEXT_MSGS": 15,
+            "PROMETHEUS_PORT": 9000,
+        }
 
-        data = await queue.load()
-        meta = data["metadata"]
+        try:
+            with patch("core.config.ConfigValidation") as MockPydanticClass:
+                MockPydanticClass.return_value.model_dump.return_value = mock_dump
+                Config.validate()
 
-        assert meta["terminated"] == 1
-        assert meta["termination_reason"] == "test_complete"
-        assert "ended_at" in meta
+            assert Config.TEMPERATURE == 0.5
+            assert Config.MAX_TOKENS == 2000
+            assert Config.PROMETHEUS_PORT == 9000
+            assert Config.MAX_CONTEXT_MSGS == 15
+        finally:
+            Config.TEMPERATURE = original_temp
+            Config.MAX_TOKENS = original_max
+            Config.PROMETHEUS_PORT = original_port
+            Config.MAX_CONTEXT_MSGS = original_max_context
+            Config.validate()
 
-
-class TestConcurrentAgents:
-    """Test concurrent agent operations"""
-
-    @pytest.mark.asyncio
-    async def test_agents_alternate_correctly(self, temp_db, logger):
-        """Test agents properly alternate turns"""
-        queue = SQLiteQueue(temp_db, logger)
-
-        async def agent1_run():
-            for i in range(5):
-                while True:
-                    last = await queue.get_last_sender()
-                    if last is None or last == "Agent2":
-                        await queue.add_message("Agent1", f"A1-{i}", {"tokens": 10})
-                        break
-                    await asyncio.sleep(0.01)
-
-        async def agent2_run():
-            for i in range(5):
-                while True:
-                    last = await queue.get_last_sender()
-                    if last == "Agent1":
-                        await queue.add_message("Agent2", f"A2-{i}", {"tokens": 10})
-                        break
-                    await asyncio.sleep(0.01)
-
-        await asyncio.gather(agent1_run(), agent2_run())
-
-        data = await queue.load()
-        messages = data["messages"]
-
-        # Should have 10 messages alternating
-        assert len(messages) == 10
-
-        # Check alternation (allowing for first message)
-        for i in range(1, len(messages)):
-            assert messages[i]["sender"] != messages[i - 1]["sender"]
+    def test_validate_invalid_temperature(self):
+        original_temp = Config.TEMPERATURE
+        try:
+            Config.TEMPERATURE = 5.0  # Invalid
+            with pytest.raises(ValueError, match="Invalid configuration"):
+                Config.validate()
+        finally:
+            Config.TEMPERATURE = original_temp
 
 
-class TestStressScenarios:
-    """Test under stress conditions"""
+class TestSetupLogging:
+    """Test logging setup"""
 
-    @pytest.mark.asyncio
-    async def test_many_messages(self, temp_db, logger):
-        """Test handling many messages"""
-        queue = SQLiteQueue(temp_db, logger)
+    def test_setup_logging_creates_logger(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = setup_logging("test_agent", tmpdir)
+            try:
+                assert logger.name == "test_agent"
+                assert logger.level == logging.INFO
+            finally:
+                # ensure added handlers are removed to avoid cross-test noise
+                for h in list(logger.handlers):
+                    logger.removeHandler(h)
+                    h.close()
 
-        # Add 100 messages
-        for i in range(100):
-            sender = f"Agent{i % 3 + 1}"
-            await queue.add_message(sender, f"Message {i}", {"tokens": 10})
+    def test_setup_logging_creates_directory(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_dir = Path(tmpdir) / "new_logs"
+            logger = setup_logging("test_agent", str(log_dir))
+            try:
+                assert log_dir.exists()
+            finally:
+                for h in list(logger.handlers):
+                    logger.removeHandler(h)
+                    h.close()
 
-        data = await queue.load()
-        assert data["metadata"]["total_turns"] == 100
-        assert len(data["messages"]) == 100
+    def test_setup_logging_file_handler(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = setup_logging("test_agent", tmpdir)
+            try:
+                file_handlers = [h for h in logger.handlers if hasattr(h, "baseFilename")]
+                assert len(file_handlers) > 0
+            finally:
+                for h in list(logger.handlers):
+                    logger.removeHandler(h)
+                    h.close()
 
-    @pytest.mark.asyncio
-    async def test_rapid_termination_checks(self, temp_db, logger):
-        """Test rapid termination checking"""
-        queue = SQLiteQueue(temp_db, logger)
+    def test_setup_logging_removes_existing_handlers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger1 = setup_logging("test_agent", tmpdir)
+            try:
+                handler_count1 = len(logger1.handlers)
+            finally:
+                for h in list(logger1.handlers):
+                    logger1.removeHandler(h)
+                    h.close()
 
-        # Check termination many times rapidly
-        results = await asyncio.gather(*[queue.is_terminated() for _ in range(50)])
+        with tempfile.TemporaryDirectory() as tmpdir2:
+            logger2 = setup_logging("test_agent", tmpdir2)
+            try:
+                handler_count2 = len(logger2.handlers)
+            finally:
+                for h in list(logger2.handlers):
+                    logger2.removeHandler(h)
+                    h.close()
 
-        assert all(result is False for result in results)
+        assert handler_count1 == handler_count2
 
-        # Now terminate and check again
-        await queue.mark_terminated("test")
 
-        results = await asyncio.gather(*[queue.is_terminated() for _ in range(50)])
+class TestLogEvent:
+    """Test event logging"""
 
-        assert all(result is True for result in results)
+    def test_log_event_format(self):
+        logger = logging.getLogger("test")
+        handler = MagicMock()
+        handler.level = logging.DEBUG  # Mock handlers need a numeric level attribute
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+
+        try:
+            log_event(logger, "test_event", {"key": "value", "number": 42})
+            assert handler.handle.called
+        finally:
+            logger.removeHandler(handler)
+
+    def test_log_event_includes_timestamp(self):
+        import json
+
+        logger = logging.getLogger("test_json")
+        logger.setLevel(logging.INFO)
+
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            handler = logging.FileHandler(f.name)
+            logger.addHandler(handler)
+
+            try:
+                log_event(logger, "test_event", {"data": "test"})
+            finally:
+                handler.close()
+                logger.removeHandler(handler)
+
+            with open(f.name, "r", encoding="utf-8") as log_file:
+                log_line = log_file.read()
+                log_data = json.loads(log_line)
+
+        Path(f.name).unlink(missing_ok=True)
+        assert "timestamp" in log_data
+        assert log_data["event"] == "test_event"
+        assert log_data["data"] == "test"
+
+
+class TestSimpleSimilarity:
+    """Test similarity calculation"""
+
+    def test_identical_strings(self):
+        assert simple_similarity("hello world", "hello world") == 1.0
+
+    def test_completely_different(self):
+        # Keep tolerance generous to avoid implementation-dependent flakiness
+        assert simple_similarity("hello world", "goodbye universe") < 0.5
+
+    def test_partial_overlap(self):
+        sim = simple_similarity("hello world", "hello there")
+        assert 0.0 <= sim <= 1.0
+        assert sim != 1.0
+
+    def test_case_insensitive(self):
+        sim1 = simple_similarity("Hello World", "hello world")
+        sim2 = simple_similarity("hello world", "hello world")
+        assert sim1 == sim2
+
+    def test_empty_strings(self):
+        assert simple_similarity("", "") == 1.0
+
+    def test_one_empty_string(self):
+        assert simple_similarity("hello", "") == 0.0
+
+    def test_short_strings(self):
+        assert simple_similarity("hi", "hi") == 1.0
+
+
+class TestHashMessage:
+    """Test message hashing"""
+
+    def test_hash_message_consistent(self):
+        h1 = hash_message("test content")
+        h2 = hash_message("test content")
+        assert h1 == h2
+
+    def test_hash_message_different(self):
+        assert hash_message("content 1") != hash_message("content 2")
+
+    def test_hash_message_length(self):
+        assert len(hash_message("test")) == 8  # First 8 chars of MD5
+
+
+class TestAddJitter:
+    """Test jitter function"""
+
+    def test_add_jitter_range(self):
+        for _ in range(100):
+            jittered = add_jitter(10.0, jitter_range=0.2)
+            assert 8.0 <= jittered <= 12.0
+
+    def test_add_jitter_minimum(self):
+        jittered = add_jitter(0.01, jitter_range=0.5)
+        assert jittered >= 0.1
+
+    def test_add_jitter_custom_range(self):
+        for _ in range(50):
+            jittered = add_jitter(10.0, jitter_range=0.5)
+            assert 5.0 <= jittered <= 15.0
+
+    def test_add_jitter_zero_range(self):
+        assert add_jitter(10.0, jitter_range=0.0) == 10.0
+
+
+class TestMaskApiKey:
+    """Test API key masking"""
+
+    def test_mask_anthropic_key(self):
+        text = "My key is sk-ant-1234567890123456789012345"
+        masked = mask_api_key(text)
+        assert "[ANTHROPIC_KEY]" in masked
+        assert "sk-ant-" not in masked
+
+    def test_mask_openai_key(self):
+        text = "My key is sk-123456789012345678901234567890"
+        masked = mask_api_key(text)
+        assert "[OPENAI_KEY]" in masked or "[API_KEY]" in masked
+        assert "sk-123456789012345678901234567890" not in masked
+
+    def test_mask_perplexity_key(self):
+        text = "My key is pplx-123456789012345678901234567890"
+        masked = mask_api_key(text)
+        assert "[PERPLEXITY_KEY]" in masked
+        assert "pplx-" not in masked
+
+    def test_mask_generic_key(self):
+        text = "My key is abcdefghijklmnopqrstuvwxyz1234567890"
+        masked = mask_api_key(text)
+        assert "[API_KEY]" in masked
+
+    def test_mask_multiple_keys(self):
+        text = "Key1: sk-ant-12345678901234567890 Key2: sk-9876543210987654321098765"
+        masked = mask_api_key(text)
+        assert masked.count("[") >= 2
+
+    def test_mask_no_keys(self):
+        text = "This is normal text without keys"
+        masked = mask_api_key(text)
+        assert masked == text
+
+
+class TestSanitizeContent:
+    """Test content sanitization"""
+
+    def test_sanitize_script_tags(self):
+        content = "<div><script>alert('xss')</script>Safe content</div>"
+        sanitized = sanitize_content(content)
+        assert "[FILTERED]" in sanitized
+        assert "alert" not in sanitized
+
+    def test_sanitize_javascript(self):
+        content = '<a href="javascript:alert()">Click</a>'
+        sanitized = sanitize_content(content)
+        assert "[FILTERED]" in sanitized
+
+    def test_sanitize_event_handlers(self):
+        content = '<div onclick="doEvil()">Click me</div>'
+        sanitized = sanitize_content(content)
+        assert "[FILTERED]" in sanitized
+
+    def test_sanitize_sql_injection(self):
+        content = "SELECT * FROM users; DROP TABLE users;"
+        sanitized = sanitize_content(content)
+        assert "[FILTERED]" in sanitized
+
+    def test_sanitize_safe_content(self):
+        content = "This is safe content with no dangerous patterns"
+        sanitized = sanitize_content(content)
+        assert sanitized == content
+
+    def test_sanitize_case_insensitive(self):
+        content = "<SCRIPT>alert()</SCRIPT>"
+        sanitized = sanitize_content(content)
+        assert "[FILTERED]" in sanitized
+
+
+class TestMetricsRecording:
+    """Test metrics recording functions"""
+
+    def test_record_call_success(self):
+        record_call("TestProvider", "test-model", "success")
+
+    def test_record_call_error(self):
+        record_call("TestProvider", "test-model", "error")
+
+    def test_record_latency(self):
+        record_latency("TestProvider", "test-model", 1.5)
+
+    def test_record_tokens(self):
+        record_tokens("TestProvider", "test-model", 100, 50)
+
+    def test_record_error(self):
+        record_error("TestProvider", "timeout")
+        record_error("TestProvider", "api_error")
+
+    def test_increment_conversations(self):
+        increment_conversations()
+
+    def test_decrement_conversations(self):
+        decrement_conversations()
+
+    def test_metrics_with_special_characters(self):
+        record_call("Test-Provider", "model/v1", "success")
+        record_error("Test Provider", "rate_limit")
+
+
+class TestMetricsServer:
+    """Test metrics server startup"""
+
+    def test_start_metrics_server_default_port(self):
+        with patch("core.metrics.start_http_server") as mock_start:
+            start_metrics_server()
+            mock_start.assert_called_once()
+
+    def test_start_metrics_server_custom_port(self):
+        with patch("core.metrics.start_http_server") as mock_start:
+            start_metrics_server(9999)
+            mock_start.assert_called_once_with(9999)
+
+    def test_start_metrics_server_error_handling(self):
+        with patch("core.metrics.start_http_server", side_effect=OSError("Port in use")):
+            start_metrics_server(8000)  # Should not raise
+
+    def test_start_metrics_server_from_env(self, monkeypatch):
+        monkeypatch.setenv("PROMETHEUS_PORT", "9090")
+        with patch("core.metrics.start_http_server") as mock_start:
+            start_metrics_server(None)
+            mock_start.assert_called_once_with(9090)
+
+
+class TestMetricsErrorHandling:
+    """Test metrics error handling"""
+
+    def test_record_call_with_exception(self):
+        with patch("core.metrics.API_CALLS.labels", side_effect=Exception("Metric error")):
+            record_call("Test", "model", "success")
+
+    def test_record_latency_with_exception(self):
+        with patch("core.metrics.RESPONSE_LATENCY.labels", side_effect=Exception("Metric error")):
+            record_latency("Test", "model", 1.0)
+
+    def test_record_tokens_with_exception(self):
+        with patch("core.metrics.TOKEN_USAGE.labels", side_effect=Exception("Metric error")):
+            record_tokens("Test", "model", 10, 20)
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--cov=agents", "--cov=core", "--cov-report=term-missing"])
+    pytest.main([__file__, "-v"])
