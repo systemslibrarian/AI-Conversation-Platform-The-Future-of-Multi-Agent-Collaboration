@@ -166,16 +166,20 @@ class TestConfigClass:
     # ------------------------------------------------------------
     def test_validate_updates_attributes(self):
         """Test successful validation overwrites live class attributes."""
+        # Re-import to ensure we have the module in sys.modules for patching
+        import core.config
+        from core.config import Config
+        
         original_temp = Config.TEMPERATURE
         original_max = Config.MAX_TOKENS
         original_port = Config.PROMETHEUS_PORT
         original_max_context = Config.MAX_CONTEXT_MSGS
 
-        # Set any values — they will be overwritten
-        Config.TEMPERATURE = 99.0
-        Config.MAX_TOKENS = 1
-        Config.PROMETHEUS_PORT = 80
-        Config.MAX_CONTEXT_MSGS = 0
+        # Set different VALID values that will be overwritten by validation
+        Config.TEMPERATURE = 1.5
+        Config.MAX_TOKENS = 500
+        Config.PROMETHEUS_PORT = 8080
+        Config.MAX_CONTEXT_MSGS = 5
 
         mock_data = {
             "TEMPERATURE": 0.5,
@@ -192,13 +196,12 @@ class TestConfigClass:
             # Create a mock that bypasses validation and returns an object with model_dump()
             mock_validated = MagicMock()
             mock_validated.model_dump.return_value = mock_data
-
+            
             # Mock the ConfigValidation class itself to return our mock when called
-            mock_validation_class = MagicMock(return_value=mock_validated)
-
-            with patch("core.config.ConfigValidation", mock_validation_class):
+            with patch.object(core.config, "ConfigValidation", return_value=mock_validated):
                 Config.validate()
 
+            # Verify that validate() updated the attributes with mocked values
             assert Config.TEMPERATURE == 0.5
             assert Config.MAX_TOKENS == 2000
             assert Config.PROMETHEUS_PORT == 9000
