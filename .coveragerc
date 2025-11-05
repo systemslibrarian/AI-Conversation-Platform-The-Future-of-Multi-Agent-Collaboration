@@ -1,7 +1,6 @@
 [run]
-# IMPORTANT: Change 'your_project_directory' to your actual source folder
-# (e.g., 'src', 'app', 'ai_conversation_platform', etc.)
-source = your_project_directory
+# Tell coverage to look for source files in the current directory
+source = .
 
 # Automatically ignore these files/folders from coverage
 omit =
@@ -9,6 +8,10 @@ omit =
     */.venv/*
     */migrations/*
     setup.py
+    web/app.py                # Omit the Streamlit UI
+    tracing.py                # Omit OpenTelemetry setup
+    cli/start_conversation.py # Omit the main CLI runner script
+    */__init__.py             # Omit all __init__.py files
 
 [report]
 # Show missing lines in the console output
