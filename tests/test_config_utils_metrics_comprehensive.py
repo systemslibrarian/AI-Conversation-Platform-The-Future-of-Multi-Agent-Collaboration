@@ -56,6 +56,7 @@ class TestConfigValidation:
 
     def test_valid_config(self):
         from core.config import ConfigValidation
+
         config = ConfigValidation(
             TEMPERATURE=0.7,
             MAX_TOKENS=1024,
@@ -71,35 +72,63 @@ class TestConfigValidation:
 
     def test_temperature_validation(self):
         from core.config import ConfigValidation
+
         with pytest.raises(Exception):
-            ConfigValidation(TEMPERATURE=3.0, MAX_TOKENS=1024, SIMILARITY_THRESHOLD=0.85,
-                             MAX_CONSECUTIVE_SIMILAR=2, DEFAULT_MAX_TURNS=50,
-                             DEFAULT_TIMEOUT_MINUTES=30, MAX_CONTEXT_MSGS=10,
-                             PROMETHEUS_PORT=8000)
+            ConfigValidation(
+                TEMPERATURE=3.0,
+                MAX_TOKENS=1024,
+                SIMILARITY_THRESHOLD=0.85,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=8000,
+            )
 
     def test_max_tokens_validation(self):
         from core.config import ConfigValidation
+
         with pytest.raises(Exception):
-            ConfigValidation(TEMPERATURE=0.7, MAX_TOKENS=0, SIMILARITY_THRESHOLD=0.85,
-                             MAX_CONSECUTIVE_SIMILAR=2, DEFAULT_MAX_TURNS=50,
-                             DEFAULT_TIMEOUT_MINUTES=30, MAX_CONTEXT_MSGS=10,
-                             PROMETHEUS_PORT=8000)
+            ConfigValidation(
+                TEMPERATURE=0.7,
+                MAX_TOKENS=0,
+                SIMILARITY_THRESHOLD=0.85,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=8000,
+            )
 
     def test_similarity_threshold_range(self):
         from core.config import ConfigValidation
+
         with pytest.raises(Exception):
-            ConfigValidation(TEMPERATURE=0.7, MAX_TOKENS=1024, SIMILARITY_THRESHOLD=1.5,
-                             MAX_CONSECUTIVE_SIMILAR=2, DEFAULT_MAX_TURNS=50,
-                             DEFAULT_TIMEOUT_MINUTES=30, MAX_CONTEXT_MSGS=10,
-                             PROMETHEUS_PORT=8000)
+            ConfigValidation(
+                TEMPERATURE=0.7,
+                MAX_TOKENS=1024,
+                SIMILARITY_THRESHOLD=1.5,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=8000,
+            )
 
     def test_prometheus_port_range(self):
         from core.config import ConfigValidation
+
         with pytest.raises(Exception):
-            ConfigValidation(TEMPERATURE=0.7, MAX_TOKENS=1024, SIMILARITY_THRESHOLD=0.85,
-                             MAX_CONSECUTIVE_SIMILAR=2, DEFAULT_MAX_TURNS=50,
-                             DEFAULT_TIMEOUT_MINUTES=30, MAX_CONTEXT_MSGS=10,
-                             PROMETHEUS_PORT=100)
+            ConfigValidation(
+                TEMPERATURE=0.7,
+                MAX_TOKENS=1024,
+                SIMILARITY_THRESHOLD=0.85,
+                MAX_CONSECUTIVE_SIMILAR=2,
+                DEFAULT_MAX_TURNS=50,
+                DEFAULT_TIMEOUT_MINUTES=30,
+                MAX_CONTEXT_MSGS=10,
+                PROMETHEUS_PORT=100,
+            )
 
 
 class TestConfigClass:
@@ -252,7 +281,9 @@ class TestSimpleSimilarity:
         assert sim != 1.0
 
     def test_case_insensitive(self):
-        assert simple_similarity("Hello World", "hello world") == simple_similarity("hello world", "hello world")
+        assert simple_similarity("Hello World", "hello world") == simple_similarity(
+            "hello world", "hello world"
+        )
 
     def test_empty_strings(self):
         assert simple_similarity("", "") == 1.0
