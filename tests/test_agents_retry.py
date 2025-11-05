@@ -8,8 +8,8 @@ import pytest
 PROVIDER_PATCH = {
     "claude": "anthropic.Anthropic",
     "chatgpt": "openai.OpenAI",
-    "grok": "openai.OpenAI",  # xAI Grok via OpenAI-compatible client
-    "perplexity": "openai.OpenAI",  # Perplexity via OpenAI-compatible client
+    "grok": "openai.OpenAI",      # xAI Grok via OpenAI-compatible client
+    "perplexity": "openai.OpenAI",    # Perplexity via OpenAI-compatible client
     "gemini": "google.generativeai.GenerativeModel",
 }
 
@@ -27,7 +27,6 @@ AGENTS = list(PROVIDER_PATCH.keys())
 
 class RateLimitError(Exception):
     """Test helper that looks like a 429 from an HTTP client."""
-
     def __init__(self, retry_after: float):
         self.status = 429
         self.headers = {"Retry-After": str(retry_after)}
@@ -61,23 +60,21 @@ async def test_retry_on_timeout(agent_name):
     patch_path = PROVIDER_PATCH[agent_name]
 
     mock_client = MagicMock()
+    
+    # --- THIS IS THE FIX ---
+    # Raise a standard TimeoutError. Our base.py logic will catch
+    # the "timeout" in the class name and error string.
+    timeout_exc = TimeoutError("API call timed out")
+    # --- END FIX ---
+
     if agent_name == "gemini":
         mock_chat = MagicMock()
-        mock_chat.send_message.side_effect = [
-            asyncio.TimeoutError(),
-            success_for(agent_name, "success"),
-        ]
+        mock_chat.send_message.side_effect = [timeout_exc, success_for(agent_name, "success")]
         mock_client.start_chat.return_value = mock_chat
     elif agent_name == "claude":
-        mock_client.messages.create.side_effect = [
-            asyncio.TimeoutError(),
-            success_for(agent_name, "success"),
-        ]
+        mock_client.messages.create.side_effect = [timeout_exc, success_for(agent_name, "success")]
     else:
-        mock_client.chat.completions.create.side_effect = [
-            asyncio.TimeoutError(),
-            success_for(agent_name, "success"),
-        ]
+        mock_client.chat.completions.create.side_effect = [timeout_exc, success_for(agent_name, "success")]
 
     patches_to_apply = [patch(patch_path, return_value=mock_client)]
     if agent_name == "gemini":
@@ -91,9 +88,7 @@ async def test_retry_on_timeout(agent_name):
         # Ensure awaited assertion works on this method explicitly
         queue.add_message = AsyncMock()
         logger = MagicMock()
-        agent = AgentClass(
-            api_key="test", model="test", queue=queue, logger=logger, topic="t", timeout_minutes=1
-        )
+        agent = AgentClass(api_key="test", model="test", queue=queue, logger=logger, topic="t", timeout_minutes=1)
 
         # BaseAgent._build_messages is async in your code → patch with AsyncMock
         with patch.object(
@@ -129,15 +124,9 @@ async def test_429_backoff_respects_retry_after(agent_name):
         mock_chat.send_message.side_effect = [RateLimitError(0.1), success_for(agent_name, "ok")]
         mock_client.start_chat.return_value = mock_chat
     elif agent_name == "claude":
-        mock_client.messages.create.side_effect = [
-            RateLimitError(0.1),
-            success_for(agent_name, "ok"),
-        ]
+        mock_client.messages.create.side_effect = [RateLimitError(0.1), success_for(agent_name, "ok")]
     else:
-        mock_client.chat.completions.create.side_effect = [
-            RateLimitError(0.1),
-            success_for(agent_name, "ok"),
-        ]
+        mock_client.chat.completions.create.side_effect = [RateLimitError(0.1), success_for(agent_name, "ok")]
 
     patches_to_apply = [patch(patch_path, return_value=mock_client)]
     if agent_name == "gemini":
@@ -154,9 +143,7 @@ async def test_429_backoff_respects_retry_after(agent_name):
         queue = AsyncMock()
         queue.add_message = AsyncMock()
         logger = MagicMock()
-        agent = AgentClass(
-            api_key="test", model="test", queue=queue, logger=logger, topic="t", timeout_minutes=1
-        )
+        agent = AgentClass(api_key="test", model="test", queue=queue, logger=logger, topic="t", timeout_minutes=1)
 
         with patch.object(
             agent,
@@ -200,9 +187,7 @@ async def test_circuit_breaker_skips_when_open(agent_name):
         queue = AsyncMock()
         queue.add_message = AsyncMock()
         logger = MagicMock()
-        agent = AgentClass(
-            api_key="test", model="test", queue=queue, logger=logger, topic="t", timeout_minutes=1
-        )
+        agent = AgentClass(api_key="test", model="test", queue=queue, logger=logger, topic="t", timeout_minutes=1)
 
         with patch.object(
             agent,
