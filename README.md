@@ -5,14 +5,9 @@
 <hr style="width:60%;margin:auto;border:1px solid #444;">
 
 <p align="center">
-  <!-- ✅ CI Badge -->
+  <!-- ✅ Unified CI + CodeQL Badge -->
   <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml">
-    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status">
-  </a>
-
-  <!-- ✅ CodeQL Badge -->
-  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml">
-    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL Analysis">
+    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI & CodeQL Analysis">
   </a>
 
   <!-- ✅ Codecov Coverage -->
@@ -20,12 +15,20 @@
     <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage"/>
   </a>
 
-  <!-- ✅ Static Badges -->
+  <!-- ✅ Linting, Typing, License -->
   <img src="https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white" alt="Ruff Lint">
   <img src="https://img.shields.io/badge/type--checked-mypy-blue" alt="Mypy Type Checking">
   <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT License">
   <img src="https://img.shields.io/badge/version-5.0.0-green.svg" alt="Version 5.0.0">
 </p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus Metrics">
+  <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana Dashboards">
+</p>
+
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+">
