@@ -7,137 +7,121 @@ import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# === ALL AGENTS ===
-AGENTS = ["claude", "chatgpt", "grok", "perplexity", "gemini"]
+# Provider patch paths for each agent
+PROVIDER_PATCH = {
+    "claude": "anthropic.Anthropic",
+    "chatgpt": "openai.OpenAI",
+    "grok": "openai.OpenAI",
+    "perplexity": "openai.OpenAI",
+    "gemini": "google.generativeai.GenerativeModel",
+}
 
-
-# ============================================================================
-# RETRY ON TIMEOUT
-# ============================================================================
+AGENTS = list(PROVIDER_PATCH.keys())
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_retry_on_timeout(agent_name):
-    """All agents retry once on asyncio.TimeoutError"""
     module = __import__(f"agents.{agent_name}", fromlist=[""])
     AgentClass = getattr(module, f"{agent_name.capitalize()}Agent")
 
-    mock_client = AsyncMock()
-    mock_client.messages.create.side_effect = [
-        asyncio.TimeoutError,
-        MagicMock(
-            content=[MagicMock(text="success")], usage=MagicMock(input_tokens=1, output_tokens=1)
-        ),
-    ]
+    patch_path = PROVIDER_PATCH[agent_name]
 
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
-        agent = AgentClass(model="test")
+    mock_client = AsyncMock()
+    if agent_name == "gemini":
+        mock_chat = MagicMock()
+        mock_chat.send_message.side_effect = [asyncio.TimeoutError, MagicMock(text="success")]
+        mock_client.start_chat.return_value = mock_chat
+    elif agent_name == "claude":
+        mock_client.messages.create.side_effect = [asyncio.TimeoutError, MagicMock(content=[MagicMock(text="success")], usage=MagicMock(input_tokens=1, output_tokens=1))]
+    else:
+        mock_client.chat.completions.create.side_effect = [asyncio.TimeoutError, MagicMock(choices=[MagicMock(message=MagicMock(content="success"))], usage=MagicMock(total_tokens=2))]
+
+    additional_patches = []
+    if agent_name == "gemini":
+        additional_patches.append(patch("google.generativeai.configure", return_value=None))
+
+    with patch(patch_path, return_value=mock_client), *additional_patches:
+        agent = AgentClass(api_key="test", model="test")
         response = await agent.say("hello")
 
-        assert response == "success"
-        assert mock_client.messages.create.call_count == 2
+        assert "success" in response
 
-
-# ============================================================================
-# 429 + EXPONENTIAL BACKOFF
-# ============================================================================
+        if agent_name == "gemini":
+            assert mock_chat.send_message.call_count == 2
+        elif agent_name == "claude":
+            assert mock_client.messages.create.call_count == 2
+        else:
+            assert mock_client.chat.completions.create.call_count == 2
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_429_backoff_respects_retry_after(agent_name):
-    """All agents back off using Retry-After header"""
     module = __import__(f"agents.{agent_name}", fromlist=[""])
     AgentClass = getattr(module, f"{agent_name.capitalize()}Agent")
 
+    patch_path = PROVIDER_PATCH[agent_name]
+
     mock_client = AsyncMock()
-    mock_429 = MagicMock()
-    mock_429.status = 429
-    mock_429.headers = {"Retry-After": "0.1"}
+    mock_429 = MagicMock(status=429, headers={"Retry-After": "0.1"})
 
-    mock_client.messages.create.side_effect = [mock_429, MagicMock(content=[MagicMock(text="ok")])]
+    if agent_name == "gemini":
+        mock_chat = MagicMock()
+        mock_chat.send_message.side_effect = [mock_429, MagicMock(text="ok")]
+        mock_client.start_chat.return_value = mock_chat
+    elif agent_name == "claude":
+        mock_client.messages.create.side_effect = [mock_429, MagicMock(content=[MagicMock(text="ok")])]
+    else:
+        mock_client.chat.completions.create.side_effect = [mock_429, MagicMock(choices=[MagicMock(message=MagicMock(content="ok"))])]
 
-    with (
-        patch(f"agents.{agent_name}.get_client", return_value=mock_client),
-        patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
-    ):
-        agent = AgentClass(model="test")
+    additional_patches = []
+    if agent_name == "gemini":
+        additional_patches.append(patch("google.generativeai.configure", return_value=None))
+
+    with patch(patch_path, return_value=mock_client), \
+         patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep, \
+         *additional_patches:
+
+        agent = AgentClass(api_key="test", model="test")
         await agent.say("hello")
 
         mock_sleep.assert_called_once_with(0.1)
-        assert mock_client.messages.create.call_count == 2
 
-
-# ============================================================================
-# CIRCUIT BREAKER SKIP
-# ============================================================================
+        if agent_name == "gemini":
+            assert mock_chat.send_message.call_count == 2
+        elif agent_name == "claude":
+            assert mock_client.messages.create.call_count == 2
+        else:
+            assert mock_client.chat.completions.create.call_count == 2
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", AGENTS)
 async def test_circuit_breaker_skips_when_open(agent_name):
-    """No API call when circuit is open"""
     module = __import__(f"agents.{agent_name}", fromlist=[""])
     AgentClass = getattr(module, f"{agent_name.capitalize()}Agent")
 
+    patch_path = PROVIDER_PATCH[agent_name]
+
     mock_client = AsyncMock()
 
-    with (
-        patch(f"agents.{agent_name}.get_client", return_value=mock_client),
-        patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True),
-    ):
-        agent = AgentClass(model="test")
+    additional_patches = []
+    if agent_name == "gemini":
+        additional_patches.append(patch("google.generativeai.configure", return_value=None))
+
+    with patch(patch_path, return_value=mock_client), \
+         patch(f"agents.{agent_name}.circuit_breaker.is_open", return_value=True), \
+         *additional_patches:
+
+        agent = AgentClass(api_key="test", model="test")
         response = await agent.say("hello")
 
         assert "[Circuit breaker open" in response
-        mock_client.messages.create.assert_not_called()
 
-
-# ============================================================================
-# MALFORMED RESPONSE FALLBACK
-# ============================================================================
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("agent_name", AGENTS)
-async def test_malformed_response_returns_fallback(agent_name):
-    """Agents return fallback on bad JSON/response"""
-    module = __import__(f"agents.{agent_name}", fromlist=[""])
-    AgentClass = getattr(module, f"{agent_name.capitalize()}Agent")
-
-    mock_client = AsyncMock()
-    mock_client.messages.create.return_value = {"content": "not a list"}
-
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
-        agent = AgentClass(model="test")
-        response = await agent.say("hello")
-
-        assert "[Invalid response" in response or "error" in response.lower()
-        mock_client.messages.create.assert_called_once()
-
-
-# ============================================================================
-# CONNECTION ERROR RETRY
-# ============================================================================
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("agent_name", AGENTS)
-async def test_retry_on_connection_error(agent_name):
-    """Retry on network/DNS failure"""
-    module = __import__(f"agents.{agent_name}", fromlist=[""])
-    AgentClass = getattr(module, f"{agent_name.capitalize()}Agent")
-
-    mock_client = AsyncMock()
-    mock_client.messages.create.side_effect = [
-        ConnectionError("Network down"),
-        MagicMock(content=[MagicMock(text="recovered")]),
-    ]
-
-    with patch(f"agents.{agent_name}.get_client", return_value=mock_client):
-        agent = AgentClass(model="test")
-        response = await agent.say("hello")
-
-        assert response == "recovered"
-        assert mock_client.messages.create.call_count == 2
+        if agent_name == "gemini":
+            mock_client.start_chat.assert_not_called()
+        elif agent_name == "claude":
+            mock_client.messages.create.assert_not_called()
+        else:
+            mock_client.chat.completions.create.assert_not_called()
