@@ -177,8 +177,6 @@ class TestConfigClass:
 
         assert any("Configuration validation warning" in str(rec.message) for rec in w)
 
-    # --- END NEW TEST ---
-
     # --- ensure validate() overwrites attributes ---
     def test_validate_updates_attributes(self):
         """Test successful validation overwrites live class attributes."""
@@ -189,7 +187,7 @@ class TestConfigClass:
         original_port = Config.PROMETHEUS_PORT
         original_max_context = Config.MAX_CONTEXT_MSGS
 
-        # 0. Set initial values different from mock target (these are invalid but won't cause the test to fail now)
+        # 0. Set deliberately *invalid* values
         Config.TEMPERATURE = 99.0
         Config.MAX_TOKENS = 1
         Config.PROMETHEUS_PORT = 1000
@@ -208,30 +206,29 @@ class TestConfigClass:
         }
 
         try:
-            # 1. Patch the symbol 'ConfigValidation' directly within the 'core.config' module
-            with patch("core.config.ConfigValidation") as MockPydanticClass:
-                # Configure the mock instance to return our desired data when .model_dump() is called
-                # This bypasses the validation constructor failure while allowing the rest of the validate() method to run
-                MockPydanticClass.return_value.model_dump.return_value = MOCK_DUMP
+            # ---- PATCH THE CONSTRUCTOR CALL ----
+            fake_instance = MagicMock()
+            fake_instance.model_dump.return_value = MOCK_DUMP
 
-                # 2. Run validation (the call to ConfigValidation(...) now returns the mock instance)
+            # Patch the __call__ of the real ConfigValidation class
+            with patch.object(ConfigValidation, "__call__", return_value=fake_instance):
                 Config.validate()
 
-            # 3. Assert that the setter loop (for key, value in ...) successfully ran
+            # ---- ASSERTIONS ----
             assert Config.TEMPERATURE == 0.5
             assert Config.MAX_TOKENS == 2000
             assert Config.PROMETHEUS_PORT == 9000
             assert Config.MAX_CONTEXT_MSGS == 15
 
         finally:
-            # 4. Clean up: Restore original values
+            # Restore original values
             Config.TEMPERATURE = original_temp
             Config.MAX_TOKENS = original_max
             Config.PROMETHEUS_PORT = original_port
             Config.MAX_CONTEXT_MSGS = original_max_context
-            Config.validate()  # Re-validate to ensure clean state
+            Config.validate()  # re-validate to leave a clean module state
 
-    # --- END NEW TEST ---
+    # --- END FIXED TEST ---
 
     def test_validate_invalid_temperature(self):
         """Test validation catches invalid temperature"""
