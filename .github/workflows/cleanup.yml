@@ -1,95 +1,33 @@
-name: CI & Lint
+name: Cleanup old workflow runs
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-
-# This gives the "fix-formatting" job permission to commit changes
-permissions:
-  contents: write
+  # Run automatically every Sunday at midnight UTC
+  schedule:
+    - cron: '0 0 * * 0'
+  
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+    inputs:
+      retain_days:
+        description: 'Number of days to keep workflow runs'
+        required: false
+        default: '30'
+      keep_minimum_runs:
+        description: 'Minimum number of runs to keep per workflow'
+        required: false
+        default: '6'
 
 jobs:
-  # --- JOB 1: RUNS FIRST ---
-  # This job will fix lint and format issues and commit them
-  fix-formatting:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          # Need to fetch history for the auto-commit to work
-          fetch-depth: 0 
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Ruff
-        run: pip install ruff
-
-      - name: Run Ruff Linter Fix
-        run: ruff check . --fix
-
-      - name: Run Ruff Formatter
-        run: ruff format .
-
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: auto-fix Ruff issues"
-
-  # --- JOB 2: RUNS SECOND ---
-  # This job will only start after 'fix-formatting' is complete
-  run-tests:
-    # This 'needs' keyword forces this job to WAIT for 'fix-formatting' to succeed.
-    needs: fix-formatting
-    
-    runs-on: ubuntu-latest
-    steps:
-      # This checkout gets the *newest* code,
-      # which includes the commit from the 'fix-formatting' job.
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        # --- THIS IS THE FIX ---
-        # Added 'pytest-asyncio' to handle async tests and 'redis' for queue tests
-        run: uv pip install --system -r requirements.txt pytest pytest-asyncio redis
-
-      - name: Run Pytest
-        # This command will now find the 'pytest' executable
-        run: uv run pytest -q --maxfail=1 --disable-warnings
-        
-  # --- JOB 3: RUNS IN PARALLEL WITH TESTS ---
-  codeql:
-    # This also waits for the formatting to be fixed
-    needs: fix-formatting
+  cleanup:
     runs-on: ubuntu-latest
     permissions:
-      security-events: write # Required for CodeQL
-    
+      actions: write  # Required to delete workflow runs
+      
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
         with:
-          languages: python
-
-      - name: Perform CodeQL Analysis
-        # --- THIS IS THE FIX ---
-        # Corrected typo from 'codeGQL-action' to 'codeql-action'
-        uses: github/codeql-action/analyze@v3
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: ${{ github.event.inputs.retain_days || 30 }}
+          keep_minimum_runs: ${{ github.event.inputs.keep_minimum_runs || 6 }}
