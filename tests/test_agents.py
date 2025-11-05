@@ -30,16 +30,22 @@ def logger():
 class TestCircuitBreaker:
     """Test circuit breaker functionality"""
 
-    def test_circuit_breaker_initial_state(self):
+    # --- THIS IS THE FIX ---
+    # We now pass the 'logger' fixture and a test provider name
+    # to the CircuitBreaker constructor in all tests.
+
+    def test_circuit_breaker_initial_state(self, logger):  # Added logger
         """Test circuit breaker starts in CLOSED state"""
-        cb = CircuitBreaker()
+        cb = CircuitBreaker(logger=logger, provider_name="TestProvider")  # Updated
         assert cb.state == "CLOSED"
         assert cb.failure_count == 0
         assert not cb.is_open()
 
-    def test_circuit_breaker_opens_after_failures(self):
+    def test_circuit_breaker_opens_after_failures(self, logger):  # Added logger
         """Test circuit breaker opens after threshold failures"""
-        cb = CircuitBreaker(failure_threshold=3)
+        cb = CircuitBreaker(
+            logger=logger, provider_name="TestProvider", failure_threshold=3
+        )  # Updated
 
         for _ in range(3):
             cb.record_failure()
@@ -47,9 +53,14 @@ class TestCircuitBreaker:
         assert cb.state == "OPEN"
         assert cb.is_open()
 
-    def test_circuit_breaker_half_open_transition(self):
+    def test_circuit_breaker_half_open_transition(self, logger):  # Added logger
         """Test circuit breaker transitions to HALF_OPEN after timeout"""
-        cb = CircuitBreaker(failure_threshold=2, timeout_seconds=0)
+        cb = CircuitBreaker(
+            logger=logger,
+            provider_name="TestProvider",
+            failure_threshold=2,
+            timeout_seconds=0,
+        )  # Updated
 
         cb.record_failure()
         cb.record_failure()
@@ -58,9 +69,9 @@ class TestCircuitBreaker:
         # After timeout, should transition to HALF_OPEN when queried
         assert not cb.is_open()  # This triggers the transition logic
 
-    def test_circuit_breaker_success_resets(self):
+    def test_circuit_breaker_success_resets(self, logger):  # Added logger
         """Test successful call resets circuit breaker"""
-        cb = CircuitBreaker()
+        cb = CircuitBreaker(logger=logger, provider_name="TestProvider")  # Updated
 
         cb.record_failure()
         cb.record_failure()
@@ -68,6 +79,8 @@ class TestCircuitBreaker:
 
         cb.record_success()
         assert cb.failure_count == 0
+    
+    # --- END OF FIX ---
 
 
 class TestChatGPTAgent:
@@ -115,7 +128,9 @@ class TestChatGPTAgent:
                     topic="test",
                     timeout_minutes=30,
                 )
-                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                content, tokens = await agent._call_api(
+                    [{"role": "user", "content": "hi"}]
+                )
                 assert content == "Hello"
                 assert tokens == 10
 
@@ -164,7 +179,9 @@ class TestClaudeAgent:
                     topic="test",
                     timeout_minutes=30,
                 )
-                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                content, tokens = await agent._call_api(
+                    [{"role": "user", "content": "hi"}]
+                )
                 assert content == "Hi from Claude"
                 assert tokens == 11
 
@@ -240,7 +257,9 @@ class TestAgentSecurity:
     @pytest.mark.asyncio
     async def test_llm_guard_integration(self, mock_queue, logger):
         """Test LLM Guard integration (if available)"""
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "ENABLE_LLM_GUARD": "true"}):
+        with patch.dict(
+            "os.environ", {"OPENAI_API_KEY": "test-key", "ENABLE_LLM_GUARD": "true"}
+        ):
             if importlib.util.find_spec("llm_guard") is None:
                 pytest.skip("llm-guard not installed")
 
