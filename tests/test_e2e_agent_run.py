@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 # Import your REAL factory and agent classes
-from agents import create_agent, ChatGPTAgent, ClaudeAgent
+from agents import create_agent
 from core.queue import create_queue
 
 # If you have this constant in code, prefer importing it:
@@ -15,6 +15,7 @@ TERMINATION_TOKEN = "[done]"
 
 
 # --- Fixtures ---
+
 
 @pytest.fixture
 def temp_db(tmp_path):
@@ -39,6 +40,7 @@ def logger():
 
 
 # --- The E2E Test ---
+
 
 @pytest.mark.asyncio
 async def test_real_agent_run_loop(temp_db, logger):
@@ -67,14 +69,15 @@ async def test_real_agent_run_loop(temp_db, logger):
     # Adjust these patch targets if your actual files differ:
     # - agents/chatgpt.py defines and uses OpenAI
     # - agents/claude.py imports anthropic and constructs anthropic.Anthropic(...)
-    with patch("agents.chatgpt.OpenAI", return_value=mock_openai_client), \
-         patch("agents.claude.anthropic.Anthropic", return_value=mock_anthropic_client), \
-         patch.dict(
-             "os.environ",
-             {"OPENAI_API_KEY": "fake-key", "ANTHROPIC_API_KEY": "fake-key"},
-             clear=False,
-         ):
-
+    with (
+        patch("agents.chatgpt.OpenAI", return_value=mock_openai_client),
+        patch("agents.claude.anthropic.Anthropic", return_value=mock_anthropic_client),
+        patch.dict(
+            "os.environ",
+            {"OPENAI_API_KEY": "fake-key", "ANTHROPIC_API_KEY": "fake-key"},
+            clear=False,
+        ),
+    ):
         queue = create_queue(temp_db, logger, use_redis=False)
 
         # Real agents
@@ -103,10 +106,9 @@ async def test_real_agent_run_loop(temp_db, logger):
         assert {"Claude", "ChatGPT"} <= senders
 
         # The termination signal should appear somewhere
-        assert any(
-            TERMINATION_TOKEN in (m.get("content") or "")
-            for m in messages
-        ), f"Expected termination token {TERMINATION_TOKEN!r} in messages."
+        assert any(TERMINATION_TOKEN in (m.get("content") or "") for m in messages), (
+            f"Expected termination token {TERMINATION_TOKEN!r} in messages."
+        )
 
         # Mocks were exercised
         mock_anthropic_client.messages.create.assert_called()
