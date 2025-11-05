@@ -44,7 +44,7 @@ Deep dive into the system design:
 - Scalability strategies
 
 ### For Testing
-**Start with**: [TEST_REFERENCE.md](computer:///mnt/user-data/outputs/TEST_REFERENCE.md)
+**Start with**: [TESTING.md](computer:///mnt/user-data/outputs/TESTING.md)
 
 Quick reference for common test commands:
 - Run all tests: `pytest`
