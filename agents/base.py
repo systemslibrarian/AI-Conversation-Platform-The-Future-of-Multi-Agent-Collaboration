@@ -107,9 +107,7 @@ class BaseAgent(ABC):
         self.client: Optional[Any] = None
 
         # Circuit breaker with observability
-        self.circuit_breaker = CircuitBreaker(
-            logger=self.logger, provider_name=self.PROVIDER_NAME
-        )
+        self.circuit_breaker = CircuitBreaker(logger=self.logger, provider_name=self.PROVIDER_NAME)
 
         # State tracking
         self.start_time: Optional[datetime] = None
@@ -132,9 +130,7 @@ class BaseAgent(ABC):
                 self.input_scanner = PromptInjection(threshold=0.5)
                 self.output_scanner = NoRefusal(threshold=0.5)
             except ImportError:
-                self.logger.warning(
-                    "llm-guard not installed, security features disabled"
-                )
+                self.logger.warning("llm-guard not installed, security features disabled")
                 self.llm_guard_enabled = False
 
         log_event(
@@ -162,9 +158,7 @@ class BaseAgent(ABC):
         try:
             sanitized_prompt, is_valid, risk_score = self.input_scanner.scan("", text)
             if not is_valid:
-                self.logger.warning(
-                    f"Prompt injection detected, risk score: {risk_score}"
-                )
+                self.logger.warning(f"Prompt injection detected, risk score: {risk_score}")
             return sanitized_prompt, is_valid
         except Exception as e:
             self.logger.error(f"Input scanning failed: {e}")
@@ -177,9 +171,7 @@ class BaseAgent(ABC):
         try:
             sanitized_output, is_valid, risk_score = self.output_scanner.scan("", text)
             if not is_valid:
-                self.logger.warning(
-                    f"Output scanning issue, risk score: {risk_score}"
-                )
+                self.logger.warning(f"Output scanning issue, risk score: {risk_score}")
             return str(sanitized_output)
         except Exception as e:
             self.logger.error(f"Output scanning failed: {e}")
@@ -238,13 +230,9 @@ class BaseAgent(ABC):
                 if self.llm_guard_enabled and messages:
                     for i in range(len(messages) - 1, -1, -1):
                         if messages[i].get("role") == "user":
-                            sanitized, is_valid = self._scan_input(
-                                messages[i]["content"]
-                            )
+                            sanitized, is_valid = self._scan_input(messages[i]["content"])
                             if not is_valid:
-                                self.logger.warning(
-                                    "Potentially malicious input detected"
-                                )
+                                self.logger.warning("Potentially malicious input detected")
                             messages[i]["content"] = sanitized
                             break
 
@@ -274,19 +262,12 @@ class BaseAgent(ABC):
                 self.circuit_breaker.record_failure()
 
                 error_str = str(e).lower()
-                status = getattr(e, "status", None) or getattr(
-                    e, "status_code", None
-                )
+                status = getattr(e, "status", None) or getattr(e, "status_code", None)
                 is_rate_limit = (str(status) == "429") or ("rate_limit" in error_str)
-                is_timeout = (
-                    "timeout" in error_str
-                    or "timeout" in type(e).__name__.lower()
-                )
+                is_timeout = "timeout" in error_str or "timeout" in type(e).__name__.lower()
 
                 error_type = (
-                    "timeout"
-                    if is_timeout
-                    else ("rate_limit" if is_rate_limit else "api_error")
+                    "timeout" if is_timeout else ("rate_limit" if is_rate_limit else "api_error")
                 )
                 record_error(self.PROVIDER_NAME, error_type)
                 record_call(self.PROVIDER_NAME, self.model, "error")
@@ -362,22 +343,13 @@ class BaseAgent(ABC):
 
             except Exception as e:
                 error_str = str(e).lower()
-                status = getattr(e, "status", None) or getattr(
-                    e, "status_code", None
-                )
-                is_timeout = (
-                    "timeout" in error_str
-                    or "timeout" in type(e).__name__.lower()
-                )
+                status = getattr(e, "status", None) or getattr(e, "status_code", None)
+                is_timeout = "timeout" in error_str or "timeout" in type(e).__name__.lower()
                 is_rate_limit = (str(status) == "429") or ("rate_limit" in error_str)
 
                 if is_rate_limit or is_timeout:
                     wait_time = backoff
-                    if (
-                        is_rate_limit
-                        and hasattr(e, "headers")
-                        and isinstance(e.headers, dict)
-                    ):
+                    if is_rate_limit and hasattr(e, "headers") and isinstance(e.headers, dict):
                         try:
                             wait_time = float(e.headers.get("Retry-After", backoff))
                         except Exception:
@@ -389,9 +361,7 @@ class BaseAgent(ABC):
                         f"Retry {attempt + 1}/{max_retries} in {wait_time:.1f}s..."
                     )
                     await asyncio.sleep(wait_time)
-                    backoff = min(
-                        backoff * config.BACKOFF_MULTIPLIER, config.MAX_BACKOFF
-                    )
+                    backoff = min(backoff * config.BACKOFF_MULTIPLIER, config.MAX_BACKOFF)
                     continue
 
                 elif "circuit breaker" in error_str:
@@ -420,9 +390,7 @@ class BaseAgent(ABC):
         print(f"Max turns: {max_turns}")
         print("=" * 80)
 
-        log_event(
-            self.logger, "agent_started", {"agent": self.agent_name, "max_turns": max_turns}
-        )
+        log_event(self.logger, "agent_started", {"agent": self.agent_name, "max_turns": max_turns})
 
         try:
             while self.turn_count < max_turns:
@@ -450,9 +418,7 @@ class BaseAgent(ABC):
             print("\n⚠ Stopped by user")
 
         except Exception as e:
-            log_event(
-                self.logger, "agent_error", {"agent": self.agent_name, "error": str(e)}
-            )
+            log_event(self.logger, "agent_error", {"agent": self.agent_name, "error": str(e)})
             print(f"\n✗ Fatal error: {e}")
             raise
 
@@ -468,9 +434,7 @@ class BaseAgent(ABC):
             print("CONVERSATION SUMMARY")
             print("=" * 80)
             print(f"Total messages: {m.get('total_turns', 0)}")
-            print(
-                f"{self.agent_name}: {m.get(f'{self.agent_name.lower()}_turns', 0)}"
-            )
+            print(f"{self.agent_name}: {m.get(f'{self.agent_name.lower()}_turns', 0)}")
             print(f"Total tokens: {m.get('total_tokens', 'N/A')}")
             if m.get("termination_reason"):
                 print(f"Ended: {m['termination_reason']}")
