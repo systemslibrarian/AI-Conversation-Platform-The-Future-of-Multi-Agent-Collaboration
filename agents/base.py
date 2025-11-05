@@ -1,5 +1,7 @@
-"""BaseAgent - v5.0 ASYNC EDITION with Security Hardening
-- Full async/await support with run_in_executor for blocking APIs
+# agents/base.py
+"""
+BaseAgent - v5.0 ASYNC EDITION with Security Hardening
+- Full async/await support with run_in_executor helper for blocking APIs
 - Integrated metrics and tracing
 - Comprehensive error handling
 - Circuit breaker pattern
@@ -7,7 +9,7 @@
 """
 
 from abc import ABC
-from typing import Tuple, Optional, Dict, List, Any
+from typing import Tuple, Optional, Dict, List, Any, Callable
 from collections import deque
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -25,7 +27,6 @@ from core.tracing import get_tracer
 @dataclass
 class TurnMetadata:
     """Metadata for a conversation turn"""
-
     model: str
     tokens: int
     response_time: float
@@ -130,11 +131,17 @@ class BaseAgent(ABC):
             },
         )
 
+    # ---------- helpers -------------------------------------------------------
+
+    async def _in_executor(self, fn: Callable, *args, **kwargs):
+        """Run blocking function in a thread executor."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: fn(*args, **kwargs))
+
     def _scan_input(self, text: str) -> Tuple[str, bool]:
         """Scan input for prompt injection (returns sanitized text and is_valid flag)"""
         if not self.llm_guard_enabled:
             return text, True
-
         try:
             sanitized_prompt, is_valid, risk_score = self.input_scanner.scan("", text)
             if not is_valid:
@@ -148,7 +155,6 @@ class BaseAgent(ABC):
         """Scan output for issues"""
         if not self.llm_guard_enabled:
             return text
-
         try:
             sanitized_output, is_valid, risk_score = self.output_scanner.scan("", text)
             if not is_valid:
@@ -177,20 +183,16 @@ class BaseAgent(ABC):
         """Detect repetitive responses"""
         if not self.recent_responses:
             return False
-
         sim = simple_similarity(content, self.recent_responses[-1])
-
         if sim > config.SIMILARITY_THRESHOLD:
             self.consecutive_similar += 1
-
             if self.consecutive_similar >= config.MAX_CONSECUTIVE_SIMILAR:
                 return True
         else:
             self.consecutive_similar = 0
-
         return False
 
-    # NOTE: Made concrete for testing. Subclasses must override.
+    # NOTE: Subclasses must implement.
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call the AI API. Subclasses should implement this method."""
         raise NotImplementedError("_call_api must be implemented by subclasses")
@@ -250,6 +252,10 @@ class BaseAgent(ABC):
                 error_type = (
                     "rate_limit" if ("rate" in str(e).lower() or "429" in str(e)) else "api_error"
                 )
+                # Explicitly flag TimeoutError for metrics
+                if isinstance(e, asyncio.TimeoutError):
+                    error_type = "timeout"
+
                 record_error(self.PROVIDER_NAME, error_type)
                 record_call(self.PROVIDER_NAME, self.model, "error")
 
@@ -262,18 +268,15 @@ class BaseAgent(ABC):
                         "consecutive_errors": self.consecutive_errors,
                     },
                 )
-
                 raise
 
     async def _build_messages(self) -> List[Dict]:
-        """Build message context for API call"""
+        """Build message context for API call (async: tests patch with AsyncMock)"""
         context = await self.queue.get_context(config.MAX_CONTEXT_MSGS)
-
         messages = []
         for m in context:
             role = "assistant" if m["sender"] == self.agent_name else "user"
             messages.append({"role": role, "content": m["content"]})
-
         return messages
 
     def _build_system_prompt(self) -> str:
@@ -285,7 +288,6 @@ class BaseAgent(ABC):
         """Check if agent should respond"""
         if await self._is_timeout() or await self.queue.is_terminated():
             return False
-
         # Wait for partner's turn
         last_sender = await self.queue.get_last_sender()
         return not last_sender or last_sender == partner_name
@@ -330,39 +332,53 @@ class BaseAgent(ABC):
                     f"{preview}\n{'-' * 80}\n"
                     f"Tokens: {tokens} | Time: {response_time:.2f}s"
                 )
-
                 return
 
             except Exception as e:
                 error_str = str(e)
 
-                if "rate" in error_str.lower() or "429" in error_str:
-                    wait_time = add_jitter(backoff)
+                is_rate_limit = "rate" in error_str.lower() or "429" in error_str
+                is_timeout = isinstance(e, asyncio.TimeoutError)
+
+                if is_rate_limit or is_timeout:
+                    wait_time = backoff
+                    if is_rate_limit:
+                        try:
+                            # Try to get specific header, default to backoff
+                            wait_time = float(e.headers.get("Retry-After", backoff))
+                        except Exception:
+                            pass  # Use default backoff
+
+                    wait_time = add_jitter(wait_time)
                     print(
-                        f"⚠ Rate limited. Retry {attempt + 1}/{max_retries} in {wait_time:.1f}s..."
+                        f"⚠ {'Timeout' if is_timeout else 'Rate limited'}. "
+                        f"Retry {attempt + 1}/{max_retries} in {wait_time:.1f}s..."
                     )
                     await asyncio.sleep(wait_time)
                     backoff = min(backoff * config.BACKOFF_MULTIPLIER, config.MAX_BACKOFF)
                     continue
 
                 elif "circuit breaker" in error_str.lower():
-                    print(f"⚠ Circuit breaker open: {error_str}")
-                    await asyncio.sleep(5)
-                    continue
+                    # Fast exit so tests/CI don't sleep 5s per attempt
+                    print(f"⚠ Circuit breaker open: {error_str} — skipping this turn")
+                    await asyncio.sleep(0)
+                    return
 
                 else:
+                    # All other unknown errors
                     print(f"✗ Error: {error_str}")
 
                     if self.consecutive_errors >= self.max_consecutive_errors:
                         await self.queue.mark_terminated("consecutive_errors")
-                        raise
+                        raise  # Raise the fatal error
 
                     # brief pause to avoid hot-looping on repeated non-rate errors
                     await asyncio.sleep(0.5)
-                    return
+                    return  # Exit the respond() method for this turn
 
-        await self.queue.mark_terminated("rate_limit_exceeded")
-        print("\n✗ Terminated: too many rate limit errors")
+        # Only reached if the loop completes (all retries failed)
+        await self.queue.mark_terminated("too_many_retries")
+        print("\n✗ Terminated: too many retries")
 
     async def run(self, max_turns: int, partner_name: str) -> None:
         """Main agent run loop"""
@@ -423,10 +439,8 @@ class BaseAgent(ABC):
             print(f"Total messages: {m.get('total_turns', 0)}")
             print(f"{self.agent_name}: {m.get(f'{self.agent_name.lower()}_turns', 0)}")
             print(f"Total tokens: {m.get('total_tokens', 'N/A')}")
-
             if m.get("termination_reason"):
                 print(f"Ended: {m['termination_reason']}")
-
             print("=" * 80)
 
         except Exception as e:
