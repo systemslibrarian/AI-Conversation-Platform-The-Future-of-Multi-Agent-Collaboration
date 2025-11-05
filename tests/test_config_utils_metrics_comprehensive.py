@@ -7,8 +7,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import os
 from pydantic import BaseModel  # Import BaseModel for mocking Pydantic
-import warnings # For testing import warning path
-import sys # For testing import warning path
+import warnings  # For testing import warning path
+import sys  # For testing import warning path
 
 
 from core.config import Config, ConfigValidation
@@ -134,7 +134,7 @@ class TestConfigClass:
         Force Config.validate() to fail during module import so we hit the
         try/except + warnings.warn(...) branch executed at import time.
         """
-        
+
         # Make validation fail by supplying an invalid env var (e.g., low port)
         monkeypatch.setenv("PROMETHEUS_PORT", "80")
 
@@ -146,6 +146,7 @@ class TestConfigClass:
             import core.config  # noqa: F401  # re-import to trigger module-level validate
 
         assert any("Configuration validation" in str(rec.message) for rec in w)
+
     # --- END NEW TEST ---
 
     # --- ensure validate() overwrites attributes ---
@@ -189,6 +190,7 @@ class TestConfigClass:
             Config.MAX_CONTEXT_MSGS = original_max_context
             # Re-validate to ensure all non-tested attributes are reset to defaults
             Config.validate()
+
     # --- END NEW TEST ---
 
     def test_validate_invalid_temperature(self):
@@ -388,11 +390,12 @@ class TestAddJitter:
         for _ in range(50):
             jittered = add_jitter(10.0, jitter_range=0.5)
             assert 5.0 <= jittered <= 15.0
-    
+
     # --- NEW TEST: zero jitter branch (no randomness path) ---
     def test_add_jitter_zero_range(self):
         """With zero jitter, value should be returned unchanged (no clamp needed)."""
         assert add_jitter(10.0, jitter_range=0.0) == 10.0
+
     # --- END NEW TEST ---
 
 
