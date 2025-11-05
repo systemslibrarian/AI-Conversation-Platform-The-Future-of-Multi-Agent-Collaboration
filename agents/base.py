@@ -27,6 +27,7 @@ from core.tracing import get_tracer
 @dataclass
 class TurnMetadata:
     """Metadata for a conversation turn"""
+
     model: str
     tokens: int
     response_time: float
