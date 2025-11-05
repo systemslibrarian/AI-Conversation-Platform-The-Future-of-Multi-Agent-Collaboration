@@ -14,13 +14,15 @@ class ClaudeAgent(BaseAgent):
     DEFAULT_MODEL = config.CLAUDE_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        # Merge api_key into kwargs for parent class
-        kwargs["api_key"] = api_key
+        # --- THIS IS THE FIX ---
+        # 1. Call super() FIRST. 'api_key' is not passed up.
         super().__init__(*args, **kwargs)
+        # --- END OF FIX ---
 
         try:
             import anthropic
 
+            # 2. Use the local 'api_key' variable to init the client.
             self.client = anthropic.Anthropic(api_key=api_key)
         except ImportError:
             raise ImportError("Install: pip install anthropic")
@@ -29,7 +31,12 @@ class ClaudeAgent(BaseAgent):
         """Call Claude API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for lambda
+        
+        # --- THIS IS THE FIX ---
+        # Get the system prompt. Claude uses a dedicated 'system' param.
         system = self._build_system_prompt()
+        # 'messages' already contains the history from BaseAgent
+        # --- END OF FIX ---
 
         # Run blocking API call in executor
         loop = asyncio.get_event_loop()
@@ -39,8 +46,8 @@ class ClaudeAgent(BaseAgent):
                 model=self.model,
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
-                system=system,
-                messages=messages,
+                system=system,  # Pass system prompt here
+                messages=messages, # Pass history here
             ),
         )
 
