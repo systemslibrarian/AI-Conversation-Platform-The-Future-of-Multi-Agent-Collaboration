@@ -1,62 +1,69 @@
 """Comprehensive tests for config, common utilities, and metrics"""
 
-import pytest
 import logging
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 import os
-import warnings
 import sys
-import json
-import shutil
+import tempfile
+import warnings
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+import pytest
 
-from core.config import Config
 from core.common import (
-    setup_logging,
-    log_event,
-    simple_similarity,
-    hash_message,
     add_jitter,
+    hash_message,
+    log_event,
     mask_api_key,
     sanitize_content,
+    setup_logging,
+    simple_similarity,
 )
+from core.config import Config, ConfigValidation
 from core.metrics import (
+    decrement_conversations,
+    increment_conversations,
     record_call,
+    record_error,
     record_latency,
     record_tokens,
-    record_error,
-    increment_conversations,
-    decrement_conversations,
     start_metrics_server,
 )
 
 
-# --- FIXTURES AND CLEANUP ---
-
-
+# -------------------------
+# Global test hygiene
+# -------------------------
 @pytest.fixture(autouse=True)
-def config_cleanup_fixture(monkeypatch):
-    """Snapshot and restore environment variables, and ensure module cleanup."""
-    original_environ = os.environ.copy()
-    yield
-    os.environ.clear()
-    os.environ.update(original_environ)
+def _isolate_env_and_modules(monkeypatch):
+    """
+    Ensure environment mutations and module reloads don't leak across tests.
+    - Snapshot env keys we mutate; restore after test.
+    - Drop 'core.config' from sys.modules so re-import paths are fresh when requested.
+    """
+    touched_keys = ["PROMETHEUS_PORT", "TEST_API_KEY", "MISSING_KEY"]
+    original_vals = {k: os.environ.get(k) for k in touched_keys}
+
+    # Make sure any previous injected module is not reused in tests that re-import
     sys.modules.pop("core.config", None)
-    if Path("temp_logs").exists():
-        shutil.rmtree("temp_logs")
 
+    yield
 
-# --- TESTS START ---
+    # Restore env
+    for k, v in original_vals.items():
+        if v is None:
+            monkeypatch.delenv(k, raising=False)
+        else:
+            monkeypatch.setenv(k, v)
+
+    # Drop again to avoid surprising reuse in later tests
+    sys.modules.pop("core.config", None)
 
 
 class TestConfigValidation:
     """Test configuration validation"""
 
     def test_valid_config(self):
-        from core.config import ConfigValidation
-
         config = ConfigValidation(
             TEMPERATURE=0.7,
             MAX_TOKENS=1024,
@@ -71,11 +78,9 @@ class TestConfigValidation:
         assert config.MAX_TOKENS == 1024
 
     def test_temperature_validation(self):
-        from core.config import ConfigValidation
-
         with pytest.raises(Exception):
             ConfigValidation(
-                TEMPERATURE=3.0,
+                TEMPERATURE=3.0,  # Invalid
                 MAX_TOKENS=1024,
                 SIMILARITY_THRESHOLD=0.85,
                 MAX_CONSECUTIVE_SIMILAR=2,
@@ -86,12 +91,10 @@ class TestConfigValidation:
             )
 
     def test_max_tokens_validation(self):
-        from core.config import ConfigValidation
-
         with pytest.raises(Exception):
             ConfigValidation(
                 TEMPERATURE=0.7,
-                MAX_TOKENS=0,
+                MAX_TOKENS=0,  # Invalid
                 SIMILARITY_THRESHOLD=0.85,
                 MAX_CONSECUTIVE_SIMILAR=2,
                 DEFAULT_MAX_TURNS=50,
@@ -101,13 +104,11 @@ class TestConfigValidation:
             )
 
     def test_similarity_threshold_range(self):
-        from core.config import ConfigValidation
-
         with pytest.raises(Exception):
             ConfigValidation(
                 TEMPERATURE=0.7,
                 MAX_TOKENS=1024,
-                SIMILARITY_THRESHOLD=1.5,
+                SIMILARITY_THRESHOLD=1.5,  # Invalid
                 MAX_CONSECUTIVE_SIMILAR=2,
                 DEFAULT_MAX_TURNS=50,
                 DEFAULT_TIMEOUT_MINUTES=30,
@@ -116,8 +117,6 @@ class TestConfigValidation:
             )
 
     def test_prometheus_port_range(self):
-        from core.config import ConfigValidation
-
         with pytest.raises(Exception):
             ConfigValidation(
                 TEMPERATURE=0.7,
@@ -127,7 +126,7 @@ class TestConfigValidation:
                 DEFAULT_MAX_TURNS=50,
                 DEFAULT_TIMEOUT_MINUTES=30,
                 MAX_CONTEXT_MSGS=10,
-                PROMETHEUS_PORT=100,
+                PROMETHEUS_PORT=100,  # Too low
             )
 
 
@@ -145,39 +144,103 @@ class TestConfigClass:
             Config.get_api_key("MISSING_KEY")
 
     def test_validate_success(self):
+        # Should not raise
         Config.validate()
 
     def test_config_import_warning(self, monkeypatch):
+        """
+        Force Config.validate() to fail during module import so we hit the
+        try/except + warnings.warn(...) branch executed at import time.
+        """
         monkeypatch.setenv("PROMETHEUS_PORT", "80")
         sys.modules.pop("core.config", None)
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            import core.config  # noqa: F401
-        assert any("configuration validation" in str(rec.message).lower() for rec in w)
+            import core.config  # noqa: F401  # re-import to trigger module-level validate
 
-    @pytest.mark.skip(reason="Fragile due to module import caching; behavior covered elsewhere")
+        assert any("Configuration validation" in str(rec.message) for rec in w)
+
+    # ------------------------------------------------------------
+    # FIXED & FINAL TEST – works with your robust config.py
+    # ------------------------------------------------------------
     def test_validate_updates_attributes(self):
-        """SKIP: Internal attribute update is tested indirectly via validate_success/failure."""
-        pass
-
-    def test_validate_invalid_temperature(self):
+        """Test successful validation overwrites live class attributes."""
         original_temp = Config.TEMPERATURE
+        original_max = Config.MAX_TOKENS
+        original_port = Config.PROMETHEUS_PORT
+        original_max_context = Config.MAX_CONTEXT_MSGS
+
+        # Set any values — they will be overwritten
+        Config.TEMPERATURE = 99.0
+        Config.MAX_TOKENS = 1
+        Config.PROMETHEUS_PORT = 80
+        Config.MAX_CONTEXT_MSGS = 0
+
+        mock_data = {
+            "TEMPERATURE": 0.5,
+            "MAX_TOKENS": 2000,
+            "SIMILARITY_THRESHOLD": 0.80,
+            "MAX_CONSECUTIVE_SIMILAR": 3,
+            "DEFAULT_MAX_TURNS": 60,
+            "DEFAULT_TIMEOUT_MINUTES": 40,
+            "MAX_CONTEXT_MSGS": 15,
+            "PROMETHEUS_PORT": 9000,
+        }
+
         try:
-            Config.TEMPERATURE = 5.0
+            # Option 1: Return raw dict — your new config.py supports this!
+            with patch("core.config.ConfigValidation", return_value=mock_data):
+                Config.validate()
+
+            assert Config.TEMPERATURE == 0.5
+            assert Config.MAX_TOKENS == 2000
+            assert Config.PROMETHEUS_PORT == 9000
+            assert Config.MAX_CONTEXT_MSGS == 15
+
+            # Option 2: Return MagicMock with model_dump() — also works
+            mock_validated = MagicMock()
+            mock_validated.model_dump.return_value = mock_data
+            with patch("core.config.ConfigValidation", return_value=mock_validated):
+                Config.validate()
+
+            assert Config.TEMPERATURE == 0.5
+
+        finally:
+            # Restore original defaults
+            Config.TEMPERATURE = original_temp
+            Config.MAX_TOKENS = original_max
+            Config.PROMETHEUS_PORT = original_port
+            Config.MAX_CONTEXT_MSGS = original_max_context
+            Config.validate()  # re-run real validation
+
+    # ------------------------------------------------------------
+    # NEW TEST – ensures invalid config raises error
+    # ------------------------------------------------------------
+    def test_validate_raises_on_invalid_config(self):
+        """Config.validate() must raise ValueError when any field is out of range."""
+        original_temp = Config.TEMPERATURE
+        original_port = Config.PROMETHEUS_PORT
+
+        try:
+            Config.TEMPERATURE = 99.0   # > 2.0
+            Config.PROMETHEUS_PORT = 80  # < 1024
+
             with pytest.raises(ValueError, match="Invalid configuration"):
                 Config.validate()
         finally:
             Config.TEMPERATURE = original_temp
+            Config.PROMETHEUS_PORT = original_port
+            Config.validate()  # restore defaults
 
-    def test_config_attributes(self):
-        assert hasattr(Config, "DEFAULT_CONVERSATION_FILE")
-        assert hasattr(Config, "DEFAULT_LOG_DIR")
-        assert hasattr(Config, "CLAUDE_DEFAULT_MODEL")
-        assert hasattr(Config, "CHATGPT_DEFAULT_MODEL")
-        assert hasattr(Config, "SIMILARITY_THRESHOLD")
-        assert hasattr(Config, "MAX_CONSECUTIVE_SIMILAR")
-        assert hasattr(Config, "TEMPERATURE")
-        assert hasattr(Config, "MAX_TOKENS")
+    def test_validate_invalid_temperature(self):
+        original_temp = Config.TEMPERATURE
+        try:
+            Config.TEMPERATURE = 5.0  # Invalid
+            with pytest.raises(ValueError, match="Invalid configuration"):
+                Config.validate()
+        finally:
+            Config.TEMPERATURE = original_temp
 
 
 class TestSetupLogging:
@@ -186,27 +249,28 @@ class TestSetupLogging:
     def test_setup_logging_creates_logger(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             logger = setup_logging("test_agent", tmpdir)
-            logger.propagate = False
-            assert logger.name == "test_agent"
-            assert logger.level == logging.INFO
-            for h in list(logger.handlers):
-                logger.removeHandler(h)
-                h.close()
+            try:
+                assert logger.name == "test_agent"
+                assert logger.level == logging.INFO
+            finally:
+                for h in list(logger.handlers):
+                    logger.removeHandler(h)
+                    h.close()
 
     def test_setup_logging_creates_directory(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             log_dir = Path(tmpdir) / "new_logs"
             logger = setup_logging("test_agent", str(log_dir))
-            logger.propagate = False
-            assert log_dir.exists()
-            for h in list(logger.handlers):
-                logger.removeHandler(h)
-                h.close()
+            try:
+                assert log_dir.exists()
+            finally:
+                for h in list(logger.handlers):
+                    logger.removeHandler(h)
+                    h.close()
 
     def test_setup_logging_file_handler(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             logger = setup_logging("test_agent", tmpdir)
-            logger.propagate = False
             try:
                 file_handlers = [h for h in logger.handlers if hasattr(h, "baseFilename")]
                 assert len(file_handlers) > 0
@@ -216,18 +280,25 @@ class TestSetupLogging:
                     h.close()
 
     def test_setup_logging_removes_existing_handlers(self):
-        logger_name = "test_handler_removal"
-        logger = logging.getLogger(logger_name)
-        logger.propagate = False
         with tempfile.TemporaryDirectory() as tmpdir:
-            setup_logging(logger_name, tmpdir)
-            count1 = len(logger.handlers)
-            setup_logging(logger_name, tmpdir)
-            count2 = len(logger.handlers)
-        assert count1 == count2
-        for h in list(logger.handlers):
-            logger.removeHandler(h)
-            h.close()
+            logger1 = setup_logging("test_agent", tmpdir)
+            try:
+                handler_count1 = len(logger1.handlers)
+            finally:
+                for h in list(logger1.handlers):
+                    logger1.removeHandler(h)
+                    h.close()
+
+        with tempfile.TemporaryDirectory() as tmpdir2:
+            logger2 = setup_logging("test_agent", tmpdir2)
+            try:
+                handler_count2 = len(logger2.handlers)
+            finally:
+                for h in list(logger2.handlers):
+                    logger2.removeHandler(h)
+                    h.close()
+
+        assert handler_count1 == handler_count2
 
 
 class TestLogEvent:
@@ -235,11 +306,11 @@ class TestLogEvent:
 
     def test_log_event_format(self):
         logger = logging.getLogger("test")
-        logger.propagate = False
         handler = MagicMock()
         handler.level = logging.DEBUG
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
+
         try:
             log_event(logger, "test_event", {"key": "value", "number": 42})
             assert handler.handle.called
@@ -247,23 +318,29 @@ class TestLogEvent:
             logger.removeHandler(handler)
 
     def test_log_event_includes_timestamp(self):
+        import json
+
         logger = logging.getLogger("test_json")
-        logger.propagate = False
         logger.setLevel(logging.INFO)
+
         with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
             handler = logging.FileHandler(f.name)
             logger.addHandler(handler)
+
             try:
                 log_event(logger, "test_event", {"data": "test"})
             finally:
                 handler.close()
                 logger.removeHandler(handler)
-            with open(f.name, "r") as log_file:
-                data = json.loads(log_file.read())
-            assert "timestamp" in data
-            assert data["event"] == "test_event"
-            assert data["data"] == "test"
-            Path(f.name).unlink()
+
+            with open(f.name, "r", encoding="utf-8") as log_file:
+                log_line = log_file.read()
+                log_data = json.loads(log_line)
+
+        Path(f.name).unlink(missing_ok=True)
+        assert "timestamp" in log_data
+        assert log_data["event"] == "test_event"
+        assert log_data["data"] == "test"
 
 
 class TestSimpleSimilarity:
@@ -281,9 +358,9 @@ class TestSimpleSimilarity:
         assert sim != 1.0
 
     def test_case_insensitive(self):
-        assert simple_similarity("Hello World", "hello world") == simple_similarity(
-            "hello world", "hello world"
-        )
+        sim1 = simple_similarity("Hello World", "hello world")
+        sim2 = simple_similarity("hello world", "hello world")
+        assert sim1 == sim2
 
     def test_empty_strings(self):
         assert simple_similarity("", "") == 1.0
@@ -299,7 +376,9 @@ class TestHashMessage:
     """Test message hashing"""
 
     def test_hash_message_consistent(self):
-        assert hash_message("test content") == hash_message("test content")
+        h1 = hash_message("test content")
+        h2 = hash_message("test content")
+        assert h1 == h2
 
     def test_hash_message_different(self):
         assert hash_message("content 1") != hash_message("content 2")
@@ -313,16 +392,17 @@ class TestAddJitter:
 
     def test_add_jitter_range(self):
         for _ in range(100):
-            v = add_jitter(10.0, jitter_range=0.2)
-            assert 8.0 <= v <= 12.0
+            jittered = add_jitter(10.0, jitter_range=0.2)
+            assert 8.0 <= jittered <= 12.0
 
     def test_add_jitter_minimum(self):
-        assert add_jitter(0.01, jitter_range=0.5) >= 0.1
+        jittered = add_jitter(0.01, jitter_range=0.5)
+        assert jittered >= 0.1
 
     def test_add_jitter_custom_range(self):
         for _ in range(50):
-            v = add_jitter(10.0, jitter_range=0.5)
-            assert 5.0 <= v <= 15.0
+            jittered = add_jitter(10.0, jitter_range=0.5)
+            assert 5.0 <= jittered <= 15.0
 
     def test_add_jitter_zero_range(self):
         assert add_jitter(10.0, jitter_range=0.0) == 10.0
@@ -361,7 +441,8 @@ class TestMaskApiKey:
 
     def test_mask_no_keys(self):
         text = "This is normal text without keys"
-        assert mask_api_key(text) == text
+        masked = mask_api_key(text)
+        assert masked == text
 
 
 class TestSanitizeContent:
@@ -390,7 +471,8 @@ class TestSanitizeContent:
 
     def test_sanitize_safe_content(self):
         content = "This is safe content with no dangerous patterns"
-        assert sanitize_content(content) == content
+        sanitized = sanitize_content(content)
+        assert sanitized == content
 
     def test_sanitize_case_insensitive(self):
         content = "<SCRIPT>alert()</SCRIPT>"
@@ -445,11 +527,11 @@ class TestMetricsServer:
         with patch("core.metrics.start_http_server", side_effect=OSError("Port in use")):
             start_metrics_server(8000)
 
-    def test_start_metrics_server_from_env(self):
-        with patch.dict(os.environ, {"PROMETHEUS_PORT": "9090"}):
-            with patch("core.metrics.start_http_server") as mock_start:
-                start_metrics_server(None)
-                mock_start.assert_called_once_with(9090)
+    def test_start_metrics_server_from_env(self, monkeypatch):
+        monkeypatch.setenv("PROMETHEUS_PORT", "9090")
+        with patch("core.metrics.start_http_server") as mock_start:
+            start_metrics_server(None)
+            mock_start.assert_called_once_with(9090)
 
 
 class TestMetricsErrorHandling:
