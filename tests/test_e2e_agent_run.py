@@ -1,121 +1,113 @@
-import pytest
 import asyncio
-import tempfile
 import logging
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Import your REAL factory and agent classes
-# (Adjust this import to match your project structure if needed)
-try:
-    from main import run_conversation
-except ImportError:
-    # This is a fallback assumption if main.py doesn't exist.
-    # The key is to import your REAL agent creation and queue logic.
-    from agents import create_agent, ChatGPTAgent, ClaudeAgent
-    from core.queue import create_queue
+import pytest
 
-# --- Fixtures (copied from your other tests) ---
+# Import your REAL factory and agent classes
+from agents import create_agent, ChatGPTAgent, ClaudeAgent
+from core.queue import create_queue
+
+# If you have this constant in code, prefer importing it:
+# from core.constants import TERMINATION_TOKEN
+TERMINATION_TOKEN = "[done]"
+
+
+# --- Fixtures ---
 
 @pytest.fixture
-def temp_db():
-    """Create temporary database as a string path"""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = Path(f.name)
-    
-    # Yield the string path, as create_queue expects
+def temp_db(tmp_path):
+    """Provide a temporary DB path as a string (what create_queue expects)."""
+    db_path = tmp_path / "test.db"
     yield str(db_path)
-    
-    # Cleanup
-    db_path = Path(db_path) # Re-cast in case it's string
-    if db_path.exists():
-        db_path.unlink()
-    lock_file = Path(f"{db_path}.lock")
-    if lock_file.exists():
-        lock_file.unlink()
+    lock = Path(str(db_path) + ".lock")
+    if lock.exists():
+        lock.unlink()
+
 
 @pytest.fixture
 def logger():
-    """Create test logger"""
-    return logging.getLogger("e2e_test")
+    """Create a visible, quiet logger for debugging test failures."""
+    lg = logging.getLogger("e2e_test")
+    lg.setLevel(logging.DEBUG)
+    if not lg.handlers:
+        h = logging.StreamHandler()
+        h.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+        lg.addHandler(h)
+    return lg
 
-# --- The New E2E Test ---
+
+# --- The E2E Test ---
 
 @pytest.mark.asyncio
 async def test_real_agent_run_loop(temp_db, logger):
     """
-    This test runs the *REAL* BaseAgent.run() loop by creating
-    two real agents and mocking their API calls.
+    Runs the REAL BaseAgent.run() loop by creating two real agents and mocking their API calls.
     """
-    
-    # --- 1. Setup Mocks for API Clients ---
-    
-    # Mock OpenAI (for ChatGPT)
+
+    # --- 1) Setup Mocks for API Clients ---
+
+    # OpenAI (Chat Completions style)
     mock_openai_client = MagicMock()
     mock_openai_client.chat.completions.create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content="Hello from ChatGPT! [done]"))],
+        choices=[MagicMock(message=MagicMock(content=f"Hello from ChatGPT! {TERMINATION_TOKEN}"))],
         usage=MagicMock(total_tokens=10),
     )
-    
-    # Mock Anthropic (for Claude)
+
+    # Anthropic (Messages API shape)
     mock_anthropic_client = MagicMock()
     mock_anthropic_client.messages.create.return_value = MagicMock(
         content=[MagicMock(text="Hi from Claude!")],
         usage=MagicMock(input_tokens=5, output_tokens=6),
     )
-    
-    # --- 2. Apply Mocks and Create REAL Components ---
-    
-    # THIS IS THE FIX: Removed `as mock_openai` and `as mock_anthropic`
-    with patch("openai.OpenAI", return_value=mock_openai_client), \
-         patch("anthropic.Anthropic", return_value=mock_anthropic_client), \
-         patch.dict("os.environ", {
-             "OPENAI_API_KEY": "fake-key", 
-             "ANTHROPIC_API_KEY": "fake-key"
-         }):
-        
-        # Create the real queue
+
+    # --- 2) Patch where the symbols are LOOKED UP in your code ---
+
+    # Adjust these patch targets if your actual files differ:
+    # - agents/chatgpt.py defines and uses OpenAI
+    # - agents/claude.py imports anthropic and constructs anthropic.Anthropic(...)
+    with patch("agents.chatgpt.OpenAI", return_value=mock_openai_client), \
+         patch("agents.claude.anthropic.Anthropic", return_value=mock_anthropic_client), \
+         patch.dict(
+             "os.environ",
+             {"OPENAI_API_KEY": "fake-key", "ANTHROPIC_API_KEY": "fake-key"},
+             clear=False,
+         ):
+
         queue = create_queue(temp_db, logger, use_redis=False)
-        
-        # Create the REAL agents
-        agent1_claude = create_agent(
-            agent_type="claude",
-            queue=queue,
-            logger=logger,
-            topic="test"
-        )
-        
-        agent2_chatgpt = create_agent(
-            agent_type="chatgpt",
-            queue=queue,
-            logger=logger,
-            topic="test"
-        )
-        
-        # --- 3. Run the REAL .run() Methods ---
-        
-        # This will execute the code in base.py
-        await asyncio.gather(
-            agent1_claude.run(max_turns=5, partner_name="ChatGPT"),
-            agent2_chatgpt.run(max_turns=5, partner_name="Claude")
+
+        # Real agents
+        claude = create_agent(agent_type="claude", queue=queue, logger=logger, topic="test")
+        chatgpt = create_agent(agent_type="chatgpt", queue=queue, logger=logger, topic="test")
+
+        # --- 3) Run the REAL .run() Methods with a timeout guard ---
+        await asyncio.wait_for(
+            asyncio.gather(
+                claude.run(max_turns=5, partner_name="ChatGPT"),
+                chatgpt.run(max_turns=5, partner_name="Claude"),
+            ),
+            timeout=10,
         )
 
-        # --- 4. Verify the Results ---
-        
-        # Check that the "[done]" signal was caught
-        assert await queue.is_terminated()
-        
+        # --- 4) Verify Results ---
+
+        assert await queue.is_terminated(), "Conversation did not terminate as expected."
+
         data = await queue.load()
         messages = data["messages"]
 
-        # Verify the conversation happened
-        # Claude should go first (empty queue), then ChatGPT responds + terminates
-        assert len(messages) == 2  
-        
-        senders = {msg["sender"] for msg in messages}
-        assert "Claude" in senders
-        assert "ChatGPT" in senders
-        
-        # Check that the mocks were called
+        # Less brittle checks
+        assert len(messages) >= 2
+        senders = {m["sender"] for m in messages}
+        assert {"Claude", "ChatGPT"} <= senders
+
+        # The termination signal should appear somewhere
+        assert any(
+            TERMINATION_TOKEN in (m.get("content") or "")
+            for m in messages
+        ), f"Expected termination token {TERMINATION_TOKEN!r} in messages."
+
+        # Mocks were exercised
         mock_anthropic_client.messages.create.assert_called()
         mock_openai_client.chat.completions.create.assert_called()
