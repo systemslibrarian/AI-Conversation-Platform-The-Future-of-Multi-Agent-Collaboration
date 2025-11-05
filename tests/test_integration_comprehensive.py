@@ -161,6 +161,9 @@ class TestConfigClass:
 
         assert any("Configuration validation" in str(rec.message) for rec in w)
 
+    # ------------------------------------------------------------
+    # FIXED TEST – validates that attributes are updated when validation passes
+    # ------------------------------------------------------------
     def test_validate_updates_attributes(self):
         """Test successful validation overwrites live class attributes."""
         original_temp = Config.TEMPERATURE
@@ -168,11 +171,11 @@ class TestConfigClass:
         original_port = Config.PROMETHEUS_PORT
         original_max_context = Config.MAX_CONTEXT_MSGS
 
-        # Start from distinct values so we can see the overwrite
-        Config.TEMPERATURE = 99.0
-        Config.MAX_TOKENS = 1
-        Config.PROMETHEUS_PORT = 1000
-        Config.MAX_CONTEXT_MSGS = 1
+        # Start from *valid* values (they will be ignored because we mock the whole model)
+        Config.TEMPERATURE = 0.7
+        Config.MAX_TOKENS = 1024
+        Config.PROMETHEUS_PORT = 8000
+        Config.MAX_CONTEXT_MSGS = 10
 
         mock_dump = {
             "TEMPERATURE": 0.5,
@@ -186,20 +189,44 @@ class TestConfigClass:
         }
 
         try:
-            with patch("core.config.ConfigValidation") as MockPydanticClass:
-                MockPydanticClass.return_value.model_dump.return_value = mock_dump
+            # Mock the *entire* ConfigValidation constructor – prevents real Pydantic validation
+            mock_validated = MagicMock()
+            mock_validated.model_dump.return_value = mock_dump
+
+            with patch("core.config.ConfigValidation", return_value=mock_validated):
                 Config.validate()
 
+            # Verify class attributes were overwritten with the mock data
             assert Config.TEMPERATURE == 0.5
             assert Config.MAX_TOKENS == 2000
             assert Config.PROMETHEUS_PORT == 9000
             assert Config.MAX_CONTEXT_MSGS == 15
         finally:
+            # Restore original defaults
             Config.TEMPERATURE = original_temp
             Config.MAX_TOKENS = original_max
             Config.PROMETHEUS_PORT = original_port
             Config.MAX_CONTEXT_MSGS = original_max_context
-            Config.validate()
+            Config.validate()  # re-run real validation to restore defaults
+
+    # ------------------------------------------------------------
+    # NEW TEST – ensures invalid configuration raises an error
+    # ------------------------------------------------------------
+    def test_validate_raises_on_invalid_config(self):
+        """Config.validate() must raise ValueError when any field is out of range."""
+        original_temp = Config.TEMPERATURE
+        original_port = Config.PROMETHEUS_PORT
+
+        try:
+            Config.TEMPERATURE = 99.0   # > 2.0
+            Config.PROMETHEUS_PORT = 80  # < 1024
+
+            with pytest.raises(ValueError, match="Invalid configuration"):
+                Config.validate()
+        finally:
+            Config.TEMPERATURE = original_temp
+            Config.PROMETHEUS_PORT = original_port
+            Config.validate()  # restore defaults
 
     def test_validate_invalid_temperature(self):
         original_temp = Config.TEMPERATURE
