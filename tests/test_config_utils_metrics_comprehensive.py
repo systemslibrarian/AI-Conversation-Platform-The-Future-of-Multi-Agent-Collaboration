@@ -177,7 +177,7 @@ class TestConfigClass:
 
         assert any("Configuration validation warning" in str(rec.message) for rec in w)
 
-    # --- ensure validate() overwrites attributes ---
+    # --- FIXED TEST: ensure validate() overwrites attributes ---
     def test_validate_updates_attributes(self):
         """Test successful validation overwrites live class attributes."""
 
@@ -206,12 +206,18 @@ class TestConfigClass:
         }
 
         try:
-            # ---- PATCH THE CONSTRUCTOR CALL ----
+            # ---- CREATE MOCK INSTANCE ----
             fake_instance = MagicMock()
             fake_instance.model_dump.return_value = MOCK_DUMP
 
-            # Patch the __call__ of the real ConfigValidation class
-            with patch.object(ConfigValidation, "__call__", return_value=fake_instance):
+            # ---- PATCH THE CLASS IN core.config AND RELOAD MODULE ----
+            with patch('core.config.ConfigValidation', return_value=fake_instance):
+                # Force reload so core.config sees the patched class
+                import importlib
+                if 'core.config' in sys.modules:
+                    importlib.reload(sys.modules['core.config'])
+
+                # Now Config.validate() uses the mock
                 Config.validate()
 
             # ---- ASSERTIONS ----
@@ -226,7 +232,7 @@ class TestConfigClass:
             Config.MAX_TOKENS = original_max
             Config.PROMETHEUS_PORT = original_port
             Config.MAX_CONTEXT_MSGS = original_max_context
-            Config.validate()  # re-validate to leave a clean module state
+            Config.validate()  # Re-validate to leave clean state
 
     # --- END FIXED TEST ---
 
