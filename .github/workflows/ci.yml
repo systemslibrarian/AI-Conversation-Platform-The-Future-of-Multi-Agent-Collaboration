@@ -88,6 +88,9 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: python
+          # --- THIS IS THE ADDED LINE ---
+          # Copied from codeql.yml to be more specific
+          queries: security-and-quality
 
       - name: Perform CodeQL Analysis
         # --- THIS IS THE FIX ---
