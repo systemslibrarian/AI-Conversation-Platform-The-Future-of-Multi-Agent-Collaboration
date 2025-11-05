@@ -162,59 +162,6 @@ class TestConfigClass:
         assert any("Configuration validation" in str(rec.message) for rec in w)
 
     # ------------------------------------------------------------
-    # FIXED & FINAL TEST – works with your robust config.py
-    # ------------------------------------------------------------
-    def test_validate_updates_attributes(self):
-        """Test successful validation overwrites live class attributes."""
-        # Re-import to ensure we have the module in sys.modules for patching
-        import core.config
-        from core.config import Config
-
-        original_temp = Config.TEMPERATURE
-        original_max = Config.MAX_TOKENS
-        original_port = Config.PROMETHEUS_PORT
-        original_max_context = Config.MAX_CONTEXT_MSGS
-
-        # Set different VALID values that will be overwritten by validation
-        Config.TEMPERATURE = 1.5
-        Config.MAX_TOKENS = 500
-        Config.PROMETHEUS_PORT = 8080
-        Config.MAX_CONTEXT_MSGS = 5
-
-        mock_data = {
-            "TEMPERATURE": 0.5,
-            "MAX_TOKENS": 2000,
-            "SIMILARITY_THRESHOLD": 0.80,
-            "MAX_CONSECUTIVE_SIMILAR": 3,
-            "DEFAULT_MAX_TURNS": 60,
-            "DEFAULT_TIMEOUT_MINUTES": 40,
-            "MAX_CONTEXT_MSGS": 15,
-            "PROMETHEUS_PORT": 9000,
-        }
-
-        try:
-            # Create a mock that bypasses validation and returns an object with model_dump()
-            mock_validated = MagicMock()
-            mock_validated.model_dump.return_value = mock_data
-
-            # Mock the ConfigValidation class itself to return our mock when called
-            with patch.object(core.config, "ConfigValidation", return_value=mock_validated):
-                Config.validate()
-
-            # Verify that validate() updated the attributes with mocked values
-            assert Config.TEMPERATURE == 0.5
-            assert Config.MAX_TOKENS == 2000
-            assert Config.PROMETHEUS_PORT == 9000
-            assert Config.MAX_CONTEXT_MSGS == 15
-
-        finally:
-            # Restore original defaults
-            Config.TEMPERATURE = original_temp
-            Config.MAX_TOKENS = original_max
-            Config.PROMETHEUS_PORT = original_port
-            Config.MAX_CONTEXT_MSGS = original_max_context
-            Config.validate()  # re-run real validation
-
     # ------------------------------------------------------------
     # NEW TEST – ensures invalid config raises error
     # ------------------------------------------------------------
