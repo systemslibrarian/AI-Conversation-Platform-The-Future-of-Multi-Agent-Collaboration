@@ -1,98 +1,100 @@
-name: CI & Lint
+name: CI
 
 on:
   push:
     branches: [ main ]
   pull_request:
 
-# This gives the "fix-formatting" job permission to commit changes
 permissions:
-  contents: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # --- JOB 1: RUNS FIRST ---
-  # This job will fix lint and format issues and commit them
+  # -------------------- 1) Auto-fix formatting on main only --------------------
   fix-formatting:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          # Need to fetch history for the auto-commit to work
-          fetch-depth: 0 
+          fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Ruff
-        run: pip install ruff
-
-      - name: Run Ruff Linter Fix
-        run: ruff check . --fix
-
-      - name: Run Ruff Formatter
-        run: ruff format .
-
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: auto-fix Ruff issues"
-
-  # --- JOB 2: RUNS SECOND ---
-  # This job will only start after 'fix-formatting' is complete
-  run-tests:
-    # This 'needs' keyword forces this job to WAIT for 'fix-formatting' to succeed.
-    needs: fix-formatting
-    
-    runs-on: ubuntu-latest
-    steps:
-      # This checkout gets the *newest* code,
-      # which includes the commit from the 'fix-formatting' job.
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: pip install ruff
+      - run: ruff check . --fix
+      - run: ruff format .
 
-      - name: Install dependencies
-        # --- THIS IS THE FIX ---
-        # Added 'pytest-asyncio' to handle async tests and 'redis' for queue tests
-        run: uv pip install --system -r requirements.txt pytest pytest-asyncio redis
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(ci): auto-fix Ruff issues [skip ci]"
 
-      - name: Run Pytest
-        # This command will now find the 'pytest' executable
-        run: uv run pytest -q --maxfail=1 --disable-warnings
-        
-  # --- JOB 3: RUNS IN PARALLEL WITH TESTS ---
-  codeql:
-    # This also waits for the formatting to be fixed
-    needs: fix-formatting
+  # -------------------- 2) Tests + Coverage + Codecov --------------------
+  test:
     runs-on: ubuntu-latest
     permissions:
-      security-events: write # Required for CodeQL
-    
+      id-token: write # <-- ADDED: Needed for OIDC (tokenless) upload
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+
+      # --- ADDED: Caching step for uv ---
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+      # ----------------------------------
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system \
+            pytest pytest-asyncio pytest-cov \
+            redis \
+            -r requirements.txt
+
+      - name: Run tests with coverage (XML)
+        run: |
+          uv run pytest -q --maxfail=1 --disable-warnings \
+            --cov=. --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          use_oidc: true # <-- ADDED: Use tokenless authentication
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
+        # --- REMOVED: The 'env' block with CODECOV_TOKEN is no longer needed ---
+
+  # -------------------- 3) CodeQL (separate badge if you want) --------------------
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
         with:
           languages: python
-          # --- THIS IS THE ADDED LINE ---
-          # Copied from codeql.yml to be more specific
           queries: security-and-quality
-
-      - name: Perform CodeQL Analysis
-        # --- THIS IS THE FIX ---
-        # Corrected typo from 'codeGQL-action' to 'codeql-action'
-        uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v3
