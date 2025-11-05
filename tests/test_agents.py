@@ -79,7 +79,7 @@ class TestCircuitBreaker:
 
         cb.record_success()
         assert cb.failure_count == 0
-    
+
     # --- END OF FIX ---
 
 
@@ -128,9 +128,7 @@ class TestChatGPTAgent:
                     topic="test",
                     timeout_minutes=30,
                 )
-                content, tokens = await agent._call_api(
-                    [{"role": "user", "content": "hi"}]
-                )
+                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
                 assert content == "Hello"
                 assert tokens == 10
 
@@ -179,9 +177,7 @@ class TestClaudeAgent:
                     topic="test",
                     timeout_minutes=30,
                 )
-                content, tokens = await agent._call_api(
-                    [{"role": "user", "content": "hi"}]
-                )
+                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
                 assert content == "Hi from Claude"
                 assert tokens == 11
 
@@ -257,9 +253,7 @@ class TestAgentSecurity:
     @pytest.mark.asyncio
     async def test_llm_guard_integration(self, mock_queue, logger):
         """Test LLM Guard integration (if available)"""
-        with patch.dict(
-            "os.environ", {"OPENAI_API_KEY": "test-key", "ENABLE_LLM_GUARD": "true"}
-        ):
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "ENABLE_LLM_GUARD": "true"}):
             if importlib.util.find_spec("llm_guard") is None:
                 pytest.skip("llm-guard not installed")
 
