@@ -6,11 +6,10 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 import os
-from pydantic import BaseModel  # Import BaseModel for mocking Pydantic
-import warnings 
-import sys 
+import warnings
+import sys
 import json
-import shutil # For safely removing log directories
+import shutil  # For safely removing log directories
 
 
 from core.config import Config, ConfigValidation
@@ -36,13 +35,14 @@ from core.metrics import (
 
 # --- FIXTURES AND CLEANUP ---
 
+
 @pytest.fixture(autouse=True)
 def config_cleanup_fixture(monkeypatch):
     """Snapshot and restore environment variables, and ensure module cleanup."""
-    
+
     # 1. Snapshot Environment
     original_environ = os.environ.copy()
-    
+
     # 2. Yield to run the test
     yield
 
@@ -52,14 +52,15 @@ def config_cleanup_fixture(monkeypatch):
 
     # 4. Clean up module cache for core.config
     sys.modules.pop("core.config", None)
-    
+
     # 5. Clean up any temporary log directories created by setup_logging tests
     # Note: Using Path and shutil.rmtree for robust cleanup
-    if Path('temp_logs').exists():
-        shutil.rmtree('temp_logs')
+    if Path("temp_logs").exists():
+        shutil.rmtree("temp_logs")
 
 
 # --- TESTS START ---
+
 
 class TestConfigValidation:
     """Test configuration validation"""
@@ -163,7 +164,7 @@ class TestConfigClass:
         Force Config.validate() to fail during module import so we hit the
         try/except + warnings.warn(...) branch executed at import time.
         """
-        
+
         # Make validation fail by supplying an invalid env var (e.g., low port)
         monkeypatch.setenv("PROMETHEUS_PORT", "80")
 
@@ -175,6 +176,7 @@ class TestConfigClass:
             import core.config  # noqa: F401  # re-import to trigger module-level validate
 
         assert any("Configuration validation warning" in str(rec.message) for rec in w)
+
     # --- END NEW TEST ---
 
     # --- ensure validate() overwrites attributes ---
@@ -186,7 +188,7 @@ class TestConfigClass:
         original_max = Config.MAX_TOKENS
         original_port = Config.PROMETHEUS_PORT
         original_max_context = Config.MAX_CONTEXT_MSGS
-        
+
         # 0. Set initial values different from mock target (these are invalid but won't cause the test to fail now)
         Config.TEMPERATURE = 99.0
         Config.MAX_TOKENS = 1
@@ -202,17 +204,16 @@ class TestConfigClass:
             "DEFAULT_MAX_TURNS": 60,
             "DEFAULT_TIMEOUT_MINUTES": 40,
             "MAX_CONTEXT_MSGS": 15,
-            "PROMETHEUS_PORT": 9000
+            "PROMETHEUS_PORT": 9000,
         }
 
         try:
             # 1. Patch the symbol 'ConfigValidation' directly within the 'core.config' module
-            with patch('core.config.ConfigValidation') as MockPydanticClass:
-                
+            with patch("core.config.ConfigValidation") as MockPydanticClass:
                 # Configure the mock instance to return our desired data when .model_dump() is called
                 # This bypasses the validation constructor failure while allowing the rest of the validate() method to run
                 MockPydanticClass.return_value.model_dump.return_value = MOCK_DUMP
-                
+
                 # 2. Run validation (the call to ConfigValidation(...) now returns the mock instance)
                 Config.validate()
 
@@ -228,7 +229,8 @@ class TestConfigClass:
             Config.MAX_TOKENS = original_max
             Config.PROMETHEUS_PORT = original_port
             Config.MAX_CONTEXT_MSGS = original_max_context
-            Config.validate() # Re-validate to ensure clean state
+            Config.validate()  # Re-validate to ensure clean state
+
     # --- END NEW TEST ---
 
     def test_validate_invalid_temperature(self):
@@ -264,7 +266,7 @@ class TestSetupLogging:
 
             assert logger.name == "test_agent"
             assert logger.level == logging.INFO
-            
+
             # Ensure handlers are removed for clean state
             for h in list(logger.handlers):
                 logger.removeHandler(h)
@@ -277,7 +279,7 @@ class TestSetupLogging:
             logger = setup_logging("test_agent", str(log_dir))
 
             assert log_dir.exists()
-            
+
             # Ensure handlers are removed for clean state
             for h in list(logger.handlers):
                 logger.removeHandler(h)
@@ -292,31 +294,31 @@ class TestSetupLogging:
                 file_handlers = [h for h in logger.handlers if hasattr(h, "baseFilename")]
                 assert len(file_handlers) > 0
             finally:
-                 # Ensure handlers are removed for clean state
+                # Ensure handlers are removed for clean state
                 for h in list(logger.handlers):
                     logger.removeHandler(h)
                     h.close()
 
     def test_setup_logging_removes_existing_handlers(self):
         """Test that existing handlers are removed"""
-        
+
         # We must create and remove handlers from the same logger instance for the test to work
         # We use a shared unique logger name
         logger_name = "test_handler_removal"
         logger = logging.getLogger(logger_name)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # 1. Setup once (adds 2 handlers: File, Console)
             setup_logging(logger_name, tmpdir)
             handler_count1 = len(logger.handlers)
-            
+
             # 2. Setup again (removes old 2, adds 2 new)
             setup_logging(logger_name, tmpdir)
             handler_count2 = len(logger.handlers)
 
         # Should have the same number (old ones removed before new ones added)
         assert handler_count1 == handler_count2
-        
+
         # Final cleanup for the test logger
         for h in list(logger.handlers):
             logger.removeHandler(h)
@@ -339,7 +341,7 @@ class TestLogEvent:
             # Should have been called
             assert handler.handle.called
         finally:
-            logger.removeHandler(handler) # Ensure cleanup
+            logger.removeHandler(handler)  # Ensure cleanup
 
     def test_log_event_includes_timestamp(self):
         """Test log event includes timestamp"""
@@ -382,7 +384,7 @@ class TestSimpleSimilarity:
         """Test completely different strings have low similarity"""
         sim = simple_similarity("hello world", "goodbye universe")
         # FIX: Make check less brittle
-        assert sim < 0.5 
+        assert sim < 0.5
 
     def test_partial_overlap(self):
         """Test partial overlap"""
@@ -456,11 +458,12 @@ class TestAddJitter:
         for _ in range(50):
             jittered = add_jitter(10.0, jitter_range=0.5)
             assert 5.0 <= jittered <= 15.0
-    
+
     # --- NEW TEST: zero jitter branch (no randomness path) ---
     def test_add_jitter_zero_range(self):
         """With zero jitter, value should be returned unchanged (no clamp needed)."""
         assert add_jitter(10.0, jitter_range=0.0) == 10.0
+
     # --- END NEW TEST ---
 
 
