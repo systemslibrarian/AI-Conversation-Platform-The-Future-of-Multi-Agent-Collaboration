@@ -14,13 +14,17 @@ class ChatGPTAgent(BaseAgent):
     DEFAULT_MODEL = config.CHATGPT_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        # Merge api_key into kwargs for parent class
-        kwargs["api_key"] = api_key
+        # --- THIS IS THE FIX ---
+        # 1. Call super() FIRST, passing only the args it expects.
+        #    'kwargs' (which contains queue, logger, etc.) is passed.
+        #    'api_key' is a local variable and is NOT passed up.
         super().__init__(*args, **kwargs)
+        # --- END OF FIX ---
 
         try:
             from openai import OpenAI
 
+            # 2. Use the local 'api_key' variable to init the client.
             self.client = OpenAI(api_key=api_key)
         except ImportError:
             raise ImportError("Install: pip install openai")
@@ -29,8 +33,12 @@ class ChatGPTAgent(BaseAgent):
         """Call OpenAI API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for lambda
+        
+        # --- THIS IS THE FIX ---
+        # Get the system prompt and add it to the messages list
         system = self._build_system_prompt()
         api_messages = [{"role": "system", "content": system}] + messages
+        # --- END OF FIX ---
 
         # Run blocking API call in executor
         loop = asyncio.get_event_loop()
@@ -38,7 +46,7 @@ class ChatGPTAgent(BaseAgent):
             None,
             lambda: client.chat.completions.create(
                 model=self.model,
-                messages=api_messages,
+                messages=api_messages, # Use the modified list
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
             ),
