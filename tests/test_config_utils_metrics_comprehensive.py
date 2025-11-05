@@ -223,7 +223,7 @@ class TestConfigClass:
         original_port = Config.PROMETHEUS_PORT
 
         try:
-            Config.TEMPERATURE = 99.0   # > 2.0
+            Config.TEMPERATURE = 99.0  # > 2.0
             Config.PROMETHEUS_PORT = 80  # < 1024
 
             with pytest.raises(ValueError, match="Invalid configuration"):
