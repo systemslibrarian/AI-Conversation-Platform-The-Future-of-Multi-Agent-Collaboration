@@ -8,9 +8,6 @@ Tests for BaseAgent orchestrator logic:
 - Agent factory error paths & model selection
 """
 
-import os
-import sys
-import asyncio
 import logging
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -24,6 +21,7 @@ from agents import create_agent
 
 
 # ---------- Fixtures ----------
+
 
 @pytest.fixture
 def mock_queue():
@@ -47,7 +45,9 @@ def test_agent(mock_queue, mock_logger):
     Keep generate_response REAL so internal counters/logic run.
     """
     # Mock only the abstract _call_api; attach it for per-test control
-    with patch.object(BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)) as mock_call_api:
+    with patch.object(
+        BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)
+    ) as mock_call_api:
         agent = BaseAgent(
             queue=mock_queue,
             logger=mock_logger,
@@ -65,6 +65,7 @@ def test_agent(mock_queue, mock_logger):
 
 
 # ---------- run() tests ----------
+
 
 @pytest.mark.asyncio
 class TestAgentRunLoop:
@@ -146,6 +147,7 @@ class TestAgentRunLoop:
 
 # ---------- respond() tests ----------
 
+
 @pytest.mark.asyncio
 class TestAgentRespondLoop:
     async def test_respond_terminates_on_consecutive_errors(self, test_agent, mock_queue):
@@ -213,6 +215,7 @@ class TestAgentRespondLoop:
 
 # ---------- LLM-Guard & scanning tests ----------
 
+
 class TestSecurityAndImports:
     def test_base_agent_init_without_llm_guard(self, mock_queue, mock_logger):
         """
@@ -222,7 +225,9 @@ class TestSecurityAndImports:
         # Force-enable the feature flag to exercise the branch
         with patch("agents.base.config.ENABLE_LLM_GUARD", True):
             with patch.dict("sys.modules", {"llm_guard.input_scanners": None}):
-                with patch.object(BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("x", 1)):
+                with patch.object(
+                    BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("x", 1)
+                ):
                     agent = BaseAgent(
                         queue=mock_queue,
                         logger=mock_logger,
@@ -262,6 +267,7 @@ class TestSecurityAndImports:
 
 # ---------- Agent factory tests ----------
 
+
 class TestAgentFactoryFailures:
     def test_factory_raises_unknown_agent(self, mock_queue, mock_logger):
         with pytest.raises(ValueError, match="Unknown agent type: 'foobar'"):
@@ -280,6 +286,7 @@ class TestAgentFactoryFailures:
         with patch.dict("os.environ", {"OPENAI_API_KEY": "fake-key"}):
             with patch("openai.OpenAI"):
                 from agents.chatgpt import ChatGPTAgent
+
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
