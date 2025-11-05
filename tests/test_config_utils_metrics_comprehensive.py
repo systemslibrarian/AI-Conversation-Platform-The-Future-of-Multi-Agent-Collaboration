@@ -161,6 +161,38 @@ class TestConfigClass:
 
         assert any("Configuration validation" in str(rec.message) for rec in w)
 
+    def test_validate_updates_attributes_successfully(self):
+        """Test that validate() successfully validates and updates attributes."""
+        # Save originals
+        original_temp = Config.TEMPERATURE
+        original_tokens = Config.MAX_TOKENS
+        original_port = Config.PROMETHEUS_PORT
+        original_context = Config.MAX_CONTEXT_MSGS
+        
+        try:
+            # Set valid but different values
+            Config.TEMPERATURE = 1.5
+            Config.MAX_TOKENS = 2048
+            Config.PROMETHEUS_PORT = 9090
+            Config.MAX_CONTEXT_MSGS = 20
+            
+            # Validate should succeed and keep these valid values
+            Config.validate()
+            
+            # Verify values are still within valid ranges
+            assert 0.0 <= Config.TEMPERATURE <= 2.0
+            assert 1 <= Config.MAX_TOKENS <= 32000
+            assert 1024 <= Config.PROMETHEUS_PORT <= 65535
+            assert 1 <= Config.MAX_CONTEXT_MSGS <= 100
+            
+        finally:
+            # Restore original values
+            Config.TEMPERATURE = original_temp
+            Config.MAX_TOKENS = original_tokens
+            Config.PROMETHEUS_PORT = original_port
+            Config.MAX_CONTEXT_MSGS = original_context
+            Config.validate()
+
     # ------------------------------------------------------------
     # ------------------------------------------------------------
     # NEW TEST – ensures invalid config raises error
