@@ -18,6 +18,7 @@ from core import metrics
 
 # --- Fixtures ---
 
+
 @pytest.fixture(autouse=True)
 def capture_logs(caplog):
     """
@@ -30,12 +31,13 @@ def capture_logs(caplog):
 
 # --- Happy Path Tests ---
 
+
 def test_record_call_happy(capture_logs):
     """Mocks the whole API_CALLS object to test labels().inc() chain"""
     metric_mock = MagicMock()
     with patch("core.metrics.API_CALLS", metric_mock):
         metrics.record_call("Test", "gpt", "success")
-    
+
     metric_mock.labels.assert_called_once_with(provider="Test", model="gpt", status="success")
     metric_mock.labels.return_value.inc.assert_called_once()
     assert not capture_logs.records
@@ -46,7 +48,7 @@ def test_record_latency_happy(capture_logs):
     metric_mock = MagicMock()
     with patch("core.metrics.RESPONSE_LATENCY", metric_mock):
         metrics.record_latency("Test", "gpt", 0.42)
-    
+
     metric_mock.labels.assert_called_once_with(provider="Test", model="gpt")
     metric_mock.labels.return_value.observe.assert_called_once_with(0.42)
     assert not capture_logs.records
@@ -80,7 +82,7 @@ def test_record_error_happy(capture_logs):
     metric_mock = MagicMock()
     with patch("core.metrics.ERRORS", metric_mock):
         metrics.record_error("Test", "api_error")
-    
+
     metric_mock.labels.assert_called_once_with(provider="Test", error_type="api_error")
     metric_mock.labels.return_value.inc.assert_called_once()
     assert not capture_logs.records
@@ -91,7 +93,7 @@ def test_increment_conversations_happy(capture_logs):
     metric_mock = MagicMock()
     with patch("core.metrics.ACTIVE_CONVERSATIONS", metric_mock):
         metrics.increment_conversations()
-    
+
     metric_mock.inc.assert_called_once()
     assert not capture_logs.records
 
@@ -101,7 +103,7 @@ def test_decrement_conversations_happy(capture_logs):
     metric_mock = MagicMock()
     with patch("core.metrics.ACTIVE_CONVERSATIONS", metric_mock):
         metrics.decrement_conversations()
-    
+
     metric_mock.dec.assert_called_once()
     assert not capture_logs.records
 
@@ -115,6 +117,7 @@ def test_start_metrics_server_happy(capture_logs):
 
 
 # --- Unhappy Path (Exception) Tests ---
+
 
 def test_record_call_exception(capture_logs):
     """Tests that record_call logs the specific error."""
