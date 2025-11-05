@@ -212,7 +212,7 @@ uv run pytest tests/test_agents.py -v
 uv run pytest tests/test_queue.py -v
 ```
 
-Maintains >90% test coverage.
+Maintains >70% test coverage.
 
 ---
 
