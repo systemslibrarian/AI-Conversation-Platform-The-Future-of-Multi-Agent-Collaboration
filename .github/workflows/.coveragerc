@@ -1,0 +1,15 @@
+[run]
+# IMPORTANT: Change 'your_project_directory' to your actual source folder
+# (e.g., 'src', 'app', 'ai_conversation_platform', etc.)
+source = your_project_directory
+
+# Automatically ignore these files/folders from coverage
+omit =
+    */tests/*
+    */.venv/*
+    */migrations/*
+    setup.py
+
+[report]
+# Show missing lines in the console output
+show_missing = True
