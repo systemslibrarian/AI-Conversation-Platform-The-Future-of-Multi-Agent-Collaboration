@@ -23,10 +23,13 @@ def mock_inputs(*answers):
 
 def stub_agent(name):
     """Return a minimal async-capable agent stub with .run() and .agent_name."""
+
     class _A:
         agent_name = name
+
         async def run(self, max_turns: int, partner_name: str):
             return None
+
     return _A()
 
 
@@ -35,7 +38,9 @@ def stub_agent(name):
 async def test_run_interactive_auto_yes_full_flow(capsys):
     # Arrange: configured agents, stubbed dependencies
     with (
-        patch("cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}),
+        patch(
+            "cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}
+        ),
         patch(
             "cli.start_conversation.get_agent_info",
             side_effect=lambda t: {
@@ -83,7 +88,9 @@ async def test_run_interactive_auto_yes_full_flow(capsys):
 @pytest.mark.asyncio
 async def test_run_interactive_requires_confirmation_and_aborts(capsys):
     with (
-        patch("cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}),
+        patch(
+            "cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}
+        ),
         patch(
             "cli.start_conversation.get_agent_info",
             side_effect=lambda t: {
@@ -134,6 +141,7 @@ def test_check_configuration_messages(capsys):
     # No agents → returns False, prints instructions
     with patch("cli.start_conversation.detect_configured_agents", return_value=set()):
         from cli.start_conversation import ConversationStarter
+
         starter = ConversationStarter(args=None)
         ok = starter._check_configuration()
         assert ok is False
@@ -144,6 +152,7 @@ def test_check_configuration_messages(capsys):
     # One agent → returns True but warns
     with patch("cli.start_conversation.detect_configured_agents", return_value={"claude"}):
         from cli.start_conversation import ConversationStarter
+
         starter = ConversationStarter(args=Namespace(agent1=None, agent2=None, db=None))
         ok = starter._check_configuration()
         assert ok is True
@@ -154,8 +163,11 @@ def test_check_configuration_messages(capsys):
 
 # -------- selecting agents --------
 def test_select_agent_from_cli_and_invalid_exit():
-    with patch("cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}):
+    with patch(
+        "cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}
+    ):
         from cli.start_conversation import ConversationStarter
+
         starter = ConversationStarter(args=None)
 
         # Valid CLI agent
@@ -169,8 +181,11 @@ def test_select_agent_from_cli_and_invalid_exit():
 
 
 def test_select_agent_interactive(capsys):
-    with patch("cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}):
+    with patch(
+        "cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}
+    ):
         from cli.start_conversation import ConversationStarter
+
         starter = ConversationStarter(args=None)
 
         # Choose option 2 from the sorted list
@@ -185,8 +200,11 @@ def test_select_agent_interactive(capsys):
 
 def test_select_agent_interactive_invalid_input(capsys):
     """Interactive selection handles invalid input before succeeding."""
-    with patch("cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}):
+    with patch(
+        "cli.start_conversation.detect_configured_agents", return_value={"claude", "chatgpt"}
+    ):
         from cli.start_conversation import ConversationStarter
+
         starter = ConversationStarter(args=None)
 
         # Inputs: 1) invalid text, 2) out-of-range number, 3) valid number
@@ -245,6 +263,7 @@ async def test_async_main_invokes_services_and_starter_awaits():
         MockStarter.return_value = starter_instance
 
         from cli.start_conversation import async_main
+
         await async_main(Namespace(yes=True))
 
         assert mock_metrics.called and mock_tracing.called
@@ -255,13 +274,20 @@ async def test_async_main_invokes_services_and_starter_awaits():
 def test_main_parses_args_and_calls_asyncio_run():
     argv = [
         "aic-start",
-        "--agent1", "claude",
-        "--agent2", "chatgpt",
-        "--model1", "m1",
-        "--model2", "m2",
-        "--topic", "ethics",
-        "--turns", "3",
-        "--db", "conv.db",
+        "--agent1",
+        "claude",
+        "--agent2",
+        "chatgpt",
+        "--model1",
+        "m1",
+        "--model2",
+        "m2",
+        "--topic",
+        "ethics",
+        "--turns",
+        "3",
+        "--db",
+        "conv.db",
         "-y",
     ]
 
@@ -278,6 +304,7 @@ def test_main_parses_args_and_calls_asyncio_run():
         patch("asyncio.run", side_effect=fake_run),
     ):
         from cli.start_conversation import main
+
         main()
         assert called.get("ran", False)
 
@@ -289,6 +316,7 @@ def test_main_argparse_error_exits_nonzero():
         patch.object(sys, "exit") as mock_exit,
     ):
         from cli.start_conversation import main
+
         main()
         # argparse typically exits nonzero; accept any non-0 to avoid coupling to exact code
         assert mock_exit.call_args and mock_exit.call_args[0][0] != 0
@@ -301,5 +329,6 @@ def test_main_handles_keyboard_interrupt():
         patch.object(sys, "exit") as mock_exit,
     ):
         from cli.start_conversation import main
+
         main()
         mock_exit.assert_called_with(0)
