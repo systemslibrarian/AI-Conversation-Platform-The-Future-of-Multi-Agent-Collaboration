@@ -30,14 +30,6 @@
 </p>
 
 
-<p align="center">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+">
-  <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker Ready">
-  <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus Metrics">
-  <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana Dashboards">
-</p>
-
-
 
 ---
 
