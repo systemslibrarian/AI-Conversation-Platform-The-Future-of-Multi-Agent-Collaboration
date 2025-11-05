@@ -20,6 +20,7 @@ from core import metrics
 
 # --- Fixtures ---
 
+
 @pytest.fixture(autouse=True)
 def capture_metrics_logs(caplog):
     """
@@ -32,18 +33,21 @@ def capture_metrics_logs(caplog):
 
 # --- Helpers ---
 
+
 def assert_logged_once(caplog, level, expected_substring):
     """
     Asserts a log entry exists with at least the required level
     and containing the expected substring, using record.getMessage().
     """
     assert any(
-        rec.levelno >= level and expected_substring in rec.getMessage()
-        for rec in caplog.records
-    ), f"Expected log with level>={level} containing: {expected_substring!r}\nGot: {[rec.getMessage() for rec in caplog.records]}"
+        rec.levelno >= level and expected_substring in rec.getMessage() for rec in caplog.records
+    ), (
+        f"Expected log with level>={level} containing: {expected_substring!r}\nGot: {[rec.getMessage() for rec in caplog.records]}"
+    )
 
 
 # --- Happy Path (Parametrized) ---
+
 
 @pytest.mark.parametrize(
     "attr, call, expected_labels_kwargs, terminal_method, terminal_args",
@@ -75,13 +79,17 @@ def assert_logged_once(caplog, level, expected_substring):
     ],
     ids=["call_success", "call_rate_limit", "latency_observe"],
 )
-def test_happy_path_label_chain(capture_metrics_logs, attr, call, expected_labels_kwargs, terminal_method, terminal_args):
+def test_happy_path_label_chain(
+    capture_metrics_logs, attr, call, expected_labels_kwargs, terminal_method, terminal_args
+):
     metric_mock = MagicMock()
     with patch(f"core.metrics.{attr}", metric_mock):
         call()
 
     metric_mock.labels.assert_called_once_with(**expected_labels_kwargs)
-    getattr(metric_mock.labels.return_value, terminal_method).assert_called_once_with(*terminal_args)
+    getattr(metric_mock.labels.return_value, terminal_method).assert_called_once_with(
+        *terminal_args
+    )
     # No warnings/errors should be logged
     assert not capture_metrics_logs.records
 
@@ -147,6 +155,7 @@ def test_start_metrics_server_happy(capture_metrics_logs):
 
 # --- Smoke Test: No Propagation ---
 
+
 @pytest.mark.parametrize(
     "patch_target, metric_func, args",
     [
@@ -170,10 +179,13 @@ def test_metric_functions_do_not_propagate_exceptions(patch_target, metric_func,
         try:
             metric_func(*args)
         except Exception as e:
-            pytest.fail(f"Metric function {metric_func.__name__} raised an unhandled exception: {e}")
+            pytest.fail(
+                f"Metric function {metric_func.__name__} raised an unhandled exception: {e}"
+            )
 
 
 # --- Unhappy Path (Exceptions) ---
+
 
 def test_record_call_exception_from_labels(capture_metrics_logs):
     """Tests the logger.error case where .labels() fails."""
@@ -191,7 +203,9 @@ def test_record_call_exception_after_labels_inc(capture_metrics_logs):
     metric_mock.labels.return_value.inc.side_effect = RuntimeError("boom")
     with patch("core.metrics.API_CALLS", metric_mock):
         metrics.record_call("Test", "model", "success")
-    assert_logged_once(capture_metrics_logs, logging.ERROR, "Failed to record call metric: RuntimeError('boom')")
+    assert_logged_once(
+        capture_metrics_logs, logging.ERROR, "Failed to record call metric: RuntimeError('boom')"
+    )
 
 
 def test_record_latency_exception_from_labels(capture_metrics_logs):
@@ -200,7 +214,9 @@ def test_record_latency_exception_from_labels(capture_metrics_logs):
     err = Exception("Test Error")
     with patch("core.metrics.RESPONSE_LATENCY.labels", side_effect=err):
         metrics.record_latency("Test", "model", 1.23)
-    assert_logged_once(capture_metrics_logs, logging.ERROR, f"Failed to record latency metric: {err}")
+    assert_logged_once(
+        capture_metrics_logs, logging.ERROR, f"Failed to record latency metric: {err}"
+    )
 
 
 def test_record_latency_exception_after_labels_observe(capture_metrics_logs):
@@ -210,7 +226,9 @@ def test_record_latency_exception_after_labels_observe(capture_metrics_logs):
     metric_mock.labels.return_value.observe.side_effect = ValueError("nope")
     with patch("core.metrics.RESPONSE_LATENCY", metric_mock):
         metrics.record_latency("Test", "model", 1.23)
-    assert_logged_once(capture_metrics_logs, logging.ERROR, "Failed to record latency metric: ValueError('nope')")
+    assert_logged_once(
+        capture_metrics_logs, logging.ERROR, "Failed to record latency metric: ValueError('nope')"
+    )
 
 
 def test_record_tokens_exception_from_labels(capture_metrics_logs):
@@ -240,7 +258,11 @@ def test_record_tokens_exception_after_input_inc(capture_metrics_logs):
     with patch("core.metrics.TOKEN_USAGE", metric_mock):
         metrics.record_tokens("Test", "model", 10, 20)
 
-    assert_logged_once(capture_metrics_logs, logging.ERROR, "Failed to record token metric: RuntimeError('input failed')")
+    assert_logged_once(
+        capture_metrics_logs,
+        logging.ERROR,
+        "Failed to record token metric: RuntimeError('input failed')",
+    )
 
 
 def test_record_tokens_exception_after_output_inc(capture_metrics_logs):
@@ -260,7 +282,11 @@ def test_record_tokens_exception_after_output_inc(capture_metrics_logs):
     with patch("core.metrics.TOKEN_USAGE", metric_mock):
         metrics.record_tokens("Test", "model", 10, 20)
 
-    assert_logged_once(capture_metrics_logs, logging.ERROR, "Failed to record token metric: RuntimeError('output failed')")
+    assert_logged_once(
+        capture_metrics_logs,
+        logging.ERROR,
+        "Failed to record token metric: RuntimeError('output failed')",
+    )
 
 
 def test_record_error_exception_from_labels(capture_metrics_logs):
@@ -279,7 +305,11 @@ def test_record_error_exception_after_inc(capture_metrics_logs):
     metric_mock.labels.return_value.inc.side_effect = RuntimeError("err bump")
     with patch("core.metrics.ERRORS", metric_mock):
         metrics.record_error("Test", "api_error")
-    assert_logged_once(capture_metrics_logs, logging.ERROR, "Failed to record error metric: RuntimeError('err bump')")
+    assert_logged_once(
+        capture_metrics_logs,
+        logging.ERROR,
+        "Failed to record error metric: RuntimeError('err bump')",
+    )
 
 
 def test_increment_conversations_exception(capture_metrics_logs):
@@ -288,7 +318,9 @@ def test_increment_conversations_exception(capture_metrics_logs):
     err = Exception("Test Error")
     with patch("core.metrics.ACTIVE_CONVERSATIONS.inc", side_effect=err):
         metrics.increment_conversations()
-    assert_logged_once(capture_metrics_logs, logging.ERROR, f"Failed to increment conversations: {err}")
+    assert_logged_once(
+        capture_metrics_logs, logging.ERROR, f"Failed to increment conversations: {err}"
+    )
 
 
 def test_decrement_conversations_exception(capture_metrics_logs):
@@ -297,7 +329,9 @@ def test_decrement_conversations_exception(capture_metrics_logs):
     err = Exception("Test Error")
     with patch("core.metrics.ACTIVE_CONVERSATIONS.dec", side_effect=err):
         metrics.decrement_conversations()
-    assert_logged_once(capture_metrics_logs, logging.ERROR, f"Failed to decrement conversations: {err}")
+    assert_logged_once(
+        capture_metrics_logs, logging.ERROR, f"Failed to decrement conversations: {err}"
+    )
 
 
 def test_start_metrics_server_os_error(capture_metrics_logs):
@@ -307,7 +341,9 @@ def test_start_metrics_server_os_error(capture_metrics_logs):
     with patch("core.metrics.start_http_server", side_effect=err):
         metrics.start_metrics_server(9999)
     # This is the ONLY case that logs a WARNING
-    assert_logged_once(capture_metrics_logs, logging.WARNING, f"Could not start metrics server on port 9999: {err}")
+    assert_logged_once(
+        capture_metrics_logs, logging.WARNING, f"Could not start metrics server on port 9999: {err}"
+    )
 
 
 def test_start_metrics_server_generic_exception(capture_metrics_logs):
@@ -317,4 +353,6 @@ def test_start_metrics_server_generic_exception(capture_metrics_logs):
     with patch("core.metrics.start_http_server", side_effect=err):
         metrics.start_metrics_server(9999)
     # This logs an ERROR
-    assert_logged_once(capture_metrics_logs, logging.ERROR, f"Failed to start metrics server: {err}")
+    assert_logged_once(
+        capture_metrics_logs, logging.ERROR, f"Failed to start metrics server: {err}"
+    )
