@@ -192,10 +192,10 @@ class TestConfigClass:
             # Create a mock that bypasses validation and returns an object with model_dump()
             mock_validated = MagicMock()
             mock_validated.model_dump.return_value = mock_data
-            
+
             # Mock the ConfigValidation class itself to return our mock when called
             mock_validation_class = MagicMock(return_value=mock_validated)
-            
+
             with patch("core.config.ConfigValidation", mock_validation_class):
                 Config.validate()
 
