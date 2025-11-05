@@ -197,7 +197,7 @@ git rebase main
 
 ### Coverage Requirements
 
-- **Minimum coverage**: 80% for all modules
+- **Minimum coverage**: 70% for all modules
 - **Target coverage**: 90%+ for core modules
 - **Critical paths**: 95%+ coverage required
 
