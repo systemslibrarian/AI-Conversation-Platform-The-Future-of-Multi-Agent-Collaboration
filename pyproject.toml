@@ -28,6 +28,7 @@ dev = [
   "ruff>=0.6.0",
   "mypy>=1.10",
   "codespell>=2.3.0",
+  "redis>=5.0.0", # <-- This is the added dependency
 ]
 
 [project.urls]
