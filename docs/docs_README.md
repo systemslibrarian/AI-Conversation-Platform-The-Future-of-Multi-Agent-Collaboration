@@ -51,27 +51,22 @@ docker compose up --build
 
 ### 🏁 Getting Started
 - [🚀 README](../README.md) — Project overview
-- [⚡ QUICK_START.md](QUICK_START.md) — Fastest setup guide
 - [🐳 DOCKER_README.md](DOCKER_README.md) — Container deployment
 - [🔧 Installation Guide](INSTALLATION_GUIDE.md) — Detailed setup instructions
 
 ### 📘 Core Documentation
-- [📋 CHANGELOG](CHANGELOG.md) — Version history and release notes
 - [📊 MONITORING](MONITORING.md) — Prometheus + Grafana setup
 - [🔄 UPGRADE_GUIDE](UPGRADE_GUIDE.md) — Migration from v4 → v5
-- [📝 v5_UPGRADE_NOTES](v5_UPGRADE_NOTES.md) — Summary of improvements
 
 ### 👩‍💻 Development & Governance
-- [🤝 CONTRIBUTING](../CONTRIBUTING.md) — Contribution guidelines
-- [📜 CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md) — Community standards
-- [🔒 SECURITY](../SECURITY.md) — Security policy
+- [🤝 CONTRIBUTING](CONTRIBUTING.md) — Contribution guidelines
+- [📜 CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) — Community standards
+- [🔒 SECURITY](SECURITY.md) — Security policy
 - [⚖️ LICENSE](../LICENSE) — MIT license
 
 ---
 
 ## ⚡ Quick Start Guide (Expanded)
-
-Follow the [QUICK_START.md](QUICK_START.md) file for the full workflow.
 
 ```bash
 # Install uv (faster dependency manager)
