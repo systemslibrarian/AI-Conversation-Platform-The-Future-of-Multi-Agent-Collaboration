@@ -1,4 +1,3 @@
-# agents/base.py
 """
 BaseAgent - v5.0 ASYNC EDITION with Security Hardening
 - Full async/await support with run_in_executor helper for blocking APIs
@@ -27,7 +26,6 @@ from core.tracing import get_tracer
 @dataclass
 class TurnMetadata:
     """Metadata for a conversation turn"""
-
     model: str
     tokens: int
     response_time: float
@@ -253,9 +251,14 @@ class BaseAgent(ABC):
                 error_type = (
                     "rate_limit" if ("rate" in str(e).lower() or "429" in str(e)) else "api_error"
                 )
-                # Explicitly flag TimeoutError for metrics
-                if isinstance(e, asyncio.TimeoutError):
+                
+                # --- THIS IS THE ROBUST FIX ---
+                # Check for the word "timeout" in the error string OR class name
+                error_str_lower = str(e).lower()
+                error_class_name_lower = type(e).__name__.lower()
+                if "timeout" in error_str_lower or "timeout" in error_class_name_lower:
                     error_type = "timeout"
+                # --- END FIX ---
 
                 record_error(self.PROVIDER_NAME, error_type)
                 record_call(self.PROVIDER_NAME, self.model, "error")
@@ -336,10 +339,14 @@ class BaseAgent(ABC):
                 return
 
             except Exception as e:
-                error_str = str(e)
-
-                is_rate_limit = "rate" in error_str.lower() or "429" in error_str
-                is_timeout = isinstance(e, asyncio.TimeoutError)
+                error_str = str(e).lower()
+                
+                # --- THIS IS THE ROBUST FIX ---
+                # Check for "timeout" in the error's string OR its class name
+                error_class_name_lower = type(e).__name__.lower()
+                is_timeout = "timeout" in error_str or "timeout" in error_class_name_lower
+                is_rate_limit = "rate" in error_str or "429" in error_str
+                # --- END FIX ---
 
                 if is_rate_limit or is_timeout:
                     wait_time = backoff
@@ -367,7 +374,7 @@ class BaseAgent(ABC):
 
                 else:
                     # All other unknown errors
-                    print(f"✗ Error: {error_str}")
+                    print(f"✗ Error: {str(e)}") # Use str(e) not error_str
 
                     if self.consecutive_errors >= self.max_consecutive_errors:
                         await self.queue.mark_terminated("consecutive_errors")
