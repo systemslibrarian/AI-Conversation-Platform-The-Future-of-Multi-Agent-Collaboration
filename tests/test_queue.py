@@ -7,7 +7,7 @@ Coverage target: 92%+ for core/queue.py
 import pytest
 import asyncio
 import tempfile
-import json  # <-- FIX 1: Added json import
+import json
 from pathlib import Path
 import logging
 from unittest.mock import AsyncMock, patch
@@ -123,8 +123,6 @@ class TestSQLiteQueueBasic:
         data = await queue.load()
         assert len(data["messages"]) == 20
         assert data["metadata"]["total_turns"] == 20
-
-    # <-- FIX 2: Removed duplicate test_factory
 
 
 # ============================================================================
@@ -279,7 +277,6 @@ class TestSQLiteQueueComprehensive:
 # ============================================================================
 
 
-# <-- FIX 3: Applied skipif to the entire class
 @pytest.mark.skipif(not has_redis, reason="redis package not installed")
 class TestRedisQueue:
     """Test RedisQueue implementation"""
@@ -287,8 +284,6 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_redis_init_without_package(self, logger):
         """Test Redis queue fails gracefully without redis package"""
-        # This test will be skipped by the class decorator,
-        # but is a good example of how to mock imports.
         original_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
@@ -314,7 +309,6 @@ class TestRedisQueue:
     @pytest.mark.asyncio
     async def test_get_context(self, logger, mock_redis):
         """Test getting context from Redis"""
-        # <-- FIX 4: Use json.dumps for mock data
         mock_redis.xrevrange.return_value = [
             (
                 "1234567891-0",
@@ -374,7 +368,8 @@ class TestRedisQueue:
     async def test_mark_terminated(self, logger, mock_redis):
         """Test marking conversation as terminated"""
         with patch("redis.asyncio.from_url", return_value=mock_redis):
-            queue = RedisQueue("redis://localhost:6T379/0", logger)
+            # <-- THE FIX: 6T379 -> 6379
+            queue = RedisQueue("redis://localhost:6379/0", logger)
             await queue.mark_terminated("test_reason")
 
             assert mock_redis.set.call_count == 2
