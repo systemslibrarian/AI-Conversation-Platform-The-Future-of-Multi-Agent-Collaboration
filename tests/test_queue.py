@@ -11,24 +11,46 @@ Target: 100% coverage for core/queue.py
 try:
     import redis.asyncio  # type: ignore
 except Exception:  # pragma: no cover - only used when redis isn't available
-    import types, sys
+    import types
+    import sys
 
     class _DummyRedis:
-        async def xadd(self, *args, **kwargs): return "1-0"
-        async def xrevrange(self, *args, **kwargs): return []
-        async def xrange(self, *args, **kwargs): return []
-        async def get(self, *args, **kwargs): return None
-        async def hgetall(self, *args, **kwargs): return {}
-        async def hget(self, *args, **kwargs): return None
-        async def ping(self, *args, **kwargs): return True
-        async def set(self, *args, **kwargs): return True
-        async def hset(self, *args, **kwargs): return 1
-        async def hincrby(self, *args, **kwargs): return 1
+        async def xadd(self, *args, **kwargs):
+            return "1-0"
+
+        async def xrevrange(self, *args, **kwargs):
+            return []
+
+        async def xrange(self, *args, **kwargs):
+            return []
+
+        async def get(self, *args, **kwargs):
+            return None
+
+        async def hgetall(self, *args, **kwargs):
+            return {}
+
+        async def hget(self, *args, **kwargs):
+            return None
+
+        async def ping(self, *args, **kwargs):
+            return True
+
+        async def set(self, *args, **kwargs):
+            return True
+
+        async def hset(self, *args, **kwargs):
+            return 1
+
+        async def hincrby(self, *args, **kwargs):
+            return 1
 
     shim_mod = types.ModuleType("redis.asyncio")
+
     def from_url(url, decode_responses=True):  # noqa: D401
         """Return dummy Redis client."""
         return _DummyRedis()
+
     shim_mod.from_url = from_url
 
     sys.modules["redis"] = types.ModuleType("redis")
@@ -48,12 +70,14 @@ from filelock import Timeout
 
 # Import exception types with a safe fallback so test expectations don't break
 from core.queue import SQLiteQueue, RedisQueue, create_queue, DatabaseError
+
 try:
     from core.queue import ValidationError  # preferred if your code defines it
 except Exception:  # pragma: no cover
     # Fallback: alias to DatabaseError so tests still validate behavior
     class ValidationError(DatabaseError):  # type: ignore
         pass
+
 
 from core.config import config
 
@@ -68,6 +92,7 @@ except ImportError:
 # ============================================================================
 # FIXTURES
 # ============================================================================
+
 
 @pytest.fixture
 def temp_db():
@@ -108,6 +133,7 @@ def mock_redis():
 # ============================================================================
 # SQLITE QUEUE – BASIC TESTS
 # ============================================================================
+
 
 class TestSQLiteQueueBasic:
     """Basic SQLite queue functionality tests"""
@@ -167,6 +193,7 @@ class TestSQLiteQueueBasic:
 # ============================================================================
 # SQLITE QUEUE – COMPREHENSIVE TESTS
 # ============================================================================
+
 
 class TestSQLiteQueueComprehensive:
     """Comprehensive SQLite queue tests"""
@@ -322,10 +349,12 @@ class TestSQLiteQueueComprehensive:
                 await queue.add_message("TestAgent", "Test content", {"tokens": 10})
 
             # Verify that a 'lock_timeout' event is logged via log_event in core.queue
-            with patch('core.queue.log_event') as mock_log_event:
+            with patch("core.queue.log_event") as mock_log_event:
                 with pytest.raises(DatabaseError):
                     await queue.add_message("TestAgent", "Test content", {"tokens": 10})
-                mock_log_event.assert_called_with(queue.logger, "lock_timeout", {"action": "add_message"})
+                mock_log_event.assert_called_with(
+                    queue.logger, "lock_timeout", {"action": "add_message"}
+                )
 
     # --- NEW TEST 2: Database Rollback Failure ---
     @pytest.mark.asyncio
@@ -337,7 +366,7 @@ class TestSQLiteQueueComprehensive:
             pass
 
         # Patch sqlite3.connect used inside add_message
-        with patch('sqlite3.connect') as mock_connect:
+        with patch("sqlite3.connect") as mock_connect:
             mock_conn = mock_connect.return_value
 
             # execute(BEGIN IMMEDIATE) -> execute(INSERT) -> execute(UPDATE)
@@ -357,6 +386,7 @@ class TestSQLiteQueueComprehensive:
 # ============================================================================
 # REDIS QUEUE TESTS
 # ============================================================================
+
 
 @pytest.mark.skipif(not has_redis, reason="redis package not installed")
 class TestRedisQueue:
@@ -490,6 +520,7 @@ class TestRedisQueue:
 # FACTORY FUNCTION TESTS
 # ============================================================================
 
+
 class TestQueueFactory:
     """Test queue factory function"""
 
@@ -520,6 +551,7 @@ class TestQueueFactory:
 # ERROR HANDLING TESTS
 # ============================================================================
 
+
 class TestErrorHandling:
     """Test error handling in queue operations"""
 
@@ -540,6 +572,7 @@ class TestErrorHandling:
 # ============================================================================
 # STRESS TESTS
 # ============================================================================
+
 
 class TestStressScenarios:
     """Test under stress conditions"""
@@ -571,6 +604,7 @@ class TestStressScenarios:
 # EXTRA EDGE-CASE TESTS TO LIFT COVERAGE
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_sqlite_get_context_malformed_json(temp_db, logger):
     """Manually insert malformed JSON to force metadata parse fallback {}"""
@@ -587,25 +621,32 @@ async def test_sqlite_get_context_malformed_json(temp_db, logger):
     assert ctx[0]["sender"] == "AgentX"
     assert ctx[0]["metadata"] == {}  # malformed json -> {}
 
+
 @pytest.mark.asyncio
 async def test_mark_terminated_failure_logs(temp_db, logger):
     """Force sqlite connect failure to hit 'termination_failed' logging branch"""
     q = SQLiteQueue(temp_db, logger)
-    with patch("core.queue.sqlite3.connect", side_effect=Exception("boom")), \
-         patch("core.queue.log_event") as mock_log:
+    with (
+        patch("core.queue.sqlite3.connect", side_effect=Exception("boom")),
+        patch("core.queue.log_event") as mock_log,
+    ):
         await q.mark_terminated("any")
         mock_log.assert_any_call(logger, "termination_failed", {"error": "boom"})
+
 
 @pytest.mark.asyncio
 async def test_health_check_db_error_and_lock_timeout(temp_db, logger):
     """Patch db error + lock timeout to exercise both failure branches"""
     q = SQLiteQueue(temp_db, logger)
-    with patch("core.queue.sqlite3.connect", side_effect=Exception("db-bad")), \
-         patch.object(q.lock, "acquire", side_effect=Timeout("nope")):
+    with (
+        patch("core.queue.sqlite3.connect", side_effect=Exception("db-bad")),
+        patch.object(q.lock, "acquire", side_effect=Timeout("nope")),
+    ):
         health = await q.health_check()
         assert health["healthy"] is False
         assert health["checks"]["database"].startswith("error:")
         assert health["checks"]["lock"] == "timeout"
+
 
 @pytest.mark.asyncio
 async def test_sender_map_variants(temp_db, logger):
@@ -619,6 +660,7 @@ async def test_sender_map_variants(temp_db, logger):
     senders = [m["sender"] for m in data["messages"]]
     assert senders == ["Simulator", "Grok", "Gemini", "Perplexity"]
 
+
 @pytest.mark.asyncio
 async def test_load_null_and_digit_conversion(temp_db, logger):
     """Validate 'null' → None and digit strings → ints in metadata load"""
@@ -628,12 +670,15 @@ async def test_load_null_and_digit_conversion(temp_db, logger):
     assert meta["termination_reason"] is None  # "null" normalized to None
     assert isinstance(meta["total_turns"], int)  # "0" normalized to 0 (int)
 
+
 @pytest.mark.asyncio
 async def test_health_check_lock_release_failure(temp_db, logger):
     """Simulate lock release failing; ensure health still reports ok for lock check."""
     q = SQLiteQueue(temp_db, logger)
-    with patch.object(q.lock, "acquire", return_value=None), \
-         patch.object(q.lock, "release", side_effect=Exception("Release failed")):
+    with (
+        patch.object(q.lock, "acquire", return_value=None),
+        patch.object(q.lock, "release", side_effect=Exception("Release failed")),
+    ):
         health = await q.health_check()
         assert health["healthy"] is True
         assert health["checks"]["lock"] == "ok"
