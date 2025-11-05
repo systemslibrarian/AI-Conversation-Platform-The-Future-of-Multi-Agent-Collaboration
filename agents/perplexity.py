@@ -14,13 +14,15 @@ class PerplexityAgent(BaseAgent):
     DEFAULT_MODEL = config.PERPLEXITY_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        # Merge api_key into kwargs for parent class
-        kwargs["api_key"] = api_key
+        # --- THIS IS THE FIX ---
+        # 1. Call super() FIRST. 'api_key' is not passed up.
         super().__init__(*args, **kwargs)
+        # --- END OF FIX ---
 
         try:
             from openai import OpenAI
 
+            # 2. Use the local 'api_key' variable to init the client.
             self.client = OpenAI(api_key=api_key, base_url="https://api.perplexity.ai")
         except ImportError:
             raise ImportError("Install: pip install openai")
@@ -29,8 +31,12 @@ class PerplexityAgent(BaseAgent):
         """Call Perplexity API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for lambda
+        
+        # --- THIS IS THE FIX ---
+        # Get the system prompt and add it to the messages list
         system = self._build_system_prompt()
         api_messages = [{"role": "system", "content": system}] + messages
+        # --- END OF FIX ---
 
         # Run blocking API call in executor
         loop = asyncio.get_event_loop()
@@ -38,7 +44,7 @@ class PerplexityAgent(BaseAgent):
             None,
             lambda: client.chat.completions.create(
                 model=self.model,
-                messages=api_messages,
+                messages=api_messages, # Use the modified list
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
             ),
