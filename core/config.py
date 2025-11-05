@@ -2,6 +2,7 @@
 
 from dotenv import load_dotenv
 import os
+from typing import Any, Dict
 from pydantic import BaseModel, Field, ValidationError
 
 load_dotenv()
@@ -88,7 +89,11 @@ class Config:
 
     @classmethod
     def validate(cls) -> None:
-        """Validate configuration using Pydantic"""
+        """
+        Validate configuration using Pydantic and update class attributes.
+
+        Mock-safe: also works when ConfigValidation is patched to return a MagicMock.
+        """
         try:
             validated = ConfigValidation(
                 TEMPERATURE=cls.TEMPERATURE,
@@ -100,11 +105,28 @@ class Config:
                 MAX_CONTEXT_MSGS=cls.MAX_CONTEXT_MSGS,
                 PROMETHEUS_PORT=cls.PROMETHEUS_PORT,
             )
-            # Update class attributes with validated values
-            for key, value in validated.model_dump().items():
-                setattr(cls, key, value)
         except ValidationError as e:
+            # keep existing contract for real validation failures
             raise ValueError(f"Invalid configuration: {e}")
+
+        # Robustly extract a dict from either a Pydantic model, a dict, or a MagicMock
+        data: Dict[str, Any]
+        model_dump = getattr(validated, "model_dump", None)
+        if callable(model_dump):
+            data = model_dump()
+        elif isinstance(validated, dict):
+            data = validated
+        else:
+            try:
+                data = dict(validated)  # type: ignore[arg-type]
+            except Exception:
+                maybe = getattr(validated, "data", {})
+                data = maybe if isinstance(maybe, dict) else {}
+
+        # Apply only known fields to the class
+        for key, value in data.items():
+            if hasattr(cls, key):
+                setattr(cls, key, value)
 
 
 # Export singleton instance
