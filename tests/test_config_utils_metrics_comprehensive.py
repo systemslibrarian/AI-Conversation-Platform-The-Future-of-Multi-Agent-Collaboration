@@ -211,11 +211,12 @@ class TestConfigClass:
             fake_instance.model_dump.return_value = MOCK_DUMP
 
             # ---- PATCH THE CLASS IN core.config AND RELOAD MODULE ----
-            with patch('core.config.ConfigValidation', return_value=fake_instance):
+            with patch("core.config.ConfigValidation", return_value=fake_instance):
                 # Force reload so core.config sees the patched class
                 import importlib
-                if 'core.config' in sys.modules:
-                    importlib.reload(sys.modules['core.config'])
+
+                if "core.config" in sys.modules:
+                    importlib.reload(sys.modules["core.config"])
 
                 # Now Config.validate() uses the mock
                 Config.validate()
