@@ -66,8 +66,8 @@ jobs:
 
       - name: Install dependencies
         # --- THIS IS THE FIX ---
-        # Added 'pytest-asyncio' to handle async tests
-        run: uv pip install --system -r requirements.txt pytest pytest-asyncio
+        # Added 'pytest-asyncio' to handle async tests and 'redis' for queue tests
+        run: uv pip install --system -r requirements.txt pytest pytest-asyncio redis
 
       - name: Run Pytest
         # This command will now find the 'pytest' executable
