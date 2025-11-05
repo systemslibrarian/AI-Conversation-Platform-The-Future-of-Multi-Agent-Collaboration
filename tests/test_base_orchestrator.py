@@ -8,9 +8,7 @@ Tests for BaseAgent orchestrator logic:
 - Agent factory error paths & model selection
 """
 
-import os
 import sys
-import asyncio
 import logging
 import importlib
 import json
@@ -24,6 +22,7 @@ from core.config import config
 
 
 # ---------- Fixtures ----------
+
 
 @pytest.fixture
 def mock_queue():
@@ -46,7 +45,9 @@ def test_agent(mock_queue, mock_logger):
     Concrete BaseAgent with abstract API patched.
     Also patches key methods used by run()/respond().
     """
-    with patch.object(BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)):
+    with patch.object(
+        BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("Test response", 10)
+    ):
         agent = BaseAgent(
             queue=mock_queue,
             logger=mock_logger,
@@ -62,6 +63,7 @@ def test_agent(mock_queue, mock_logger):
 
 
 # ---------- run() tests ----------
+
 
 @pytest.mark.asyncio
 class TestAgentRunLoop:
@@ -109,8 +111,9 @@ class TestAgentRunLoop:
             await test_agent.run(max_turns=10, partner_name="Partner")
 
         # Check if *either* info or error was called
-        assert mock_logger.info.called or mock_logger.error.called, \
+        assert mock_logger.info.called or mock_logger.error.called, (
             "No log call (info or error) was made on fatal error"
+        )
 
         log_event = ""
         log_agent = ""
@@ -124,7 +127,9 @@ class TestAgentRunLoop:
                 if isinstance(arg_str, str) and "agent_error" in arg_str:
                     log_json_string = arg_str
                     break
-            assert log_json_string is not None, "logger.info called, but 'agent_error' JSON not found"
+            assert log_json_string is not None, (
+                "logger.info called, but 'agent_error' JSON not found"
+            )
 
             log_data = json.loads(log_json_string)
             log_event = log_data.get("event")
@@ -149,6 +154,7 @@ class TestAgentRunLoop:
 
 
 # ---------- respond() tests ----------
+
 
 @pytest.mark.asyncio
 class TestAgentRespondLoop:
@@ -201,6 +207,7 @@ class TestAgentRespondLoop:
 
 # ---------- LLM-Guard & scanning tests ----------
 
+
 class TestSecurityAndImports:
     @pytest.mark.filterwarnings("ignore::ImportWarning")
     def test_base_agent_init_without_llm_guard(self, mock_queue, mock_logger):
@@ -212,7 +219,12 @@ class TestSecurityAndImports:
 
         try:
             importlib.reload(agents_base_module)
-            with patch.object(agents_base_module.BaseAgent, "_call_api", new_callable=AsyncMock, return_value=("x", 1)):
+            with patch.object(
+                agents_base_module.BaseAgent,
+                "_call_api",
+                new_callable=AsyncMock,
+                return_value=("x", 1),
+            ):
                 agent = agents_base_module.BaseAgent(
                     queue=mock_queue,
                     logger=mock_logger,
@@ -258,6 +270,7 @@ class TestSecurityAndImports:
 
 # ---------- Agent factory tests ----------
 
+
 class TestAgentFactoryFailures:
     def test_factory_raises_unknown_agent(self, mock_queue, mock_logger):
         with pytest.raises(ValueError, match="Unknown agent type: 'foobar'"):
@@ -276,6 +289,7 @@ class TestAgentFactoryFailures:
         with patch.dict("os.environ", {"OPENAI_API_KEY": "fake-key"}):
             with patch("openai.OpenAI"):
                 from agents.chatgpt import ChatGPTAgent
+
                 agent = create_agent(
                     agent_type="chatgpt",
                     queue=mock_queue,
