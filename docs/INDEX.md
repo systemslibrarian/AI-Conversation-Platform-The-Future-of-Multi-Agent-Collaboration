@@ -8,7 +8,7 @@
 
 ## 📂 Files Included
 
-### 1. **DOCUMENTATION_UPDATES_SUMMARY.md** (⭐ START HERE)
+### 1. **DOCUMENTATION_SUMMARY.md** (⭐ START HERE)
 **What it is**: Comprehensive summary of all changes made  
 **Why read it**: Understand what was fixed and why  
 **Key sections**:
@@ -30,23 +30,7 @@ nano .env  # Add API keys
 ```
 **Contains**: 40+ documented configuration options
 
-### 3. **docker-compose-fixed.yml** (CORRECTED FILE)
-**What it is**: Fixed docker-compose.yml with proper service indentation  
-**Issue fixed**: prometheus and grafana were not properly indented as services  
-**How to use**:
-```bash
-# Backup original
-cp docker-compose.yml docker-compose.yml.backup
-
-# Replace with fixed version
-cp docker-compose-fixed.yml docker-compose.yml
-
-# Test
-docker compose config  # Should validate without errors
-docker compose up --build
-```
-
-### 4. **README_updated.md** (UPDATED)
+### 3. **README_updated.md** (UPDATED)
 **What it is**: Main project README with corrections  
 **Key updates**:
 - Python version corrected (3.10+ minimum, 3.11+ recommended)
@@ -61,7 +45,7 @@ docker compose up --build
 cp README_updated.md README.md
 ```
 
-### 5. **INSTALLATION_GUIDE_updated.md** (UPDATED)
+### 4. **INSTALLATION_GUIDE.md** (UPDATED)
 **What it is**: Detailed installation instructions  
 **Key updates**:
 - Complete environment variable documentation
@@ -75,7 +59,7 @@ cp README_updated.md README.md
 cp INSTALLATION_GUIDE_updated.md docs/INSTALLATION_GUIDE.md
 ```
 
-### 6. **DOCKER_README_updated.md** (UPDATED)
+### 5. **DOCKER_README.md** (UPDATED)
 **What it is**: Container deployment guide  
 **Key updates**:
 - Fixed docker-compose structure references
@@ -90,7 +74,7 @@ cp INSTALLATION_GUIDE_updated.md docs/INSTALLATION_GUIDE.md
 cp DOCKER_README_updated.md docs/DOCKER_README.md
 ```
 
-### 7. **TESTING_updated.md** (UPDATED)
+### 6. **TESTING.md** (UPDATED)
 **What it is**: Comprehensive testing guide  
 **Key updates**:
 - Accurate test file structure (8 files)
@@ -173,14 +157,14 @@ Fixes: [list any issues this addresses]
 
 ### Before Applying Updates
 
-1. **Review DOCUMENTATION_UPDATES_SUMMARY.md** for questions I couldn't answer
+1. **Review DOCUMENTATION_SUMMARY.md** for questions I couldn't answer
 2. **Verify technical details** match your specific setup
 3. **Test in a development environment** first
 4. **Check for any project-specific customizations** in original docs
 
 ### Questions to Answer
 
-These are listed in DOCUMENTATION_UPDATES_SUMMARY.md but repeated here:
+These are listed in DOCUMENTATION_SUMMARY.md but repeated here:
 
 1. Is the repository URL `github.com/systemslibrarian/ai-conversation-platform` correct?
 2. What should the security contact email be?
