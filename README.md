@@ -27,7 +27,6 @@
 
   <!-- ⚖️ License + Version -->
   <img src="https://img.shields.io/badge/License-MIT-green.svg?logo=open-source-initiative&logoColor=white" alt="MIT License">
-  <img src="https://img.shields.io/badge/Version-5.0.0-blue.svg?logo=semantic-release&logoColor=white" alt="Version 5.0.0">
 </p>
 
 <p align="center">
