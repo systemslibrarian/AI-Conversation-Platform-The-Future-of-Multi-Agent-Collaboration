@@ -1,0 +1,37 @@
+name: CodeQL Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    # Trigger CodeQL on all PRs to main
+    branches: [ main ]
+  # Recommended: Add a schedule for deeper, weekly scans on the main branch
+  schedule:
+    - cron: '30 1 * * 1' # Runs at 01:30 UTC every Monday
+
+permissions:
+  contents: read
+  security-events: write # Required to upload CodeQL analysis results
+
+jobs:
+  codeql-analysis: # Renamed the job to 'codeql-analysis' for clarity
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Deep fetch is required for CodeQL
+          fetch-depth: 0 
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          # Replace 'python' with a matrix if you have multiple languages
+          languages: python
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
