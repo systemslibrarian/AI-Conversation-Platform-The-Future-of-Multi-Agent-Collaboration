@@ -5,46 +5,45 @@
 <hr style="width:60%;margin:auto;border:1px solid #444;">
 
 <p align="center">
-<!-- 🧪 CI + Security -->
-<!-- CI Status: Uses ci.yml (Tests + Formatting) -->
-<a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml">
-<img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status">
-</a>
-<!-- CodeQL Status: Uses the new separate codeql-analysis.yml file -->
-<a href="https://www.google.com/search?q=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml">
-<img src="https://www.google.com/search?q=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL Security Scan">
-</a>
+  <!-- 🧪 CI + Security -->
+  <!-- CI Status: Uses ci.yml (Tests + Formatting) -->
+  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml">
+    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status">
+  </a>
 
-<!-- 📊 Coverage -->
+  <!-- CodeQL Status -->
+  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml">
+    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL Security Scan">
+  </a>
 
-<!-- Codecov: Direct URL to the badge SVG is restored -->
+  <!-- 📊 Codecov Coverage -->
+  <a href="https://app.codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
+    <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage">
+  </a>
 
-<a href="https://app.codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
-<img src="https://www.google.com/search?q=https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage">
-</a>
+  <!-- 🧹 Linting + Typing -->
+  <img src="https://img.shields.io/badge/Lint-Ruff-46A9FC?logo=ruff&logoColor=white" alt="Ruff Linting">
+  <img src="https://img.shields.io/badge/Type%20Check-Mypy%20(strict)-3776AB?logo=python&logoColor=white" alt="Mypy Type Checking">
 
-<!-- 🧹 Linting + Typing -->
-
-<img src="https://img.shields.io/badge/Lint-Ruff-46A9FC?logo=ruff&logoColor=white" alt="Ruff Linting">
-<img src="https://img.shields.io/badge/Type%20Check-Mypy%20(strict)-3776AB?logo=python&logoColor=white" alt="Mypy Type Checking">
-
-<!-- ⚖️ License + Version -->
-
-<img src="https://img.shields.io/badge/License-MIT-green.svg?logo=open-source-initiative&logoColor=white" alt="MIT License">
-<img src="https://img.shields.io/badge/Version-5.0.0-blue.svg?logo=semantic-release&logoColor=white" alt="Version 5.0.0">
+  <!-- ⚖️ License + Version -->
+  <img src="https://img.shields.io/badge/License-MIT-green.svg?logo=open-source-initiative&logoColor=white" alt="MIT License">
+  <img src="https://img.shields.io/badge/Version-5.0.0-blue.svg?logo=semantic-release&logoColor=white" alt="Version 5.0.0">
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white" alt="Python 3.10+">
-<img src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" alt="Docker Ready">
-<img src="https://img.shields.io/badge/Metrics-Prometheus-E6522C?logo=prometheus&logoColor=white" alt="Prometheus Metrics">
-<img src="https://img.shields.io/badge/Dashboards-Grafana-F46800?logo=grafana&logoColor=white" alt="Grafana Dashboards">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/Metrics-Prometheus-E6522C?logo=prometheus&logoColor=white" alt="Prometheus Metrics">
+  <img src="https://img.shields.io/badge/Dashboards-Grafana-F46800?logo=grafana&logoColor=white" alt="Grafana Dashboards">
 </p>
+
 ---
 
 ## 🎯 What Is This?
 
 **The AI Conversation Platform** is a production-ready, enterprise-grade system that enables **autonomous AI-to-AI conversations**. Watch different AI models debate, collaborate, and interact in real-time — completely unscripted.
+
+---
 
 ## ⚡ Quick Start (2 minutes)
 
@@ -66,6 +65,7 @@ cd ai-conversation-platform
 cp .env.example .env
 nano .env
 ```
+
 Add at least two providers:
 ```dotenv
 OPENAI_API_KEY=sk-xxxxx
