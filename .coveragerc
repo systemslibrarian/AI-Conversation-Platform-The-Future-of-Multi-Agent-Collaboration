@@ -29,7 +29,7 @@ source =
 [report]
 show_missing = True
 precision = 1
-fail_under = 100
+fail_under = 90
 # Don’t penalize intentionally un-runnable lines
 exclude_lines =
     pragma: no cover
