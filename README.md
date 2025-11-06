@@ -1,4 +1,4 @@
-<h1 align="center">🤖 AI Conversation Platform v5.0 — Enterprise Multi-Agent System</h1>
+<h1 align="center">🤖 AI Conversation Platform — Enterprise Multi-Agent System</h1>
 
 <p align="center"><em>"Because AIs shouldn't monologue — they should <strong>converse</strong>."</em></p>
 
