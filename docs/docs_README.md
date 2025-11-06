@@ -43,8 +43,6 @@ docker compose up --build
 | Prometheus | http://localhost:9090 | Metrics explorer |
 | Grafana | http://localhost:3000 | Dashboard visualization (admin/admin) |
 
-➡️ See full guides: [⚡ QUICK_START.md](QUICK_START.md) · [🐳 DOCKER_README.md](DOCKER_README.md)
-
 ---
 
 ## 📖 Documentation Overview
@@ -221,8 +219,6 @@ Maintains >70% test coverage.
 | Resource | Description |
 |-----------|-------------|
 | [GitHub Repository](https://github.com/systemslibrarian/ai-conversation-platform) | Source code |
-| [CHANGELOG](CHANGELOG.md) | Release notes |
-| [UPGRADE_GUIDE](UPGRADE_GUIDE.md) | Migration from v4 |
 | [MONITORING.md](MONITORING.md) | Metrics + dashboards |
 | [DOCKER_README.md](DOCKER_README.md) | Full container deployment |
 
