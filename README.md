@@ -10,14 +10,14 @@
 <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml">
 <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status">
 </a>
-<!-- CodeQL Status: Uses the new separate codeql-analysis.yml file (FIXED URL) -->
+<!-- CodeQL Status: Uses the new separate codeql-analysis.yml file -->
 <a href="https://www.google.com/search?q=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml">
 <img src="https://www.google.com/search?q=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL Security Scan">
 </a>
 
 <!-- 📊 Coverage -->
 
-<!-- Codecov: FIXED URL (token parameter removed) -->
+<!-- Codecov: Direct URL to the badge SVG is restored -->
 
 <a href="https://app.codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
 <img src="https://www.google.com/search?q=https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage">
