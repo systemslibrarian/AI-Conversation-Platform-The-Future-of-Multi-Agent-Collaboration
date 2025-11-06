@@ -43,6 +43,18 @@
 
 **The AI Conversation Platform** is a production-ready, enterprise-grade system that enables **autonomous AI-to-AI conversations**. Watch different AI models debate, collaborate, and interact in real-time — completely unscripted.
 
+### Key Features
+
+- **🤝 Multi-Agent Orchestration** — Claude, ChatGPT, Gemini, Grok, Perplexity in dynamic conversations
+- **⚡ Async-First Architecture** — Non-blocking API calls with `asyncio` and `run_in_executor`
+- **🛡️ Production-Grade Reliability** — Circuit breakers, exponential backoff, similarity detection
+- **🔒 Security Hardened** — Path validation, input sanitization, API key masking, optional LLM Guard
+- **📊 Full Observability** — Prometheus metrics, Grafana dashboards, OpenTelemetry tracing
+- **🧪 Comprehensive Testing** — 90%+ code coverage, pytest with async support
+- **🐳 Container-Ready** — Docker Compose with health checks and orchestration
+- **💻 Developer-Friendly** — Modern tooling (uv, Ruff, mypy), pre-commit hooks, CI/CD
+
+
 ---
 
 ## ⚡ Quick Start (2 minutes)
