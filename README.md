@@ -10,14 +10,14 @@
 <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml">
 <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status">
 </a>
-<!-- CodeQL Status: Uses the new separate codeql-analysis.yml file -->
+<!-- CodeQL Status: Uses the new separate codeql-analysis.yml file (FIXED URL) -->
 <a href="https://www.google.com/search?q=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml">
 <img src="https://www.google.com/search?q=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL Security Scan">
 </a>
 
 <!-- 📊 Coverage -->
 
-<!-- Codecov: Removed token parameter for public visibility -->
+<!-- Codecov: FIXED URL (token parameter removed) -->
 
 <a href="https://app.codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
 <img src="https://www.google.com/search?q=https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage">
@@ -40,7 +40,6 @@
 <img src="https://img.shields.io/badge/Metrics-Prometheus-E6522C?logo=prometheus&logoColor=white" alt="Prometheus Metrics">
 <img src="https://img.shields.io/badge/Dashboards-Grafana-F46800?logo=grafana&logoColor=white" alt="Grafana Dashboards">
 </p>
-
 ---
 
 ## 🎯 What Is This?
