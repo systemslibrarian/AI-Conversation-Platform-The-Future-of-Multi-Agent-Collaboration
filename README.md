@@ -5,31 +5,34 @@
 <hr style="width:60%;margin:auto;border:1px solid #444;">
 
 <p align="center">
-  <!-- ✅ Unified CI + CodeQL Badge -->
+  <!-- 🧪 CI + Security -->
   <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml">
-    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI & CodeQL Analysis">
+    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status">
+  </a>
+  <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml">
+    <img src="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Security Scan">
   </a>
 
-  <!-- ✅ Codecov Coverage -->
+  <!-- 📊 Coverage -->
   <a href="https://app.codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
-    <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage"/>
+    <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage">
   </a>
 
-  <!-- ✅ Linting, Typing, License -->
-  <img src="https://img.shields.io/badge/lint-Ruff-3A86FF?logo=python&logoColor=white" alt="Ruff Lint">
-  <img src="https://img.shields.io/badge/type--checked-mypy-blue" alt="Mypy Type Checking">
-  <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT License">
-  <img src="https://img.shields.io/badge/version-5.0.0-green.svg" alt="Version 5.0.0">
+  <!-- 🧹 Linting + Typing -->
+  <img src="https://img.shields.io/badge/Lint-Ruff-46A9FC?logo=ruff&logoColor=white" alt="Ruff Linting">
+  <img src="https://img.shields.io/badge/Type%20Check-Mypy%20(strict)-3776AB?logo=python&logoColor=white" alt="Mypy Type Checking">
+
+  <!-- ⚖️ License + Version -->
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License">
+  <img src="https://img.shields.io/badge/Version-5.0.0-blue.svg" alt="Version 5.0.0">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+">
-  <img src="https://img.shields.io/badge/docker-ready-blue?logo=docker" alt="Docker Ready">
-  <img src="https://img.shields.io/badge/metrics-prometheus-orange?logo=prometheus" alt="Prometheus Metrics">
-  <img src="https://img.shields.io/badge/dashboards-grafana-yellow?logo=grafana" alt="Grafana Dashboards">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/Metrics-Prometheus-E6522C?logo=prometheus&logoColor=white" alt="Prometheus Metrics">
+  <img src="https://img.shields.io/badge/Dashboards-Grafana-F46800?logo=grafana&logoColor=white" alt="Grafana Dashboards">
 </p>
-
-
 
 ---
 
