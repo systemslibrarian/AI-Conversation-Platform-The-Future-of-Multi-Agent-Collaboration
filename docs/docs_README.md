@@ -224,7 +224,6 @@ Maintains >70% test coverage.
 | [CHANGELOG](CHANGELOG.md) | Release notes |
 | [UPGRADE_GUIDE](UPGRADE_GUIDE.md) | Migration from v4 |
 | [MONITORING.md](MONITORING.md) | Metrics + dashboards |
-| [QUICK_START.md](QUICK_START.md) | New user guide |
 | [DOCKER_README.md](DOCKER_README.md) | Full container deployment |
 
 ---
