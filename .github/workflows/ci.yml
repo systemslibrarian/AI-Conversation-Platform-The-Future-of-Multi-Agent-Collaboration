@@ -41,7 +41,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # <-- ADDED: Needed for OIDC (tokenless) upload
+      id-token: write # <-- Needed for OIDC (tokenless) upload
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +52,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v4
 
-      # --- ADDED: Caching step for uv ---
+      # --- Caching step for uv ---
       - name: Cache uv dependencies
         uses: actions/cache@v4
         with:
@@ -60,7 +60,7 @@ jobs:
           key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-uv-
-      # ----------------------------------
+      # ---------------------------
 
       - name: Install dependencies
         run: |
@@ -77,24 +77,11 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          use_oidc: true # <-- ADDED: Use tokenless authentication
+          use_oidc: true # <-- Use tokenless authentication
           files: ./coverage.xml
           flags: unittests
           fail_ci_if_error: true
           verbose: true
-        # --- REMOVED: The 'env' block with CODECOV_TOKEN is no longer needed ---
 
-  # -------------------- 3) CodeQL (separate badge if you want) --------------------
-  codeql:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: python
-          queries: security-and-quality
-      - uses: github/codeql-action/analyze@v3
+  # -------------------- 3) CodeQL (REMOVED) --------------------
+  # The CodeQL job has been moved to the separate file: codeql-analysis.yml
