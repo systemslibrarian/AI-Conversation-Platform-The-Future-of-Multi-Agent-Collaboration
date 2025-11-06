@@ -15,7 +15,7 @@
 
   <!-- 📊 Coverage -->
   <a href="https://app.codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">
-    <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg" alt="Code Coverage">
+    <img src="https://codecov.io/gh/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN" alt="Code Coverage">
   </a>
 
   <!-- 🧹 Linting + Typing -->
@@ -23,8 +23,8 @@
   <img src="https://img.shields.io/badge/Type%20Check-Mypy%20(strict)-3776AB?logo=python&logoColor=white" alt="Mypy Type Checking">
 
   <!-- ⚖️ License + Version -->
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License">
-  <img src="https://img.shields.io/badge/Version-5.0.0-blue.svg" alt="Version 5.0.0">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg?logo=open-source-initiative&logoColor=white" alt="MIT License">
+  <img src="https://img.shields.io/badge/Version-5.0.0-blue.svg?logo=semantic-release&logoColor=white" alt="Version 5.0.0">
 </p>
 
 <p align="center">
