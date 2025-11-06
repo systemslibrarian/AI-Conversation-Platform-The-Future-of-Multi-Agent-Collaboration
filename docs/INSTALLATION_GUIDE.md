@@ -21,7 +21,7 @@ You can install and run the platform in two main ways:
 | Component | Minimum | Recommended |
 |------------|-----------|-------------|
 | **OS** | Linux / macOS / Windows 10+ | Linux or macOS |
-| **Python** | 3.10 | 3.11+ |
+| **Python** | 3.10+ | 3.11+ |
 | **Docker** | 24+ | Latest stable |
 | **RAM** | 4 GB | 8 GB+ for multi-agent conversations |
 | **Storage** | 1 GB | SSD preferred |
@@ -44,42 +44,90 @@ Then restart your shell to make sure `uv` is on PATH.
 
 ### Step 3: Sync Dependencies
 ```bash
+# Install all dependencies including dev tools
 uv sync --all-extras
+
+# Or install without dev dependencies
+uv sync
 ```
 
 This installs:
-- Core dependencies (`openai`, `anthropic`, `google-generativeai`, `streamlit`)
-- Development tools (`pytest`, `ruff`, `mypy`)
-- Monitoring and tracing libraries (`prometheus_client`, `opentelemetry-sdk`)
+- **Core dependencies**: `openai`, `anthropic`, `google-generativeai`, `streamlit`, `prometheus_client`, `opentelemetry-sdk`
+- **Development tools** (with --all-extras): `pytest`, `pytest-asyncio`, `pytest-cov`, `ruff`, `mypy`, `redis`
 
 ### Step 4: Configure Environment
 Copy and edit your environment variables file:
 
 ```bash
 cp .env.example .env
-nano .env
+nano .env  # or use your preferred editor
 ```
 
-Set your provider API keys (at least two recommended):
+**Minimum Required Configuration** (at least 2 providers):
 ```dotenv
-OPENAI_API_KEY=sk-xxxxx
+# Required: At least TWO API keys
 ANTHROPIC_API_KEY=sk-ant-xxxxx
+OPENAI_API_KEY=sk-xxxxx
+
+# Optional: Additional providers
 GOOGLE_API_KEY=xxxxx
+XAI_API_KEY=xxxxx
+PERPLEXITY_API_KEY=pplx-xxxxx
+
+# Optional: Conversation settings
+DEFAULT_MAX_TURNS=50
+TEMPERATURE=0.7
+MAX_TOKENS=1024
+
+# Optional: Data directory
+DATA_DIR=data
+
+# Optional: Security features
+ENABLE_LLM_GUARD=true
+MAX_MESSAGE_LENGTH=100000
+
+# Optional: Monitoring
+PROMETHEUS_PORT=8000
 ```
+
+See `.env.example` for all available configuration options.
 
 ### Step 5: Verify Installation
 ```bash
-uv run pytest
+# Run tests
+uv run pytest -v
+
+# Check code formatting
 uv run ruff check .
+
+# Run type checker
 uv run mypy .
 ```
 
 ### Step 6: Run a Test Conversation
+
+**Interactive Mode:**
+```bash
+uv run aic-start
+```
+
+**Non-Interactive Mode:**
 ```bash
 uv run aic-start --agent1 claude --agent2 chatgpt --topic "AI alignment" --turns 5 --yes
 ```
 
-**Optional:** Launch Streamlit UI
+**With Custom Models:**
+```bash
+uv run aic-start \
+  --agent1 claude --model1 claude-sonnet-4-5-20250929 \
+  --agent2 chatgpt --model2 gpt-4o \
+  --topic "The nature of consciousness" \
+  --turns 20 \
+  --db ./data/consciousness.db \
+  --yes
+```
+
+### Step 7: Launch Streamlit UI (Optional)
 ```bash
 uv run streamlit run web/app.py
 ```
@@ -90,50 +138,76 @@ Then open [http://localhost:8501](http://localhost:8501)
 
 ## 🐳 2. Docker Installation (Full Stack)
 
-### Step 1: Build and Start
+### Prerequisites
+- Docker 24+ and Docker Compose v2
+- `.env` file with API keys
+- Ports available: 8501 (UI), 8000 (metrics), 9090 (Prometheus), 3000 (Grafana)
+
+### Step 1: Configure Environment
+```bash
+cp .env.example .env
+nano .env
+```
+
+Add at least two API keys:
+```dotenv
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+OPENAI_API_KEY=sk-xxxxx
+```
+
+### Step 2: Build and Start
 ```bash
 docker compose up --build
 ```
 
 This launches:
-- **App** — Streamlit UI (port 8501)
-- **Prometheus** — Metrics (port 9090)
-- **Grafana** — Dashboards (port 3000)
+- **conversation** — Background conversation runner
+- **ui** — Streamlit web interface (port 8501)
+- **prometheus** — Metrics collector (port 9090)
+- **grafana** — Dashboard visualization (port 3000)
 
-### Step 2: Access Interfaces
+### Step 3: Access Interfaces
 
-| Service | URL | Description |
+| Service | URL | Credentials |
 |----------|-----|-------------|
-| Streamlit UI | http://localhost:8501 | Secure dashboard for conversations |
-| Prometheus | http://localhost:9090 | Real-time metrics |
-| Grafana | http://localhost:3000 | Dashboards (login: admin / admin) |
-
-### Step 3: Environment Variables
-
-The `.env` file is automatically read by the container.  
-Example minimal config:
-
-```dotenv
-OPENAI_API_KEY=sk-xxxxx
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-PROMETHEUS_PORT=8000
-ENABLE_LLM_GUARD=true
-DATA_DIR=/data
-```
+| **Streamlit UI** | http://localhost:8501 | None required |
+| **Prometheus** | http://localhost:9090 | None required |
+| **Grafana** | http://localhost:3000 | admin / admin |
+| **Metrics Endpoint** | http://localhost:8000/metrics | None required |
 
 ### Step 4: Verify Containers
 ```bash
+# Check status
 docker compose ps
-docker compose logs -f app
+
+# View logs
+docker compose logs -f
+
+# View specific service logs
+docker compose logs -f ui
+docker compose logs -f conversation
 ```
 
-### Step 5: Stop and Clean
+### Step 5: Configure Docker Deployment
+
+You can customize the conversation settings via environment variables in `.env`:
+
+```dotenv
+# Docker-specific configuration
+AGENT1=claude
+AGENT2=chatgpt
+TOPIC=AI ethics and safety
+TURNS=20
+UI_PORT=8501
+METRICS_PORT=8000
+```
+
+### Step 6: Stop and Clean
 ```bash
+# Stop all services
 docker compose down
-```
 
-To remove all data volumes:
-```bash
+# Remove volumes (deletes data)
 docker compose down -v
 ```
 
@@ -142,82 +216,211 @@ docker compose down -v
 ## 🧩 3. Optional Components
 
 ### Redis (Distributed Queue)
-If you want multi-instance conversations:
 
+For multi-instance deployments or distributed conversations:
+
+**Option A: Docker**
 ```bash
-docker run -d --name redis -p 6379:6379 redis
-export REDIS_URL=redis://localhost:6379/0
+docker run -d --name redis -p 6379:6379 redis:latest
 ```
 
-Enable in `.env`:
+**Option B: Local Installation**
+```bash
+# Ubuntu/Debian
+sudo apt install redis-server
+
+# macOS
+brew install redis
+brew services start redis
+```
+
+**Configure in .env:**
 ```dotenv
-USE_REDIS=true
 REDIS_URL=redis://localhost:6379/0
+
+# For TLS connections
+REDIS_URL=rediss://localhost:6379/0
 ```
 
-### Prometheus (Metrics Only)
-If running manually:
+### Standalone Prometheus
+
+If running monitoring separately:
 ```bash
-docker run -p 9090:9090 prom/prometheus
+docker run -d -p 9090:9090 \
+  -v $(pwd)/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro \
+  prom/prometheus:latest
 ```
 
-### Grafana (Dashboards Only)
+### Standalone Grafana
+
 ```bash
-docker run -d -p 3000:3000 grafana/grafana
+docker run -d -p 3000:3000 \
+  -v $(pwd)/monitoring/grafana/provisioning:/etc/grafana/provisioning \
+  grafana/grafana:latest
 ```
 
 ---
 
-## 🔍 4. Post-Installation Validation
+## 🔐 4. Post-Installation Validation
 
-Run this command to confirm metrics exposure:
+### Verify Metrics Endpoint
 ```bash
 curl http://localhost:8000/metrics
 ```
 
-Expected output includes:
+**Expected output:**
 ```
-# HELP ai_api_calls_total Total API calls
+# HELP ai_api_calls_total Total API calls made
 # TYPE ai_api_calls_total counter
-ai_api_calls_total{provider="Claude",status="success"} 1.0
+ai_api_calls_total{provider="Claude",model="claude-sonnet-4-5-20250929",status="success"} 1.0
+
+# HELP ai_response_seconds Response latency in seconds
+# TYPE ai_response_seconds histogram
+...
 ```
 
-Also verify the dashboard:
-- [Prometheus Metrics](http://localhost:9090)
-- [Grafana Dashboards](http://localhost:3000)
+### Check Prometheus Targets
+Visit http://localhost:9090/targets and verify:
+- `conversation:8000` — UP
+- `ui:8000` — UP
+
+### Access Grafana Dashboard
+1. Open http://localhost:3000
+2. Login: `admin` / `admin`
+3. Navigate to Dashboards → "AI Conversation Platform"
+
+### Run Test Suite
+```bash
+# Quick test
+uv run pytest -q --maxfail=1
+
+# With coverage
+uv run pytest --cov=agents --cov=core --cov-report=term-missing
+
+# Specific test file
+uv run pytest tests/test_agents.py -v
+```
 
 ---
 
 ## 🧠 5. Troubleshooting
 
+### Common Issues
+
 | Issue | Cause | Solution |
 |-------|--------|-----------|
 | `ModuleNotFoundError` | Missing dependencies | Run `uv sync --all-extras` |
-| API Rate Limit | Provider throttling | Retry later or use more API keys |
-| SQLite “locked” error | File concurrency | Use Redis backend |
-| Port already in use | Another process | Change `PROMETHEUS_PORT` or `streamlit --server.port` |
-| No metrics showing | Prometheus misconfig | Check `/metrics` endpoint |
+| `API key not set` | Missing environment variable | Check `.env` file has required keys |
+| API Rate Limit | Provider throttling | Wait and retry, or add more API keys |
+| `SQLite locked` error | File concurrency | Use Redis backend or ensure only one process |
+| Port already in use | Another process using port | Change port in `.env` or stop conflicting service |
+| No metrics showing | Prometheus misconfiguration | Verify `/metrics` endpoint accessible |
+| Docker build fails | Network/dependency issue | Check `docker compose logs` for details |
+| Container exits immediately | Invalid configuration | Check `docker compose logs conversation` |
+
+### Debug Commands
+
+```bash
+# Check Python version
+python --version  # Should be 3.10+
+
+# Check uv installation
+uv --version
+
+# Verify API keys are set
+echo $ANTHROPIC_API_KEY  # Should show your key
+
+# Test direct API access
+uv run python -c "from anthropic import Anthropic; print('OK')"
+uv run python -c "from openai import OpenAI; print('OK')"
+
+# Check SQLite database
+sqlite3 data/shared_conversation.db "SELECT COUNT(*) FROM messages;"
+
+# Test metrics endpoint
+curl -v http://localhost:8000/metrics
+
+# Docker debugging
+docker compose config  # Validate docker-compose.yml
+docker compose ps     # Check container status
+docker compose logs --tail=50 ui  # Recent logs
+```
+
+### Performance Tuning
+
+**For faster responses:**
+```dotenv
+# Reduce context window
+MAX_CONTEXT_MSGS=5
+
+# Lower token limit
+MAX_TOKENS=512
+
+# Increase temperature for more varied responses
+TEMPERATURE=0.9
+```
+
+**For higher quality conversations:**
+```dotenv
+# Increase context
+MAX_CONTEXT_MSGS=20
+
+# Higher token limit
+MAX_TOKENS=2048
+
+# Lower temperature for more focused responses
+TEMPERATURE=0.5
+```
 
 ---
 
-## 🧾 Summary
+## 📋 6. Quick Reference
 
-| Method | Command | Description |
-|--------|----------|-------------|
-| Local Run | `uv run aic-start` | Quick testing via CLI |
-| Full Stack | `docker compose up` | Complete deployment with dashboards |
-| Stop All | `docker compose down` | Shut down the platform |
-| Logs | `docker compose logs -f` | Follow real-time logs |
+### Essential Commands
+
+| Action | Command |
+|--------|----------|
+| **Install dependencies** | `uv sync --all-extras` |
+| **Run conversation (interactive)** | `uv run aic-start` |
+| **Run conversation (CLI)** | `uv run aic-start --agent1 claude --agent2 chatgpt --yes` |
+| **Launch UI** | `uv run streamlit run web/app.py` |
+| **Run tests** | `uv run pytest` |
+| **Start Docker stack** | `docker compose up --build` |
+| **Stop Docker** | `docker compose down` |
+| **View logs** | `docker compose logs -f` |
+| **Check metrics** | `curl http://localhost:8000/metrics` |
+
+### File Locations
+
+| Purpose | Location |
+|---------|----------|
+| Conversation databases | `data/*.db` |
+| Logs | `logs/*.jsonl` |
+| Configuration | `.env` |
+| Docker config | `docker-compose.yml` |
+| Prometheus config | `monitoring/prometheus/prometheus.yml` |
+| Grafana dashboards | `monitoring/grafana/provisioning/` |
 
 ---
 
 ## 📚 Related Documents
 
-- [⚡ QUICK_START.md](QUICK_START.md)
-- [🐳 DOCKER_README.md](DOCKER_README.md)
-- [📊 MONITORING.md](MONITORING.md)
-- [🔒 SECURITY.md](../SECURITY.md)
-- [📖 ARCHITECTURE.md](ARCHITECTURE.md)
+- [⚡ Quick Start](docs/docs_README.md) — 2-minute getting started
+- [🐳 Docker Guide](DOCKER_README.md) — Container deployment details
+- [📊 Monitoring](MONITORING.md) — Metrics and dashboards
+- [🔒 Security](SECURITY.md) — Security best practices
+- [🧪 Testing](TESTING.md) — Testing guide
+- [📖 Architecture](ARCHITECTURE.md) — System design
+- [⬆️ Upgrade Guide](UPGRADE_GUIDE.md) — Migrating from v4.0
+
+---
+
+## ❓ Getting Help
+
+- **Documentation Issues**: Open an issue on GitHub
+- **Questions**: Check existing issues or discussions
+- **Bug Reports**: See [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Security Issues**: See [SECURITY.md](SECURITY.md)
 
 ---
 
@@ -225,5 +428,7 @@ Also verify the dashboard:
 
 **Made with ❤️ by Paul Clark (@systemslibrarian)**  
 **To God be the glory.**
+
+[⬆️ Back to README](README.md)
 
 </div>
