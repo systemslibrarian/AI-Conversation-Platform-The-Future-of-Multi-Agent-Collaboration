@@ -72,7 +72,7 @@ jobs:
       - name: Run tests with coverage (XML)
         run: |
           uv run pytest -q --maxfail=1 --disable-warnings \
-            --cov=. --cov-report=xml
+            --cov=agents --cov=core --cov-report=xml --cov-fail-under=90
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
