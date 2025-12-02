@@ -14,15 +14,23 @@ class GeminiAgent(BaseAgent):
     DEFAULT_MODEL = config.GEMINI_DEFAULT_MODEL
 
     def __init__(self, api_key: str, *args, **kwargs):
-        # Merge api_key into kwargs for parent class
-        kwargs["api_key"] = api_key
+        # --- THIS IS THE FIX ---
+        # 1. Call super() FIRST. 'api_key' is not passed up.
         super().__init__(*args, **kwargs)
+        # --- END OF FIX ---
 
         try:
             import google.generativeai as genai
 
+            # 2. Use the local 'api_key' variable to configure
             genai.configure(api_key=api_key)
-            self.client = genai.GenerativeModel(self.model)
+
+            # --- THIS IS THE FIX ---
+            # Add system prompt to the model configuration
+            system_instruction = self._build_system_prompt()
+            self.client = genai.GenerativeModel(self.model, system_instruction=system_instruction)
+            # --- END OF FIX ---
+
         except ImportError:
             raise ImportError("Install: pip install google-generativeai")
 
@@ -30,16 +38,25 @@ class GeminiAgent(BaseAgent):
         """Call Gemini API asynchronously"""
         assert self.client is not None, "Client not initialized"
         client = self.client  # Capture for closure
-        # Build history
+
+        # --- THIS IS THE FIX ---
+        # Gemini wants history in a specific format.
+        # The system prompt is already in self.client.
+        # BaseAgent's _build_messages gives us user/assistant roles.
+
         history = []
         last_message = None
 
+        # Process all but the last message into history
         for msg in messages[:-1]:
+            # map 'assistant' to 'model'
             role = "user" if msg["role"] == "user" else "model"
             history.append({"role": role, "parts": [msg["content"]]})
 
+        # The last message is the one we are "sending"
         if messages:
             last_message = messages[-1]["content"]
+        # --- END OF FIX ---
 
         # Run blocking API call in executor
         loop = asyncio.get_event_loop()
