@@ -226,26 +226,31 @@ async def async_main(args: Optional[argparse.Namespace] = None):
 
 def main():
     """Main entry point with CLI argument parsing"""
-    parser = argparse.ArgumentParser(
-        description="AI-to-AI Conversation Platform v5.0",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        parser = argparse.ArgumentParser(
+                description="AI-to-AI Conversation Platform v5.0",
+                formatter_class=argparse.RawDescriptionHelpFormatter,
+                epilog="""
 Examples:
-  # Interactive mode
-  aic-start
+    # Interactive mode
+    aic-start
   
-  # Specify agents and auto-confirm
-  aic-start --agent1 claude --agent2 chatgpt --yes
+    # Specify agents and auto-confirm
+    aic-start --agent1 claude --agent2 chatgpt --yes
   
-  # Full configuration via CLI
-  aic-start --agent1 claude --model1 claude-sonnet-4-5-20250929 \\
-            --agent2 chatgpt --model2 gpt-4o \\
-            --topic "AI ethics" --turns 20 --yes
+    # Full configuration via CLI
+    aic-start --agent1 gemini --model1 gemini-2.0-flash \
+                        --agent2 chatgpt --model2 gpt-4o \
+                        --topic "AI ethics in multi-agent systems" --turns 6 --yes
   
-  # Custom database location
-  aic-start --db ./conversations/my_chat.db
-        """,
-    )
+    # Custom database location
+    aic-start --db ./conversations/my_chat.db
+
+Notes:
+    - Use --turns (not --max-turns).
+    - --agent1/--agent2 are supported; --agents is not.
+    - Ensure OPENAI_API_KEY and GOOGLE_API_KEY or GEMINI_API_KEY are set.
+                """,
+        )
 
     parser.add_argument(
         "--agent1",
