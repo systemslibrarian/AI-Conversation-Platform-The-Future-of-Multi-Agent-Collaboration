@@ -1,15 +1,8 @@
 """Interactive AI-to-AI Conversation Starter v5.0 - ASYNC EDITION with CLI Support"""
-# ruff: noqa=E402
 
 import argparse
 import asyncio
-import sys
-from pathlib import Path
 from typing import Optional, Tuple
-
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
 
 from agents import (
     create_agent,

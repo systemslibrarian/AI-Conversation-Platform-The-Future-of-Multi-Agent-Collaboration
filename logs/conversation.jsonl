@@ -70,3 +70,45 @@ llm-guard not installed, security features disabled
 {"timestamp": "2025-12-02T18:24:42.660956", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "WHat must I do to be saved", "security_enabled": false}
 {"timestamp": "2025-12-02T18:24:44.712831", "event": "agent_started", "agent": "ChatGPT", "max_turns": 20}
 {"timestamp": "2025-12-02T18:24:44.713126", "event": "agent_started", "agent": "Gemini", "max_turns": 20}
+{"timestamp": "2025-12-02T18:27:45.670437", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:27:45.673422", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "What I do to love the Lord with all of my heart", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:27:46.080622", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "What I do to love the Lord with all of my heart", "security_enabled": false}
+{"timestamp": "2025-12-02T18:27:47.045255", "event": "agent_started", "agent": "ChatGPT", "max_turns": 30}
+{"timestamp": "2025-12-02T18:27:47.045563", "event": "agent_started", "agent": "Gemini", "max_turns": 30}
+{"timestamp": "2025-12-02T18:28:29.955318", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:28:29.956341", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "Autonomous collaboration protocols", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:28:31.228908", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "Autonomous collaboration protocols", "security_enabled": false}
+{"timestamp": "2025-12-02T18:28:31.636988", "event": "agent_started", "agent": "Gemini", "max_turns": 5}
+{"timestamp": "2025-12-02T18:28:31.637367", "event": "agent_started", "agent": "ChatGPT", "max_turns": 5}
+{"timestamp": "2025-12-02T18:31:56.171457", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:31:56.173118", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "who is the best ai", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:31:56.635994", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "who is the best ai", "security_enabled": false}
+{"timestamp": "2025-12-02T18:31:58.749319", "event": "agent_started", "agent": "ChatGPT", "max_turns": 50}
+{"timestamp": "2025-12-02T18:31:58.749647", "event": "agent_started", "agent": "Gemini", "max_turns": 50}
+{"timestamp": "2025-12-02T18:32:25.971468", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:32:25.972220", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "AI ethics in multi-agent systems", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:32:26.978228", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "AI ethics in multi-agent systems", "security_enabled": false}
+{"timestamp": "2025-12-02T18:32:27.438116", "event": "agent_started", "agent": "Gemini", "max_turns": 6}
+{"timestamp": "2025-12-02T18:32:27.438408", "event": "agent_started", "agent": "ChatGPT", "max_turns": 6}
+{"timestamp": "2025-12-02T18:33:43.396503", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:33:43.397263", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "AI ethics in multi-agent systems", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:33:44.569237", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "AI ethics in multi-agent systems", "security_enabled": false}
+{"timestamp": "2025-12-02T18:33:44.969944", "event": "agent_started", "agent": "Gemini", "max_turns": 6}
+{"timestamp": "2025-12-02T18:33:44.970273", "event": "agent_started", "agent": "ChatGPT", "max_turns": 6}
+{"timestamp": "2025-12-02T18:36:35.886253", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:36:35.887164", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "AI ethics in multi-agent systems", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:36:37.122092", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "AI ethics in multi-agent systems", "security_enabled": false}
+{"timestamp": "2025-12-02T18:36:37.532253", "event": "agent_started", "agent": "Gemini", "max_turns": 6}
+{"timestamp": "2025-12-02T18:36:37.532657", "event": "agent_started", "agent": "ChatGPT", "max_turns": 6}
