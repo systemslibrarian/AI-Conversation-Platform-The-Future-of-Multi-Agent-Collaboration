@@ -115,6 +115,55 @@ docker compose down
 
 ---
 
+## 🔑 API Key Configuration
+
+The platform auto-loads API keys from `.env` files using `python-dotenv`. You have three options:
+
+### Option 1: Local `.env` file (recommended for local dev)
+```bash
+# Copy template and add your keys
+cp .env.example .env
+nano .env
+
+# Keys are auto-loaded when you run the app
+uv run aic-start --agent1 chatgpt --agent2 gemini --topic "test" --turns 3 --yes
+```
+
+### Option 2: GitHub Codespaces Secrets (recommended for Codespaces)
+```bash
+# Set user-level secrets (available to all your Codespaces)
+gh secret set OPENAI_API_KEY --user
+gh secret set GOOGLE_API_KEY --user
+gh secret set ANTHROPIC_API_KEY --user
+
+# Restart Codespace to load secrets
+# Keys are automatically available in the environment
+```
+
+### Option 3: Manual environment variables
+```bash
+# Export keys in your current shell
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_API_KEY="AIza..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Run immediately
+uv run aic-start --agent1 chatgpt --agent2 gemini --topic "test" --turns 3 --yes
+```
+
+**Required keys by agent:**
+| Agent | Environment Variable | Get Key From |
+|---|---|---|
+| `chatgpt` | `OPENAI_API_KEY` | https://platform.openai.com/api-keys |
+| `gemini` | `GOOGLE_API_KEY` or `GEMINI_API_KEY` | https://aistudio.google.com/app/apikey |
+| `claude` | `ANTHROPIC_API_KEY` | https://console.anthropic.com/settings/keys |
+| `grok` | `XAI_API_KEY` | https://console.x.ai/ |
+| `perplexity` | `PERPLEXITY_API_KEY` | https://www.perplexity.ai/settings/api |
+
+**Note:** You need at least **two** agents configured to start a conversation.
+
+---
+
 ## ✨ Key Features
 - **Multi-agent orchestration** (Claude, ChatGPT, Gemini, Grok, Perplexity)
 - **Async by default** with circuit breakers, backoff, similarity loop checks
