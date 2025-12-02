@@ -132,9 +132,9 @@ class SQLiteQueue:
             for key, value in initial_metadata.items():
                 conn.execute("INSERT INTO metadata (key, value) VALUES (?, ?)", (key, value))
         else:
-            # Database exists - clear any previous termination flag for new run
-            conn.execute("UPDATE metadata SET value = '0' WHERE key='terminated'")
-            conn.execute("UPDATE metadata SET value = 'null' WHERE key='termination_reason'")
+            # Database exists - preserve termination flags for persistence across instances
+            # Tests expect termination state to remain until explicitly reset by application logic.
+            pass
 
         conn.commit()
         conn.close()

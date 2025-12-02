@@ -63,3 +63,10 @@ llm-guard not installed, security features disabled
 {"timestamp": "2025-12-02T18:08:42.349862", "event": "response_generated", "agent": "Gemini", "tokens": 2410, "response_time": 0.56}
 {"timestamp": "2025-12-02T18:08:42.355107", "event": "message_added", "id": 10, "sender": "Gemini", "length": 11}
 {"timestamp": "2025-12-02T18:08:42.362261", "event": "conversation_terminated", "reason": "max_turns_reached"}
+{"timestamp": "2025-12-02T18:24:42.246275", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:24:42.247980", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "WHat must I do to be saved", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:24:42.660956", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "WHat must I do to be saved", "security_enabled": false}
+{"timestamp": "2025-12-02T18:24:44.712831", "event": "agent_started", "agent": "ChatGPT", "max_turns": 20}
+{"timestamp": "2025-12-02T18:24:44.713126", "event": "agent_started", "agent": "Gemini", "max_turns": 20}
