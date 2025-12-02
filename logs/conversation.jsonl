@@ -1,0 +1,65 @@
+{"timestamp": "2025-12-02T17:59:32.147142", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T17:59:32.152314", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "What must I do to be saved", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T17:59:32.863740", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-1.5-pro", "topic": "What must I do to be saved", "security_enabled": false}
+{"timestamp": "2025-12-02T17:59:34.944894", "event": "agent_started", "agent": "ChatGPT", "max_turns": 10}
+{"timestamp": "2025-12-02T17:59:34.945218", "event": "agent_started", "agent": "Gemini", "max_turns": 10}
+{"timestamp": "2025-12-02T17:59:35.145593", "event": "api_error", "agent": "Gemini", "error": "404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.", "consecutive_errors": 1}
+{"timestamp": "2025-12-02T17:59:37.331189", "event": "api_error", "agent": "Gemini", "error": "404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.", "consecutive_errors": 2}
+{"timestamp": "2025-12-02T17:59:42.163649", "event": "api_error", "agent": "Gemini", "error": "404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.", "consecutive_errors": 3}
+{"timestamp": "2025-12-02T17:59:47.360021", "event": "response_generated", "agent": "ChatGPT", "tokens": 510, "response_time": 12.41}
+{"timestamp": "2025-12-02T17:59:47.365669", "event": "message_added", "id": 1, "sender": "ChatGPT", "length": 2456}
+{"timestamp": "2025-12-02T17:59:50.383976", "event": "api_error", "agent": "Gemini", "error": "404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.", "consecutive_errors": 4}
+{"timestamp": "2025-12-02T18:00:09.554200", "event": "api_error", "agent": "Gemini", "error": "404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.", "consecutive_errors": 5}
+{"timestamp": "2025-12-02T18:00:35.524384", "event": "conversation_terminated", "reason": "rate_limit_exceeded"}
+{"timestamp": "2025-12-02T18:01:41.982482", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:01:41.983596", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "What must I do to be saved", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:01:42.367561", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-pro", "topic": "What must I do to be saved", "security_enabled": false}
+{"timestamp": "2025-12-02T18:01:43.305922", "event": "agent_started", "agent": "ChatGPT", "max_turns": 10}
+{"timestamp": "2025-12-02T18:01:43.306187", "event": "agent_started", "agent": "Gemini", "max_turns": 10}
+{"timestamp": "2025-12-02T18:04:08.509416", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:04:08.511179", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-pro", "topic": "What I must do to be saved", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:04:09.422132", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "What I must do to be saved", "security_enabled": false}
+{"timestamp": "2025-12-02T18:04:09.831466", "event": "agent_started", "agent": "Gemini", "max_turns": 10}
+{"timestamp": "2025-12-02T18:04:09.831801", "event": "agent_started", "agent": "ChatGPT", "max_turns": 10}
+{"timestamp": "2025-12-02T18:06:47.526684", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:06:47.527600", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-pro", "topic": "AI ethics", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:06:48.641670", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "AI ethics", "security_enabled": false}
+{"timestamp": "2025-12-02T18:06:49.052079", "event": "agent_started", "agent": "Gemini", "max_turns": 5}
+{"timestamp": "2025-12-02T18:06:49.052471", "event": "agent_started", "agent": "ChatGPT", "max_turns": 5}
+{"timestamp": "2025-12-02T18:06:49.172256", "event": "api_error", "agent": "Gemini", "error": "404 models/gemini-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.", "consecutive_errors": 1}
+{"timestamp": "2025-12-02T18:06:49.176960", "event": "conversation_terminated", "reason": "configuration_error"}
+{"timestamp": "2025-12-02T18:06:49.177700", "event": "agent_error", "agent": "Gemini", "error": "Configuration error: 404 models/gemini-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp": "2025-12-02T18:08:15.729496", "event": "queue_initialized", "filepath": "shared_conversation.db", "type": "sqlite"}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:08:15.730266", "event": "agent_initialized", "agent": "Gemini", "model": "gemini-2.0-flash", "topic": "AI ethics", "security_enabled": false}
+llm-guard not installed, security features disabled
+{"timestamp": "2025-12-02T18:08:16.819336", "event": "agent_initialized", "agent": "ChatGPT", "model": "gpt-4o", "topic": "AI ethics", "security_enabled": false}
+{"timestamp": "2025-12-02T18:08:17.207448", "event": "agent_started", "agent": "Gemini", "max_turns": 5}
+{"timestamp": "2025-12-02T18:08:17.207733", "event": "agent_started", "agent": "ChatGPT", "max_turns": 5}
+{"timestamp": "2025-12-02T18:08:21.899855", "event": "response_generated", "agent": "Gemini", "tokens": 1311, "response_time": 4.69}
+{"timestamp": "2025-12-02T18:08:21.905148", "event": "message_added", "id": 2, "sender": "Gemini", "length": 2790}
+{"timestamp": "2025-12-02T18:08:31.558852", "event": "response_generated", "agent": "ChatGPT", "tokens": 1438, "response_time": 9.61}
+{"timestamp": "2025-12-02T18:08:31.564084", "event": "message_added", "id": 3, "sender": "ChatGPT", "length": 2271}
+{"timestamp": "2025-12-02T18:08:33.358543", "event": "response_generated", "agent": "Gemini", "tokens": 2077, "response_time": 1.71}
+{"timestamp": "2025-12-02T18:08:33.364373", "event": "message_added", "id": 4, "sender": "Gemini", "length": 795}
+{"timestamp": "2025-12-02T18:08:37.155480", "event": "response_generated", "agent": "ChatGPT", "tokens": 1692, "response_time": 3.74}
+{"timestamp": "2025-12-02T18:08:37.163972", "event": "message_added", "id": 5, "sender": "ChatGPT", "length": 573}
+{"timestamp": "2025-12-02T18:08:38.459425", "event": "response_generated", "agent": "Gemini", "tokens": 2309, "response_time": 1.28}
+{"timestamp": "2025-12-02T18:08:38.465035", "event": "message_added", "id": 6, "sender": "Gemini", "length": 362}
+{"timestamp": "2025-12-02T18:08:40.530446", "event": "response_generated", "agent": "ChatGPT", "tokens": 1834, "response_time": 2.02}
+{"timestamp": "2025-12-02T18:08:40.536259", "event": "message_added", "id": 7, "sender": "ChatGPT", "length": 335}
+{"timestamp": "2025-12-02T18:08:41.062100", "event": "response_generated", "agent": "Gemini", "tokens": 2398, "response_time": 0.43}
+{"timestamp": "2025-12-02T18:08:41.067108", "event": "message_added", "id": 8, "sender": "Gemini", "length": 23}
+{"timestamp": "2025-12-02T18:08:41.765468", "event": "response_generated", "agent": "ChatGPT", "tokens": 1860, "response_time": 0.61}
+{"timestamp": "2025-12-02T18:08:41.770930", "event": "message_added", "id": 9, "sender": "ChatGPT", "length": 42}
+{"timestamp": "2025-12-02T18:08:42.349862", "event": "response_generated", "agent": "Gemini", "tokens": 2410, "response_time": 0.56}
+{"timestamp": "2025-12-02T18:08:42.355107", "event": "message_added", "id": 10, "sender": "Gemini", "length": 11}
+{"timestamp": "2025-12-02T18:08:42.362261", "event": "conversation_terminated", "reason": "max_turns_reached"}

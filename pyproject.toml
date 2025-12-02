@@ -62,8 +62,17 @@ no_implicit_optional = true
 strict_equality = true
 check_untyped_defs = true
 
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+]
+
 # This section was removed as it was conflicting
 # [dependency-groups]
 # dev = [
 #    "ruff>=0.14.3",
 # ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
