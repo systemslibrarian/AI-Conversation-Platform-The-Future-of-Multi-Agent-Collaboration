@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """View conversation messages from the SQLite database."""
+
 import sqlite3
 import sys
-import json
 from pathlib import Path
 
 
@@ -18,7 +18,7 @@ def view_conversation(db_path="shared_conversation.db", limit=None):
     # Get message count
     cursor.execute("SELECT COUNT(*) FROM messages")
     total = cursor.fetchone()[0]
-    
+
     if total == 0:
         print("No messages found in database.")
         conn.close()
@@ -28,26 +28,26 @@ def view_conversation(db_path="shared_conversation.db", limit=None):
     query = "SELECT id, sender, content, timestamp FROM messages ORDER BY id"
     if limit:
         query += f" LIMIT {limit}"
-    
+
     cursor.execute(query)
     messages = cursor.fetchall()
-    
-    print(f"\n{'='*80}")
+
+    print(f"\n{'=' * 80}")
     print(f"CONVERSATION MESSAGES ({len(messages)} of {total} total)")
-    print(f"{'='*80}\n")
-    
+    print(f"{'=' * 80}\n")
+
     for msg_id, sender, content, timestamp in messages:
         print(f"[{msg_id}] {sender} @ {timestamp}")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(content)
-        print(f"{'='*80}\n")
-    
+        print(f"{'=' * 80}\n")
+
     # Get termination info
     cursor.execute("SELECT value FROM metadata WHERE key = 'termination_reason'")
     result = cursor.fetchone()
     if result:
         print(f"✓ Conversation ended: {result[0]}\n")
-    
+
     conn.close()
 
 
@@ -67,29 +67,29 @@ def view_summary(db_path="shared_conversation.db"):
         GROUP BY sender
     """)
     stats = cursor.fetchall()
-    
-    print(f"\n{'='*80}")
+
+    print(f"\n{'=' * 80}")
     print("CONVERSATION SUMMARY")
-    print(f"{'='*80}\n")
-    
+    print(f"{'=' * 80}\n")
+
     total_messages = 0
     total_chars = 0
     for sender, count, chars in stats:
         total_messages += count
         total_chars += chars
         print(f"  {sender}: {count} messages, {chars:,} characters")
-    
+
     print(f"\n  Total: {total_messages} messages, {total_chars:,} characters")
-    
+
     # Termination reason
     cursor.execute("SELECT value FROM metadata WHERE key = 'termination_reason'")
     result = cursor.fetchone()
     if result:
         print(f"\n  Status: Ended ({result[0]})")
     else:
-        print(f"\n  Status: In progress")
-    
-    print(f"\n{'='*80}\n")
+        print("\n  Status: In progress")
+
+    print(f"\n{'=' * 80}\n")
     conn.close()
 
 
