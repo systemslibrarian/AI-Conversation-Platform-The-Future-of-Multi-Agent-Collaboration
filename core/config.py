@@ -42,7 +42,7 @@ class Config:
     # Default models
     CLAUDE_DEFAULT_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
     CHATGPT_DEFAULT_MODEL = os.getenv("CHATGPT_MODEL", "gpt-4o")
-    GEMINI_DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
+    GEMINI_DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     GROK_DEFAULT_MODEL = os.getenv("GROK_MODEL", "grok-beta")
     PERPLEXITY_DEFAULT_MODEL = os.getenv("PERPLEXITY_MODEL", "llama-3.1-sonar-large-128k-online")
 

@@ -79,8 +79,9 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     "gemini": {
         "symbol": "GeminiAgent",
         "env_key": "GOOGLE_API_KEY",
+        "env_key_alt": "GEMINI_API_KEY",  # Alternative for GitHub Codespaces
         "default_model_attr": "DEFAULT_MODEL",
-        "fallback_model": "gemini-pro",
+        "fallback_model": "gemini-2.0-flash",
     },
     "grok": {
         "symbol": "GrokAgent",
@@ -113,7 +114,12 @@ def list_available_agents() -> List[str]:
 def detect_configured_agents() -> List[str]:
     available: List[str] = []
     for key, meta in _AGENT_REGISTRY.items():
-        if os.getenv(str(meta["env_key"])):
+        env_key = str(meta["env_key"])
+        # Check primary env key
+        if os.getenv(env_key):
+            available.append(key)
+        # Check alternative env key if specified
+        elif "env_key_alt" in meta and os.getenv(str(meta["env_key_alt"])):
             available.append(key)
     return sorted(available)
 
@@ -147,7 +153,12 @@ def create_agent(
         )
 
     cls, env_key, default_model = _resolve_provider(k)
+    
+    # Try to get API key: provided > primary env > alternative env
     key = api_key or os.getenv(env_key)
+    if not key and "env_key_alt" in _AGENT_REGISTRY[k]:
+        key = os.getenv(str(_AGENT_REGISTRY[k]["env_key_alt"]))
+    
     if not key:
         raise ValueError(f"Missing API key for {agent_type!r}. Set {env_key} or pass api_key=...")
 

@@ -3,7 +3,12 @@
 import argparse
 import asyncio
 import sys
+from pathlib import Path
 from typing import Optional, Tuple
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from agents import (
     create_agent,
@@ -39,10 +44,10 @@ class ConversationStarter:
     def _check_configuration(self) -> bool:
         if not self.available_agents:
             print("No AI agents configured!")
-            print("\nAdd API keys to .env file:")
+            print("\nAdd API keys to .env file or Codespaces secrets:")
             print("  ANTHROPIC_API_KEY=your_key")
             print("  OPENAI_API_KEY=your_key")
-            print("  GOOGLE_API_KEY=your_key")
+            print("  GOOGLE_API_KEY=your_key (or GEMINI_API_KEY)")
             print("  XAI_API_KEY=your_key")
             print("  PERPLEXITY_API_KEY=your_key")
             return False
@@ -59,9 +64,7 @@ class ConversationStarter:
         print("-" * 80)
 
         for agent_type in sorted(self.available_agents):
-            info = get_agent_info(agent_type)
-            agent_class = info["class"]
-            print(f"  {agent_class.PROVIDER_NAME} ({agent_type})")
+            print(f"  {agent_type}")
 
         print()
 
@@ -71,7 +74,7 @@ class ConversationStarter:
             print("-" * 80)
             for agent_type in sorted(unavailable):
                 info = get_agent_info(agent_type)
-                print(f"  {info['class'].PROVIDER_NAME} - Set {info['env_key']}")
+                print(f"  {agent_type} - Set {info['env_key']}")
             print()
 
     def _select_agent(

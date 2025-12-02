@@ -336,6 +336,13 @@ class BaseAgent(ABC):
             except Exception as e:
                 error_str = str(e)
 
+                # Check for non-retriable errors (configuration issues)
+                if any(x in error_str.lower() for x in ["404", "not found", "invalid api key", "unauthorized", "403"]):
+                    print(f"✗ Configuration Error: {error_str}")
+                    await self.queue.mark_terminated("configuration_error")
+                    raise Exception(f"Configuration error: {error_str}")
+
+                # Handle rate limits with retry
                 if "rate" in error_str.lower() or "429" in error_str:
                     wait_time = add_jitter(backoff)
                     print(
