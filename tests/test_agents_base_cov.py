@@ -125,7 +125,7 @@ def test_agent_scan_input_with_llm_guard():
     agent.input_scanner = MagicMock()
     # Simulate invalid input detection
     agent.input_scanner.scan = MagicMock(return_value=("sanitized", False, 0.8))
-    
+
     text, valid = agent._scan_input("malicious input")
     assert text == "sanitized"
     assert valid is False
@@ -138,6 +138,6 @@ def test_agent_scan_output_with_llm_guard():
     agent.output_scanner = MagicMock()
     # Simulate output scanning issue
     agent.output_scanner.scan = MagicMock(return_value=("sanitized output", False, 0.7))
-    
+
     result = agent._scan_output("problematic output")
     assert result == "sanitized output"

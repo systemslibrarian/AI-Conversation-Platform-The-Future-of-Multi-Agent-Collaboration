@@ -200,16 +200,22 @@ if __name__ == "__main__":
 class MockQueue:
     async def add_message(self, *a, **k):
         return {"id": 1}
+
     async def get_context(self, *a, **k):
         return []
+
     async def get_last_sender(self):
         return "other"
+
     async def is_terminated(self):
         return False
+
     async def mark_terminated(self, *a, **k):
         pass
+
     async def get_termination_reason(self):
         return ""
+
     async def load(self):
         return {"messages": [], "metadata": {}}
 
@@ -235,10 +241,10 @@ class TestAgentExtended(BaseAgent):
 def test_circuit_breaker_timeout():
     log = logging.getLogger("test")
     cb = CircuitBreaker(log, "test", failure_threshold=3, timeout_seconds=1)
-    
+
     for _ in range(3):
         cb.record_failure()
-    
+
     assert cb.is_open()
     assert cb.state == "OPEN"
 
@@ -246,11 +252,11 @@ def test_circuit_breaker_timeout():
 def test_circuit_breaker_recovery():
     log = logging.getLogger("test")
     cb = CircuitBreaker(log, "test", failure_threshold=2)
-    
+
     cb.record_failure()
     cb.record_failure()
     assert cb.state == "OPEN"
-    
+
     cb.state = "HALF_OPEN"
     cb.record_success()
     assert cb.state == "CLOSED"
@@ -259,9 +265,9 @@ def test_circuit_breaker_recovery():
 @pytest.mark.asyncio
 async def test_agent_in_executor_with_args():
     agent = TestAgentExtended()
-    
+
     def add(a, b):
         return a + b
-    
+
     result = await agent._in_executor(add, 2, 3)
     assert result == 5
