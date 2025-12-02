@@ -1,0 +1,20 @@
+# Minimal tests to increase coverage for core/tracing.py
+import os
+from unittest.mock import patch
+from core import tracing
+
+def test_setup_tracing_runs():
+    # setup_tracing() takes no arguments
+    tracing.setup_tracing()
+
+def test_setup_tracing_with_endpoint():
+    # Test with OTEL endpoint set
+    with patch.dict(os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318"}):
+        with patch("core.tracing.TracerProvider"):
+            with patch("core.tracing.OTLPSpanExporter"):
+                with patch("core.tracing.BatchSpanProcessor"):
+                    tracing.setup_tracing()
+
+def test_get_tracer_returns_tracer():
+    tracer = tracing.get_tracer()
+    assert tracer is not None
