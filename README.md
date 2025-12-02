@@ -133,6 +133,20 @@ uv run aic-start
 uv run aic-start   --agent1 claude   --agent2 chatgpt   --topic "The nature of consciousness"   --turns 20   --db ./data/consciousness.db   --yes
 ```
 
+### CLI Flags Reference
+
+- `--agent1`, `--agent2`: Agent types to run. Supported: `gemini`, `chatgpt`, `claude`, `grok`, `perplexity` (requires corresponding API keys).
+- `--model1`, `--model2`: Optional model overrides per agent. Examples: `gemini-2.0-flash`, `gpt-4o`.
+- `--topic`: Conversation topic text.
+- `--turns`: Maximum turns per agent (integer). Note: use `--turns`, not `--max-turns`.
+- `--db`: SQLite file for shared conversation state. Default: `shared_conversation.db`.
+- `--yes`: Non-interactive mode; skips menu prompts.
+
+Notes:
+- The CLI does not support `--agents` or `--max-turns`. Use the flags above.
+- At least two providers must be available. Set `OPENAI_API_KEY` and either `GOOGLE_API_KEY` or `GEMINI_API_KEY`.
+- Logs: `logs/conversation.jsonl`. Data/state: `data/` or the specified `--db`.
+
 ---
 
 ## 🧭 Documentation Map

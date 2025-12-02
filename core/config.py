@@ -3,6 +3,7 @@
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel, Field, ValidationError
+from pydantic import ConfigDict
 
 load_dotenv()
 
@@ -23,8 +24,8 @@ class ConfigValidation(BaseModel):
     MAX_CONTEXT_MSGS: int = Field(ge=1, le=100, description="Maximum context messages")
     PROMETHEUS_PORT: int = Field(ge=1024, le=65535, description="Prometheus metrics port")
 
-    class Config:
-        extra = "forbid"  # Prevent unknown fields
+    # Pydantic v2: use ConfigDict instead of class-based Config
+    model_config = ConfigDict(extra="forbid")
 
 
 class Config:
