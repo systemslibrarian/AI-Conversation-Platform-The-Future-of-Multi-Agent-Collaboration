@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Direct environment check without dotenv"""
+
 import os
 
 api_keys = {
     "ANTHROPIC_API_KEY": "Claude",
-    "OPENAI_API_KEY": "ChatGPT", 
+    "OPENAI_API_KEY": "ChatGPT",
     "GOOGLE_API_KEY": "Gemini (primary)",
     "GEMINI_API_KEY": "Gemini (alt)",
     "XAI_API_KEY": "Grok",

@@ -348,7 +348,10 @@ class BaseAgent(ABC):
                 is_rate_limit = (str(status) == "429") or ("rate_limit" in error_str)
 
                 # Check for non-retriable errors (configuration issues)
-                if any(x in error_str for x in ["404", "not found", "invalid api key", "unauthorized", "403"]):
+                if any(
+                    x in error_str
+                    for x in ["404", "not found", "invalid api key", "unauthorized", "403"]
+                ):
                     print(f"✗ Configuration Error: {str(e)}")
                     await self.queue.mark_terminated("configuration_error")
                     raise Exception(f"Configuration error: {str(e)}")

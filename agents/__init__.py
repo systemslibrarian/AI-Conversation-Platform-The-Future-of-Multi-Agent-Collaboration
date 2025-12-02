@@ -153,12 +153,12 @@ def create_agent(
         )
 
     cls, env_key, default_model = _resolve_provider(k)
-    
+
     # Try to get API key: provided > primary env > alternative env
     key = api_key or os.getenv(env_key)
     if not key and "env_key_alt" in _AGENT_REGISTRY[k]:
         key = os.getenv(str(_AGENT_REGISTRY[k]["env_key_alt"]))
-    
+
     if not key:
         raise ValueError(f"Missing API key for {agent_type!r}. Set {env_key} or pass api_key=...")
 
