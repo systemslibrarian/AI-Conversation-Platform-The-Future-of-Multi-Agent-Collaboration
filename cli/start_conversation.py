@@ -1,4 +1,5 @@
 """Interactive AI-to-AI Conversation Starter v5.0 - ASYNC EDITION with CLI Support"""
+# ruff: noqa=E402
 
 import argparse
 import asyncio
