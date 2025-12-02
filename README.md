@@ -130,7 +130,13 @@ docker compose down
 uv run aic-start
 
 # Non-interactive
-uv run aic-start   --agent1 claude   --agent2 chatgpt   --topic "The nature of consciousness"   --turns 20   --db ./data/consciousness.db   --yes
+uv run aic-start \
+  --agent1 claude \
+  --agent2 chatgpt \
+  --topic "The nature of consciousness" \
+  --turns 20 \
+  --db ./data/consciousness.db \
+  --yes
 ```
 
 ### CLI Flags Reference
@@ -146,6 +152,49 @@ Notes:
 - The CLI does not support `--agents` or `--max-turns`. Use the flags above.
 - At least two providers must be available. Set `OPENAI_API_KEY` and either `GOOGLE_API_KEY` or `GEMINI_API_KEY`.
 - Logs: `logs/conversation.jsonl`. Data/state: `data/` or the specified `--db`.
+
+### Viewing Conversation Results
+
+After a conversation completes, you can view the results in several ways:
+
+**1. Quick Summary (statistics only):**
+```bash
+python view_conversation.py summary
+```
+
+**2. View First N Messages:**
+```bash
+# First 3 messages:
+python view_conversation.py 3
+
+# First 5 messages:
+python view_conversation.py 5
+```
+
+**3. View Full Conversation:**
+```bash
+python view_conversation.py
+```
+
+**4. Query SQLite Directly:**
+```bash
+# Quick preview:
+sqlite3 shared_conversation.db "SELECT id, sender, substr(content, 1, 100) FROM messages;"
+
+# Full conversation:
+sqlite3 shared_conversation.db "SELECT sender, content FROM messages ORDER BY id;"
+
+# Message statistics:
+sqlite3 -header -column shared_conversation.db \
+  "SELECT id, sender, length(content) as chars FROM messages;"
+```
+
+**5. Web UI (visual interface with filtering):**
+```bash
+cd web
+uv run streamlit run app.py
+```
+Then open http://localhost:8501 to browse conversations with syntax highlighting.
 
 ### Recommended Invocation
 
