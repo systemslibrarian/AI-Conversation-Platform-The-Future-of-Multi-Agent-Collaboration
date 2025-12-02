@@ -106,7 +106,7 @@ uv run mypy .
 
 ### Step 6: Run a Test Conversation
 
-**Interactive Mode:**
+**Interactive Mode (recommended):**
 ```bash
 uv run aic-start
 ```
@@ -126,6 +126,29 @@ uv run aic-start \
   --db ./data/consciousness.db \
   --yes
 ```
+
+#### Alternative Invocation Methods
+
+If you prefer `pip` over `uv`, you can install the console script and run it directly:
+
+```bash
+# Editable install exposes the `aic-start` console script
+python -m pip install -e .
+
+# Run the CLI
+aic-start --agent1 claude --agent2 chatgpt --yes
+```
+
+You can also run the CLI module explicitly without installing the console script:
+
+```bash
+python -m cli.start_conversation --agent1 claude --agent2 chatgpt --yes
+```
+
+Notes:
+- Using `uv run aic-start` ensures the correct environment without globally installing.
+- If `aic-start` is not found, verify you ran `pip install -e .` or use `python -m cli.start_conversation`.
+- The flags are `--agent1`, `--agent2`, `--topic`, and `--turns` (not `--agents` or `--max-turns`).
 
 ### Step 7: Launch Streamlit UI (Optional)
 ```bash

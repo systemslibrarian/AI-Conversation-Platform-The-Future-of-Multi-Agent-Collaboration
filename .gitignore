@@ -91,3 +91,4 @@ dist/
 coverage/
 notebooks/
 scratchpad/
+logs/*.jsonl

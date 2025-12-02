@@ -147,6 +147,20 @@ Notes:
 - At least two providers must be available. Set `OPENAI_API_KEY` and either `GOOGLE_API_KEY` or `GEMINI_API_KEY`.
 - Logs: `logs/conversation.jsonl`. Data/state: `data/` or the specified `--db`.
 
+### Recommended Invocation
+
+- Preferred: use the installed console script (after `uv sync` or `pip install -e .`):
+```bash
+aic-start --agent1 gemini --agent2 chatgpt --model1 gemini-2.0-flash --model2 gpt-4o --topic "AI ethics in multi-agent systems" --turns 6 --yes
+```
+
+- Or run as a module from the repo root (no `sys.path` hacks needed):
+```bash
+python -m cli.start_conversation --agent1 gemini --agent2 chatgpt --model1 gemini-2.0-flash --model2 gpt-4o --topic "AI ethics in multi-agent systems" --turns 6 --yes
+```
+
+Note: running the file directly via `python cli/start_conversation.py` is supported, but using the console script or module form is more robust and CI-friendly.
+
 ### Troubleshooting
 
 - Invalid flags: Use `--agent1/--agent2`, `--model1/--model2`, `--turns`, `--yes`. The CLI does not support `--agents` or `--max-turns`.
