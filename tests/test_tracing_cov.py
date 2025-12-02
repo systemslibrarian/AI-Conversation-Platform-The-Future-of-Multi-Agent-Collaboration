@@ -3,9 +3,11 @@ import os
 from unittest.mock import patch
 from core import tracing
 
+
 def test_setup_tracing_runs():
     # setup_tracing() takes no arguments
     tracing.setup_tracing()
+
 
 def test_setup_tracing_with_endpoint():
     # Test with OTEL endpoint set
@@ -14,6 +16,7 @@ def test_setup_tracing_with_endpoint():
             with patch("core.tracing.OTLPSpanExporter"):
                 with patch("core.tracing.BatchSpanProcessor"):
                     tracing.setup_tracing()
+
 
 def test_get_tracer_returns_tracer():
     tracer = tracing.get_tracer()

@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from core.queue import SQLiteQueue
 
+
 @pytest.mark.asyncio
 async def test_queue_init_and_basic_ops():
     logger = logging.getLogger("test")
@@ -18,6 +19,7 @@ async def test_queue_init_and_basic_ops():
     finally:
         tmp_path.unlink(missing_ok=True)
         Path(f"{tmp_path}.lock").unlink(missing_ok=True)
+
 
 @pytest.mark.asyncio
 async def test_queue_termination_flags():
