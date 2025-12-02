@@ -3,6 +3,7 @@
 import pytest
 import logging
 from unittest.mock import AsyncMock, patch
+from agents.base import BaseAgent, CircuitBreaker
 
 
 @pytest.fixture
@@ -194,7 +195,6 @@ if __name__ == "__main__":
 
 
 # Additional comprehensive tests for base agent coverage
-from agents.base import BaseAgent, CircuitBreaker
 
 
 class MockQueue:
