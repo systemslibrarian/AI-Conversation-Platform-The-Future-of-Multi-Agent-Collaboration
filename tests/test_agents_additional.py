@@ -1,14 +1,16 @@
-"""Additional agent tests for Gemini, Grok, and Perplexity - FIXED"""
+"""Additional agent tests for Gemini, Grok, and Perplexity."""
 
-import pytest
 import logging
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from agents.base import BaseAgent, CircuitBreaker
 
 
 @pytest.fixture
 def mock_queue():
-    """Create a mock queue for testing"""
+    """Create a mock queue for testing."""
     q = AsyncMock()
     q.get_context.return_value = []
     q.get_last_sender.return_value = None
@@ -19,20 +21,22 @@ def mock_queue():
 
 @pytest.fixture
 def logger():
-    """Create test logger"""
+    """Create test logger."""
     return logging.getLogger("test")
 
 
 class DummyOpenAIClient:
-    """Mock OpenAI client for Grok and Perplexity tests"""
+    """Mock OpenAI client for Grok and Perplexity tests."""
 
     def __init__(self, *args, **kwargs):
         self.chat = type("Chat", (), {"completions": type("Comps", (), {})()})()
 
-        def _create(**kwargs):
+        def _create(**_kwargs):
             usage = type("Usage", (), {"total_tokens": 50})()
             choice = type(
-                "Choice", (), {"message": type("Msg", (), {"content": "Hi from model"})()}
+                "Choice",
+                (),
+                {"message": type("Msg", (), {"content": "Hi from model"})()},
             )()
             return type("Resp", (), {"choices": [choice], "usage": usage})()
 
@@ -40,25 +44,25 @@ class DummyOpenAIClient:
 
 
 class DummyGenAIModel:
-    """Mock Google Gemini model"""
+    """Mock Google Gemini model."""
 
     def __init__(self, *args, **kwargs):
         pass
 
-    def start_chat(self, history=None):
+    def start_chat(self, history=None):  # noqa: ARG002
         class Chat:
-            def send_message(self, last):
+            def send_message(self, last):  # noqa: ARG002
                 return type("Resp", (), {"text": "Gemini says hi"})()
 
         return Chat()
 
 
 class TestGrokAgent:
-    """Test Grok agent"""
+    """Test Grok agent."""
 
     @pytest.mark.asyncio
     async def test_grok_initialization(self, mock_queue, logger):
-        """Test Grok agent initialization"""
+        """Test Grok agent initialization."""
         from agents import GrokAgent
 
         with patch.dict("os.environ", {"XAI_API_KEY": "test-key"}):
@@ -79,7 +83,7 @@ class TestGrokAgent:
 
     @pytest.mark.asyncio
     async def test_grok_api_call(self, mock_queue, logger):
-        """Test Grok API call"""
+        """Test Grok API call."""
         from agents import GrokAgent
 
         with patch.dict("os.environ", {"XAI_API_KEY": "test-key"}):
@@ -93,17 +97,19 @@ class TestGrokAgent:
                     topic="test",
                     timeout_minutes=30,
                 )
-                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                content, tokens = await agent._call_api(
+                    [{"role": "user", "content": "hi"}],
+                )
                 assert content != ""
                 assert tokens > 0
 
 
 class TestPerplexityAgent:
-    """Test Perplexity agent"""
+    """Test Perplexity agent."""
 
     @pytest.mark.asyncio
     async def test_perplexity_initialization(self, mock_queue, logger):
-        """Test Perplexity agent initialization"""
+        """Test Perplexity agent initialization."""
         from agents import PerplexityAgent
 
         with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
@@ -124,7 +130,7 @@ class TestPerplexityAgent:
 
     @pytest.mark.asyncio
     async def test_perplexity_api_call(self, mock_queue, logger):
-        """Test Perplexity API call"""
+        """Test Perplexity API call."""
         from agents import PerplexityAgent
 
         with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
@@ -138,17 +144,19 @@ class TestPerplexityAgent:
                     topic="test",
                     timeout_minutes=30,
                 )
-                content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                content, tokens = await agent._call_api(
+                    [{"role": "user", "content": "hi"}],
+                )
                 assert content != ""
                 assert tokens > 0
 
 
 class TestGeminiAgent:
-    """Test Gemini agent"""
+    """Test Gemini agent."""
 
     @pytest.mark.asyncio
     async def test_gemini_initialization(self, mock_queue, logger):
-        """Test Gemini agent initialization"""
+        """Test Gemini agent initialization."""
         from agents import GeminiAgent
 
         with patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"}):
@@ -170,7 +178,7 @@ class TestGeminiAgent:
 
     @pytest.mark.asyncio
     async def test_gemini_api_call(self, mock_queue, logger):
-        """Test Gemini API call"""
+        """Test Gemini API call."""
         from agents import GeminiAgent
 
         with patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"}):
@@ -185,23 +193,18 @@ class TestGeminiAgent:
                         topic="test",
                         timeout_minutes=30,
                     )
-                    content, tokens = await agent._call_api([{"role": "user", "content": "hi"}])
+                    content, tokens = await agent._call_api(
+                        [{"role": "user", "content": "hi"}],
+                    )
                     assert "gemini" in content.lower()
                     assert tokens >= 0
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
-
-
-# Additional comprehensive tests for base agent coverage
-
-
 class MockQueue:
-    async def add_message(self, *a, **k):
+    async def add_message(self, *args, **kwargs):  # noqa: ARG002
         return {"id": 1}
 
-    async def get_context(self, *a, **k):
+    async def get_context(self, *args, **kwargs):  # noqa: ARG002
         return []
 
     async def get_last_sender(self):
@@ -210,7 +213,7 @@ class MockQueue:
     async def is_terminated(self):
         return False
 
-    async def mark_terminated(self, *a, **k):
+    async def mark_terminated(self, *args, **kwargs):  # noqa: ARG002
         pass
 
     async def get_termination_reason(self):
@@ -234,7 +237,7 @@ class TestAgentExtended(BaseAgent):
             agent_name=kwargs.get("agent_name"),
         )
 
-    async def _call_api(self, prompt: str) -> tuple:
+    async def _call_api(self, prompt):  # noqa: ARG002
         return "test response", 10
 
 
