@@ -191,3 +191,77 @@ class TestGeminiAgent:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# Additional comprehensive tests for base agent coverage
+from agents.base import BaseAgent, CircuitBreaker
+
+
+class MockQueue:
+    async def add_message(self, *a, **k):
+        return {"id": 1}
+    async def get_context(self, *a, **k):
+        return []
+    async def get_last_sender(self):
+        return "other"
+    async def is_terminated(self):
+        return False
+    async def mark_terminated(self, *a, **k):
+        pass
+    async def get_termination_reason(self):
+        return ""
+    async def load(self):
+        return {"messages": [], "metadata": {}}
+
+
+class TestAgentExtended(BaseAgent):
+    PROVIDER_NAME = "test"
+    DEFAULT_MODEL = "test-model"
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            queue=kwargs.get("queue", MockQueue()),
+            logger=kwargs.get("logger", logging.getLogger("test")),
+            model=kwargs.get("model", "test-model"),
+            topic=kwargs.get("topic", "test"),
+            timeout_minutes=kwargs.get("timeout_minutes", 5),
+            agent_name=kwargs.get("agent_name"),
+        )
+
+    async def _call_api(self, prompt: str) -> tuple:
+        return "test response", 10
+
+
+def test_circuit_breaker_timeout():
+    log = logging.getLogger("test")
+    cb = CircuitBreaker(log, "test", failure_threshold=3, timeout_seconds=1)
+    
+    for _ in range(3):
+        cb.record_failure()
+    
+    assert cb.is_open()
+    assert cb.state == "OPEN"
+
+
+def test_circuit_breaker_recovery():
+    log = logging.getLogger("test")
+    cb = CircuitBreaker(log, "test", failure_threshold=2)
+    
+    cb.record_failure()
+    cb.record_failure()
+    assert cb.state == "OPEN"
+    
+    cb.state = "HALF_OPEN"
+    cb.record_success()
+    assert cb.state == "CLOSED"
+
+
+@pytest.mark.asyncio
+async def test_agent_in_executor_with_args():
+    agent = TestAgentExtended()
+    
+    def add(a, b):
+        return a + b
+    
+    result = await agent._in_executor(add, 2, 3)
+    assert result == 5

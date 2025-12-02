@@ -1,5 +1,6 @@
 # Minimal tests to increase coverage for agents/base.py
 import logging
+from unittest.mock import patch, MagicMock
 from agents import base
 
 
@@ -84,3 +85,59 @@ def test_agent_recent_responses():
     agent.recent_responses.append("response1")
     agent.recent_responses.append("response2")
     assert len(agent.recent_responses) == 2
+
+
+def test_agent_circuit_breaker_half_open():
+    agent = DummyAgent()
+    # Open circuit
+    for _ in range(6):
+        agent.circuit_breaker.record_failure()
+    # Manually set to HALF_OPEN
+    agent.circuit_breaker.state = "HALF_OPEN"
+    assert not agent.circuit_breaker.is_open()
+
+
+def test_agent_scan_input_disabled():
+    agent = DummyAgent()
+    text, valid = agent._scan_input("test input")
+    assert text == "test input"
+    assert valid is True
+
+
+def test_agent_scan_output_disabled():
+    agent = DummyAgent()
+    result = agent._scan_output("test output")
+    assert result == "test output"
+
+
+def test_agent_llm_guard_enabled_import_error():
+    """Test LLM Guard ImportError path (lines 128-133)"""
+    with patch("agents.base.config.ENABLE_LLM_GUARD", True):
+        # The import will fail and agent should disable llm_guard
+        agent = DummyAgent()
+        assert not agent.llm_guard_enabled
+
+
+def test_agent_scan_input_with_llm_guard():
+    """Test _scan_input with LLM Guard enabled (lines 160-162)"""
+    agent = DummyAgent()
+    agent.llm_guard_enabled = True
+    agent.input_scanner = MagicMock()
+    # Simulate invalid input detection
+    agent.input_scanner.scan = MagicMock(return_value=("sanitized", False, 0.8))
+    
+    text, valid = agent._scan_input("malicious input")
+    assert text == "sanitized"
+    assert valid is False
+
+
+def test_agent_scan_output_with_llm_guard():
+    """Test _scan_output with LLM Guard enabled (lines 173-175)"""
+    agent = DummyAgent()
+    agent.llm_guard_enabled = True
+    agent.output_scanner = MagicMock()
+    # Simulate output scanning issue
+    agent.output_scanner.scan = MagicMock(return_value=("sanitized output", False, 0.7))
+    
+    result = agent._scan_output("problematic output")
+    assert result == "sanitized output"
