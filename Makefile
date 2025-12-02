@@ -1,4 +1,12 @@
-.PHONY: help setup lint test run streamlit docker-build docker-up docker-down clean
+
+lint:
+	ruff check . --fix
+
+test:
+	pytest
+
+ci:
+	ruff check . --fix && pytest.PHONY: help setup lint test run streamlit docker-build docker-up docker-down clean
 
 help:
 	@echo "Targets:"

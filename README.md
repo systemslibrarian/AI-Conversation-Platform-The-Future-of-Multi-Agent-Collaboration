@@ -161,11 +161,12 @@ python -m cli.start_conversation --agent1 gemini --agent2 chatgpt --model1 gemin
 
 Note: running the file directly via `python cli/start_conversation.py` is supported, but using the console script or module form is more robust and CI-friendly.
 
+
 ### Troubleshooting
 
 - Invalid flags: Use `--agent1/--agent2`, `--model1/--model2`, `--turns`, `--yes`. The CLI does not support `--agents` or `--max-turns`.
 - Missing async plugin: If tests fail with "async def functions are not natively supported", install `pytest-asyncio` and set `[tool.pytest.ini_options] asyncio_mode = "auto"` in `pyproject.toml`.
-- Pytest stdin capture: Interactive tests may error with "reading from stdin". Run with `-s` (e.g., `pytest -q -s tests/test_cli.py::test_main_argparse_error_exits_nonzero`).
+- Pytest stdin capture: If you see errors like `OSError: pytest: reading from stdin while output is captured!`, re-run with `-s` to disable output capture (e.g., `pytest -q -s`). This is required for CLI tests that prompt for input.
 - Gemini model 404: Use valid models like `gemini-2.0-flash`. The deprecated `gemini-pro` will 404.
 - Termination state: The queue preserves termination flags across runs; explicit resets are handled by application logic.
 
