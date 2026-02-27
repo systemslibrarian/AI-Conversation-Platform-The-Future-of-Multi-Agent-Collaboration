@@ -17,10 +17,12 @@ import pytest
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _reset_demo_globals():
     """Reset module-level globals between tests."""
     from web import demo
+
     demo._sessions.clear()
     demo._rate_limits.clear()
     yield
@@ -31,6 +33,7 @@ def _reset_demo_globals():
 @pytest.fixture
 def app():
     from web.demo import app as flask_app
+
     flask_app.config["TESTING"] = True
     return flask_app
 
@@ -43,6 +46,7 @@ def client(app):
 # ---------------------------------------------------------------------------
 # Security headers
 # ---------------------------------------------------------------------------
+
 
 class TestSecurityHeaders:
     def test_index_has_security_headers(self, client):
@@ -75,13 +79,16 @@ class TestSecurityHeaders:
 # Rate limiting
 # ---------------------------------------------------------------------------
 
+
 class TestRateLimiting:
     def test_within_limit_returns_true(self):
         from web.demo import _check_rate_limit
+
         assert _check_rate_limit("10.0.0.1") is True
 
     def test_exceeds_limit_returns_false(self):
         from web.demo import RATE_LIMIT_MAX_REQUESTS, _check_rate_limit
+
         ip = "10.0.0.2"
         for _ in range(RATE_LIMIT_MAX_REQUESTS):
             assert _check_rate_limit(ip) is True
@@ -90,6 +97,7 @@ class TestRateLimiting:
 
     def test_old_entries_are_pruned(self):
         from web.demo import RATE_LIMIT_MAX_REQUESTS, _check_rate_limit, _rate_limits
+
         ip = "10.0.0.3"
         # Fill up the limit
         for _ in range(RATE_LIMIT_MAX_REQUESTS):
@@ -105,6 +113,7 @@ class TestRateLimiting:
 
     def test_separate_ips_have_independent_limits(self):
         from web.demo import RATE_LIMIT_MAX_REQUESTS, _check_rate_limit
+
         ip_a, ip_b = "10.0.0.4", "10.0.0.5"
         for _ in range(RATE_LIMIT_MAX_REQUESTS):
             _check_rate_limit(ip_a)
@@ -116,6 +125,7 @@ class TestRateLimiting:
 # ---------------------------------------------------------------------------
 # Session cleanup
 # ---------------------------------------------------------------------------
+
 
 class TestSessionCleanup:
     def test_stale_sessions_are_removed(self):
@@ -169,6 +179,7 @@ class TestSessionCleanup:
 # Max sessions cap (tested via /api/start route)
 # ---------------------------------------------------------------------------
 
+
 class TestMaxSessions:
     def test_start_rejected_when_max_sessions_reached(self, client):
         from web.demo import MAX_SESSIONS, _sessions
@@ -194,6 +205,7 @@ class TestMaxSessions:
 # ---------------------------------------------------------------------------
 # Route smoke tests
 # ---------------------------------------------------------------------------
+
 
 class TestRoutes:
     def test_index_returns_200(self, client):

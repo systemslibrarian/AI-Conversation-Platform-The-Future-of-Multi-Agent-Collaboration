@@ -437,7 +437,11 @@ class BaseAgent(ABC):
             print("\n⚠ Stopped by user")
 
         except Exception as e:
-            log_event(self.logger, "agent_error", {"agent": self.agent_name, "error": mask_api_key(str(e))})
+            log_event(
+                self.logger,
+                "agent_error",
+                {"agent": self.agent_name, "error": mask_api_key(str(e))},
+            )
             print(f"\n✗ Fatal error: {e}")
             raise
 

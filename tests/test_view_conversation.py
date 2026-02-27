@@ -17,6 +17,7 @@ from view_conversation import view_conversation, view_summary
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def sample_db(tmp_path):
     """Create a minimal SQLite DB matching the app schema."""
@@ -31,12 +32,7 @@ def sample_db(tmp_path):
         "  timestamp TEXT DEFAULT (datetime('now'))"
         ")"
     )
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS metadata ("
-        "  key TEXT PRIMARY KEY,"
-        "  value TEXT"
-        ")"
-    )
+    cursor.execute("CREATE TABLE IF NOT EXISTS metadata (  key TEXT PRIMARY KEY,  value TEXT)")
 
     # Insert sample messages
     messages = [
@@ -75,12 +71,7 @@ def empty_db(tmp_path):
         "  timestamp TEXT DEFAULT (datetime('now'))"
         ")"
     )
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS metadata ("
-        "  key TEXT PRIMARY KEY,"
-        "  value TEXT"
-        ")"
-    )
+    cursor.execute("CREATE TABLE IF NOT EXISTS metadata (  key TEXT PRIMARY KEY,  value TEXT)")
     conn.commit()
     conn.close()
     return str(db_path)
@@ -89,6 +80,7 @@ def empty_db(tmp_path):
 # ---------------------------------------------------------------------------
 # view_conversation tests
 # ---------------------------------------------------------------------------
+
 
 class TestViewConversation:
     def test_displays_all_messages(self, sample_db, capsys):
@@ -132,6 +124,7 @@ class TestViewConversation:
 # ---------------------------------------------------------------------------
 # view_summary tests
 # ---------------------------------------------------------------------------
+
 
 class TestViewSummary:
     def test_displays_summary_stats(self, sample_db, capsys):

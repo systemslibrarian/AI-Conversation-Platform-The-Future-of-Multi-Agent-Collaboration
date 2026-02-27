@@ -338,17 +338,13 @@ class TestSecurityIntegration:
         assert "DROP TABLE" not in content
         assert "[FILTERED]" in content
 
-    async def test_generate_response_masks_api_key_in_error_log(
-        self, test_agent, mock_logger
-    ):
+    async def test_generate_response_masks_api_key_in_error_log(self, test_agent, mock_logger):
         """
         When _call_api raises an exception containing an API key,
         the logged error must have the key masked.
         """
         raw_key = "sk-ant-abcdefghijklmnopqrstuvwxyz1234567890"
-        test_agent._call_api.side_effect = Exception(
-            f"Authentication failed for key {raw_key}"
-        )
+        test_agent._call_api.side_effect = Exception(f"Authentication failed for key {raw_key}")
 
         with pytest.raises(Exception, match="Authentication failed"):
             await test_agent.generate_response()
@@ -369,16 +365,12 @@ class TestSecurityIntegration:
                     break
         assert found, "Expected api_error log entry with masked API key"
 
-    async def test_run_masks_api_key_in_fatal_error_log(
-        self, test_agent, mock_logger
-    ):
+    async def test_run_masks_api_key_in_fatal_error_log(self, test_agent, mock_logger):
         """
         The run() method's fatal error handler must also mask API keys.
         """
         raw_key = "sk-OPENAI1234567890abcdefghijklm"
-        test_agent.should_respond.side_effect = RuntimeError(
-            f"Connection error with {raw_key}"
-        )
+        test_agent.should_respond.side_effect = RuntimeError(f"Connection error with {raw_key}")
 
         with pytest.raises(RuntimeError):
             await test_agent.run(max_turns=10, partner_name="Partner")

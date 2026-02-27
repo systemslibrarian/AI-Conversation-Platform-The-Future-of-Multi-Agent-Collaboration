@@ -438,7 +438,9 @@ class RedisQueue:
         try:
             import redis.asyncio as redis
         except ImportError:
-            raise ImportError("redis package required for RedisQueue. Install: pip install redis") from None
+            raise ImportError(
+                "redis package required for RedisQueue. Install: pip install redis"
+            ) from None
 
         self.r = redis.from_url(url, decode_responses=True)
         self.logger = logger

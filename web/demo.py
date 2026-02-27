@@ -107,10 +107,7 @@ def _check_rate_limit(ip: str) -> bool:
 def _cleanup_stale_sessions():
     """Remove sessions older than SESSION_TTL."""
     now = time.time()
-    stale = [
-        sid for sid, s in _sessions.items()
-        if now - s.get("started_at", now) > SESSION_TTL
-    ]
+    stale = [sid for sid, s in _sessions.items() if now - s.get("started_at", now) > SESSION_TTL]
     for sid in stale:
         session = _sessions.pop(sid, None)
         if session:
@@ -131,9 +128,7 @@ class StreamingQueue:
         self._eq = event_queue
 
     # --- delegate everything to the real queue ---------------------------------
-    async def add_message(
-        self, sender: str, content: str, metadata: Optional[Dict] = None
-    ) -> Dict:
+    async def add_message(self, sender: str, content: str, metadata: Optional[Dict] = None) -> Dict:
         result = await self._sq.add_message(sender, content, metadata)
         # Push an event for the SSE stream
         self._eq.put(
@@ -180,9 +175,7 @@ def _run_conversation(session_id: str, session: Dict[str, Any]):
     try:
         loop.run_until_complete(_async_conversation(session_id, session))
     except Exception as exc:
-        session["event_queue"].put(
-            {"type": "error", "message": str(exc)}
-        )
+        session["event_queue"].put({"type": "error", "message": str(exc)})
     finally:
         session["event_queue"].put({"type": "done"})
         loop.close()
@@ -254,14 +247,12 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
     event_queue.put(
         {
             "type": "status",
-            "message": f"Starting conversation between {agent1.agent_name} and {agent2.agent_name} on \"{topic}\"...",
+            "message": f'Starting conversation between {agent1.agent_name} and {agent2.agent_name} on "{topic}"...',
         }
     )
 
     # Seed the conversation — agent1 goes first
-    event_queue.put(
-        {"type": "thinking", "agent": agent1.agent_name}
-    )
+    event_queue.put({"type": "thinking", "agent": agent1.agent_name})
 
     agent1.start_time = __import__("datetime").datetime.now()
     agent2.start_time = __import__("datetime").datetime.now()
@@ -287,9 +278,7 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
         try:
             content, tokens, response_time = await current.generate_response()
         except Exception as exc:
-            event_queue.put(
-                {"type": "error", "message": f"{current.agent_name} error: {exc}"}
-            )
+            event_queue.put({"type": "error", "message": f"{current.agent_name} error: {exc}"})
             break
 
         # Check similarity
@@ -364,7 +353,9 @@ def start_conversation():
     # Rate limiting
     client_ip = request.remote_addr or "unknown"
     if not _check_rate_limit(client_ip):
-        return jsonify({"error": "Rate limit exceeded. Please wait before starting another conversation."}), 429
+        return jsonify(
+            {"error": "Rate limit exceeded. Please wait before starting another conversation."}
+        ), 429
 
     # Enforce max concurrent sessions (clean stale first)
     _cleanup_stale_sessions()
@@ -444,7 +435,7 @@ def stream(session_id: str):
                 event = eq.get(timeout=60)
             except Empty:
                 # Send keepalive
-                yield "data: {\"type\": \"keepalive\"}\n\n"
+                yield 'data: {"type": "keepalive"}\n\n'
                 continue
 
             yield f"data: {json.dumps(event)}\n\n"
@@ -484,9 +475,9 @@ def stop_conversation(session_id: str):
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.getenv("DEMO_PORT", "5000"))
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  AI Conversation Platform — Web Demo")
     print(f"  http://localhost:{port}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
     host = os.getenv("DEMO_HOST", "127.0.0.1")
     app.run(host=host, port=port, debug=False, threaded=True)
