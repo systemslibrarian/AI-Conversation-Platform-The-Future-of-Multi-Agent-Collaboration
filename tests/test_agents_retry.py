@@ -1,6 +1,7 @@
 # tests/test_agents_retry.py
 from contextlib import ExitStack
-from unittest.mock import AsyncMock, MagicMock, patch, ANY
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
+
 import pytest
 
 # Provider patch targets used by your concrete agents

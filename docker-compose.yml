@@ -39,7 +39,7 @@ services:
       - conversation
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.53.0
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
@@ -49,10 +49,10 @@ services:
       - ui
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.1.0
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:?Set GF_ADMIN_PASSWORD in .env}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     ports:

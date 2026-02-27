@@ -1,10 +1,11 @@
 """Google Gemini Agent v5.0 with async support"""
 
-from typing import List, Dict, Tuple
 import asyncio
+from typing import Dict, List, Tuple
+
+from core.config import config
 
 from .base import BaseAgent
-from core.config import config
 
 
 class GeminiAgent(BaseAgent):
@@ -32,7 +33,7 @@ class GeminiAgent(BaseAgent):
             # --- END OF FIX ---
 
         except ImportError:
-            raise ImportError("Install: pip install google-generativeai")
+            raise ImportError("Install: pip install google-generativeai") from None
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Gemini API asynchronously"""
@@ -59,7 +60,7 @@ class GeminiAgent(BaseAgent):
         # --- END OF FIX ---
 
         # Run blocking API call in executor
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _sync_call():
             chat = client.start_chat(history=history)

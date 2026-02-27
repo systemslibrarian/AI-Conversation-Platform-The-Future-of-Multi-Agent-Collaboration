@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Conversation Platform — Live Demo</title>
+  <style>
+    /* ---- Reset & Base ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242836;
+      --border: #2e3345;
+      --text: #e4e6f0;
+      --text-muted: #8b8fa3;
+      --accent: #6366f1;
+      --accent-glow: rgba(99,102,241,.25);
+      --danger: #ef4444;
+      --success: #22c55e;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ---- Layout ---- */
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { color: var(--text-muted); margin-top: .4rem; font-size: .95rem; }
+
+    /* ---- Cards ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .card h2 .badge {
+      font-size: .7rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+
+    /* ---- Form Elements ---- */
+    label {
+      display: block;
+      font-size: .85rem;
+      color: var(--text-muted);
+      margin-bottom: .3rem;
+      font-weight: 500;
+    }
+
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: .65rem .85rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    select:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    select { cursor: pointer; appearance: auto; }
+
+    .row { display: flex; gap: 1rem; }
+    .row > * { flex: 1; }
+
+    .form-group { margin-bottom: 1rem; }
+
+    /* ---- Agent Selectors ---- */
+    .agent-select-wrapper {
+      position: relative;
+    }
+    .agent-icon {
+      position: absolute;
+      left: 10px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.2rem;
+      pointer-events: none;
+    }
+
+    /* ---- API Key Section ---- */
+    .api-keys-toggle {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      cursor: pointer;
+      color: var(--accent);
+      font-size: .85rem;
+      margin-bottom: .75rem;
+      user-select: none;
+    }
+    .api-keys-toggle:hover { text-decoration: underline; }
+    .api-keys-section { display: none; }
+    .api-keys-section.open { display: block; }
+    .key-input-wrap {
+      position: relative;
+    }
+    .key-input-wrap input { padding-right: 3rem; }
+    .key-toggle-vis {
+      position: absolute;
+      right: 8px; top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .demo-badge {
+      display: inline-block;
+      font-size: .7rem;
+      background: var(--success);
+      color: #000;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: .4rem;
+      font-weight: 600;
+    }
+    .no-key-badge {
+      display: inline-block;
+      font-size: .7rem;
+      background: var(--danger);
+      color: #fff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: .4rem;
+      font-weight: 600;
+    }
+
+    /* ---- Buttons ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      padding: .75rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-danger:hover { opacity: .85; }
+
+    .btn-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    /* ---- Conversation Area ---- */
+    #conversation-area { display: none; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .6rem 1rem;
+      background: var(--surface2);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+    .status-dot.ended { background: var(--text-muted); animation: none; }
+
+    #messages {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding-right: .5rem;
+      scroll-behavior: smooth;
+    }
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .msg {
+      max-width: 85%;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      position: relative;
+      animation: fadeSlideIn .4s ease;
+      line-height: 1.65;
+      font-size: .93rem;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.left {
+      align-self: flex-start;
+      background: var(--surface2);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.right {
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg .sender {
+      font-weight: 700;
+      font-size: .8rem;
+      margin-bottom: .35rem;
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+    }
+    .msg .meta {
+      font-size: .72rem;
+      color: var(--text-muted);
+      margin-top: .5rem;
+    }
+
+    /* Thinking indicator */
+    .thinking {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .6rem 1rem;
+      font-size: .85rem;
+      color: var(--text-muted);
+      animation: fadeSlideIn .3s ease;
+    }
+    .thinking .dots span {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: dotBounce 1.4s infinite ease-in-out;
+    }
+    .thinking .dots span:nth-child(2) { animation-delay: .2s; }
+    .thinking .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dotBounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+
+    /* ---- Footer ---- */
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: .8rem;
+      color: var(--text-muted);
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 640px) {
+      .row { flex-direction: column; gap: .75rem; }
+      .msg { max-width: 95%; }
+      header h1 { font-size: 1.5rem; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>🧠 AI Conversation Platform</h1>
+    <p>Watch two AI models debate any topic in real time</p>
+  </header>
+
+  <!-- Setup Card -->
+  <div class="card" id="setup-card">
+    <h2>⚙️ Configure Conversation</h2>
+
+    <!-- Agent Selection -->
+    <div class="row">
+      <div class="form-group">
+        <label for="agent1-select">First AI</label>
+        <select id="agent1-select">
+          {% for key, info in agents.items() %}
+          <option value="{{ key }}" {% if loop.first %}selected{% endif %}>
+            {{ info.icon }} {{ info.name }}{% if info.has_demo_key %} (demo key available){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="agent2-select">Second AI</label>
+        <select id="agent2-select">
+          {% for key, info in agents.items() %}
+          <option value="{{ key }}" {% if loop.index == 2 %}selected{% endif %}>
+            {{ info.icon }} {{ info.name }}{% if info.has_demo_key %} (demo key available){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Topic -->
+    <div class="form-group">
+      <label for="topic-input">Conversation Topic</label>
+      <input type="text" id="topic-input" placeholder="e.g. Should humanity colonize Mars?" maxlength="500">
+    </div>
+
+    <!-- Max Turns & Delay -->
+    <div class="row">
+      <div class="form-group">
+        <label for="turns-select">Turns (each AI speaks this many times)</label>
+        <select id="turns-select">
+          <option value="4">4 turns</option>
+          <option value="6" selected>6 turns</option>
+          <option value="8">8 turns</option>
+          <option value="10">10 turns</option>
+          <option value="12">12 turns</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="delay-select">Message Delay</label>
+        <select id="delay-select">
+          <option value="1">1 second</option>
+          <option value="2" selected>2 seconds (recommended)</option>
+          <option value="3">3 seconds</option>
+          <option value="5">5 seconds</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- API Keys -->
+    <div class="api-keys-toggle" onclick="toggleApiKeys()">
+      <span id="api-chevron">▶</span> API Keys
+      <span class="badge" style="background:var(--surface2); color:var(--text-muted);">optional if demo keys available</span>
+    </div>
+    <div class="api-keys-section" id="api-keys-section">
+      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:.75rem;">
+        Leave blank to use the demo API keys (limited budget). Enter your own keys for unrestricted use.
+      </p>
+      {% for key, info in agents.items() %}
+      <div class="form-group" id="key-group-{{ key }}">
+        <label>
+          {{ info.icon }} {{ info.name }}
+          {% if info.has_demo_key %}
+          <span class="demo-badge">DEMO KEY</span>
+          {% else %}
+          <span class="no-key-badge">KEY REQUIRED</span>
+          {% endif %}
+        </label>
+        <div class="key-input-wrap">
+          <input type="password" id="key-{{ key }}" placeholder="Paste your API key…"
+                 autocomplete="off" spellcheck="false">
+          <button class="key-toggle-vis" onclick="toggleKeyVis('{{ key }}')" type="button" title="Show/hide">👁</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Start Button -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="start-btn" onclick="startConversation()">
+        🚀 Start Conversation
+      </button>
+      <span id="start-error" style="color:var(--danger); font-size:.85rem;"></span>
+    </div>
+  </div>
+
+  <!-- Conversation Card -->
+  <div id="conversation-area">
+    <div class="card">
+      <h2>
+        💬 Live Conversation
+        <span class="badge" id="turn-badge">Turn 0</span>
+      </h2>
+
+      <div class="status-bar">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting…</span>
+      </div>
+
+      <div id="messages"></div>
+
+      <div class="btn-row" style="margin-top:1.25rem;">
+        <button class="btn btn-danger" id="stop-btn" onclick="stopConversation()">⏹ Stop</button>
+        <button class="btn btn-primary" id="new-btn" onclick="resetUI()" style="display:none;">🔄 New Conversation</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    AI Conversation Platform v5.0 &mdash; Multi-Agent Collaboration Demo
+  </div>
+</div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+let sessionId = null;
+let eventSource = null;
+let turnCount = 0;
+
+// Agent metadata from server
+const AGENTS = {{ agents | tojson }};
+
+// ============================================================
+// UI Helpers
+// ============================================================
+function toggleApiKeys() {
+  const sec = document.getElementById('api-keys-section');
+  const chev = document.getElementById('api-chevron');
+  const isOpen = sec.classList.toggle('open');
+  chev.textContent = isOpen ? '▼' : '▶';
+}
+
+function toggleKeyVis(agent) {
+  const inp = document.getElementById('key-' + agent);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function setStatus(text, alive) {
+  document.getElementById('status-text').textContent = text;
+  const dot = document.getElementById('status-dot');
+  if (alive) { dot.classList.remove('ended'); } else { dot.classList.add('ended'); }
+}
+
+function scrollToBottom() {
+  const el = document.getElementById('messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function addThinking(agent) {
+  removeThinking();
+  const div = document.createElement('div');
+  div.className = 'thinking';
+  div.id = 'thinking-indicator';
+  const info = Object.values(AGENTS).find(a => a.name === agent) || {};
+  div.innerHTML = `<strong>${info.icon || '🤖'} ${agent}</strong> is thinking <span class="dots"><span></span><span></span><span></span></span>`;
+  document.getElementById('messages').appendChild(div);
+  scrollToBottom();
+}
+
+function removeThinking() {
+  const el = document.getElementById('thinking-indicator');
+  if (el) el.remove();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function addMessage(sender, content, metadata) {
+  removeThinking();
+  turnCount++;
+  document.getElementById('turn-badge').textContent = 'Turn ' + turnCount;
+
+  const agent1Name = AGENTS[document.getElementById('agent1-select').value]?.name;
+  const isLeft = (sender === agent1Name);
+
+  // Find agent info by name
+  let agentInfo = null;
+  for (const [k, v] of Object.entries(AGENTS)) {
+    if (v.name === sender) { agentInfo = v; break; }
+  }
+  const icon = agentInfo?.icon || '🤖';
+  const color = agentInfo?.color || '#666';
+
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isLeft ? 'left' : 'right');
+  if (!isLeft) {
+    div.style.background = color + '18';
+    div.style.borderLeft = `3px solid ${color}`;
+  }
+
+  // Build message safely — escape all LLM output to prevent XSS
+  const senderDiv = document.createElement('div');
+  senderDiv.className = 'sender';
+  senderDiv.style.color = color;
+  senderDiv.textContent = `${icon} ${sender}`;
+  div.appendChild(senderDiv);
+
+  // Render content as safe text with paragraph breaks
+  const escaped = escapeHtml(content);
+  const formatted = escaped.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+  const contentEl = document.createElement('div');
+  contentEl.innerHTML = '<p>' + formatted + '</p>';
+  div.appendChild(contentEl);
+
+  if (metadata && metadata.tokens) {
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'meta';
+    metaDiv.textContent = `${metadata.model || ''} · ${metadata.tokens} tokens · ${metadata.response_time || '?'}s`;
+    div.appendChild(metaDiv);
+  }
+
+  document.getElementById('messages').appendChild(div);
+  scrollToBottom();
+}
+
+function addSystemMessage(text, isError) {
+  removeThinking();
+  const div = document.createElement('div');
+  div.className = 'msg left';
+  div.style.background = isError ? 'rgba(239,68,68,.12)' : 'rgba(99,102,241,.1)';
+  div.style.borderLeft = `3px solid ${isError ? 'var(--danger)' : 'var(--accent)'}`;
+  div.style.maxWidth = '100%';
+
+  const senderDiv = document.createElement('div');
+  senderDiv.className = 'sender';
+  senderDiv.style.color = isError ? 'var(--danger)' : 'var(--accent)';
+  senderDiv.textContent = (isError ? '❌' : 'ℹ️') + ' System';
+  div.appendChild(senderDiv);
+
+  const p = document.createElement('p');
+  p.textContent = text;
+  div.appendChild(p);
+
+  document.getElementById('messages').appendChild(div);
+  scrollToBottom();
+}
+
+// ============================================================
+// Conversation Control
+// ============================================================
+async function startConversation() {
+  const agent1 = document.getElementById('agent1-select').value;
+  const agent2 = document.getElementById('agent2-select').value;
+  const topic = document.getElementById('topic-input').value.trim();
+  const maxTurns = parseInt(document.getElementById('turns-select').value);
+  const delay = parseFloat(document.getElementById('delay-select').value);
+  const errEl = document.getElementById('start-error');
+  errEl.textContent = '';
+
+  if (!topic) {
+    errEl.textContent = 'Please enter a conversation topic.';
+    return;
+  }
+  if (agent1 === agent2) {
+    // Allow it, but warn
+  }
+
+  // Collect API keys
+  const apiKeys = {};
+  for (const k of Object.keys(AGENTS)) {
+    const val = document.getElementById('key-' + k)?.value?.trim();
+    if (val) apiKeys[k] = val;
+  }
+
+  const startBtn = document.getElementById('start-btn');
+  startBtn.disabled = true;
+  startBtn.innerHTML = '⏳ Starting…';
+
+  try {
+    const resp = await fetch('/api/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent1, agent2, topic, max_turns: maxTurns, delay, api_keys: apiKeys }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      errEl.textContent = data.error || 'Failed to start conversation.';
+      startBtn.disabled = false;
+      startBtn.innerHTML = '🚀 Start Conversation';
+      return;
+    }
+
+    sessionId = data.session_id;
+    turnCount = 0;
+
+    // Switch UI
+    document.getElementById('setup-card').style.display = 'none';
+    document.getElementById('conversation-area').style.display = 'block';
+    document.getElementById('messages').innerHTML = '';
+    document.getElementById('stop-btn').style.display = '';
+    document.getElementById('new-btn').style.display = 'none';
+    document.getElementById('turn-badge').textContent = 'Turn 0';
+    setStatus('Connected — waiting for first response…', true);
+
+    // Connect SSE
+    connectSSE(sessionId);
+
+  } catch (err) {
+    errEl.textContent = 'Network error: ' + err.message;
+    startBtn.disabled = false;
+    startBtn.innerHTML = '🚀 Start Conversation';
+  }
+}
+
+function connectSSE(sid) {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource('/api/stream/' + sid);
+
+  eventSource.onmessage = (e) => {
+    let event;
+    try { event = JSON.parse(e.data); } catch { return; }
+
+    switch (event.type) {
+      case 'message':
+        setStatus('Conversation in progress…', true);
+        addMessage(event.sender, event.content, event.metadata);
+        break;
+
+      case 'thinking':
+        setStatus(`${event.agent} is thinking…`, true);
+        addThinking(event.agent);
+        break;
+
+      case 'status':
+        setStatus(event.message, true);
+        addSystemMessage(event.message, false);
+        break;
+
+      case 'terminated':
+        setStatus('Conversation ended: ' + (event.reason || 'completed'), false);
+        addSystemMessage('Conversation ended — ' + (event.reason || 'completed').replace(/_/g, ' '), false);
+        endConversation();
+        break;
+
+      case 'error':
+        setStatus('Error occurred', false);
+        addSystemMessage(event.message, true);
+        endConversation();
+        break;
+
+      case 'done':
+        if (eventSource) eventSource.close();
+        endConversation();
+        break;
+
+      case 'keepalive':
+        break;
+    }
+  };
+
+  eventSource.onerror = () => {
+    setStatus('Connection lost', false);
+    endConversation();
+  };
+}
+
+async function stopConversation() {
+  if (!sessionId) return;
+  try {
+    await fetch('/api/stop/' + sessionId, { method: 'POST' });
+  } catch { /* ignore */ }
+  setStatus('Stopping…', false);
+}
+
+function endConversation() {
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('new-btn').style.display = '';
+  removeThinking();
+}
+
+function resetUI() {
+  sessionId = null;
+  turnCount = 0;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  document.getElementById('conversation-area').style.display = 'none';
+  document.getElementById('setup-card').style.display = '';
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('start-btn').innerHTML = '🚀 Start Conversation';
+  document.getElementById('start-error').textContent = '';
+  document.getElementById('messages').innerHTML = '';
+}
+
+// ============================================================
+// Init — auto-open api keys if any agent needs a key
+// ============================================================
+(function init() {
+  const needsKey = Object.values(AGENTS).some(a => !a.has_demo_key);
+  if (needsKey) {
+    document.getElementById('api-keys-section').classList.add('open');
+    document.getElementById('api-chevron').textContent = '▼';
+  }
+})();
+</script>
+</body>
+</html>

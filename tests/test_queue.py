@@ -11,8 +11,8 @@ Target: 100% coverage for core/queue.py
 try:
     import redis.asyncio  # type: ignore
 except Exception:  # pragma: no cover - only used when redis isn't available
-    import types
     import sys
+    import types
 
     class _DummyRedis:
         async def xadd(self, *args, **kwargs):
@@ -57,19 +57,20 @@ except Exception:  # pragma: no cover - only used when redis isn't available
     sys.modules["redis.asyncio"] = shim_mod
 # --- End shim ---
 
-import pytest
 import asyncio
-import tempfile
-import json
-from pathlib import Path
-import logging
-from unittest.mock import AsyncMock, patch, MagicMock
 import builtins
+import json
+import logging
 import sqlite3
+import tempfile
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from filelock import Timeout
 
 # Import exception types with a safe fallback so test expectations don't break
-from core.queue import SQLiteQueue, RedisQueue, create_queue, DatabaseError
+from core.queue import DatabaseError, RedisQueue, SQLiteQueue, create_queue
 
 try:
     from core.queue import ValidationError  # preferred if your code defines it

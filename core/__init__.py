@@ -1,9 +1,9 @@
 """Core functionality for AI conversation platform."""
 
-from .config import config, Config
-from .queue import SQLiteQueue, RedisQueue, QueueInterface, create_queue
-from .metrics import record_call, record_latency, record_error, record_tokens
-from .common import setup_logging, log_event, simple_similarity, add_jitter
+from .common import add_jitter, log_event, setup_logging, simple_similarity
+from .config import Config, config
+from .metrics import record_call, record_error, record_latency, record_tokens
+from .queue import QueueInterface, RedisQueue, SQLiteQueue, create_queue
 
 __all__ = [
     "config",

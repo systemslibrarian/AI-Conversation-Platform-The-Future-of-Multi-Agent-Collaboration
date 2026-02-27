@@ -11,13 +11,15 @@ dependencies = [
   "openai>=1.45.0",
   "anthropic>=0.39.0",
   "google-generativeai>=0.7.2",
-  "filelock>=3.14.0",
+  "filelock>=3.20.3",
+  "flask>=3.1.0",
   "prometheus_client>=0.20.0",
   "opentelemetry-sdk>=1.27.0",
   "opentelemetry-exporter-otlp-proto-http>=1.27.0",
   "python-dotenv>=1.0.1",
   "pydantic>=2.8.2",
   "streamlit>=1.37.0",
+  "urllib3>=2.6.3",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +43,25 @@ aic-start = "cli.start_conversation:main"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "S", "B", "I"]
+ignore = [
+    "S101",   # allow assert in tests
+    "S105",   # hardcoded-password-string (false positive on template vars)
+    "S110",   # try-except-pass (intentional silence in resilience paths)
+    "S112",   # try-except-continue (intentional retry loops)
+    "S311",   # non-cryptographic random (used for jitter, not security)
+    "S324",   # insecure hash (not used for security purposes)
+    "S603",   # subprocess without shell
+    "S607",   # partial executable path
+    "E501",   # line-too-long (handled by formatter)
+    "B017",   # assert-raises-exception (test patterns)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"web/demo.py" = ["E402"]  # sys.path modification before imports is intentional
+"agents/base.py" = ["B024"]  # BaseAgent uses duck-typing via _call_api, not @abstractmethod
 
 
 [tool.setuptools.packages.find]

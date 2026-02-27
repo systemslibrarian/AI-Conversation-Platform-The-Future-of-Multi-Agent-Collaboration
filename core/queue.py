@@ -5,16 +5,17 @@
 - Comprehensive error handling
 """
 
-import sqlite3
-import json
-import time
 import asyncio
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Protocol, Tuple
+import json
+import sqlite3
+import time
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Protocol, Tuple
+
 from filelock import FileLock, Timeout
 
-from .common import log_event, hash_message
+from .common import hash_message, log_event
 from .config import config
 
 
@@ -202,7 +203,7 @@ class SQLiteQueue:
 
                     # Update total turns
                     conn.execute("""
-                        UPDATE metadata 
+                        UPDATE metadata
                         SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)
                         WHERE key='total_turns'
                     """)
@@ -211,7 +212,7 @@ class SQLiteQueue:
                     sender_key = f"{sender.lower()}_turns"
                     conn.execute(
                         """
-                        UPDATE metadata 
+                        UPDATE metadata
                         SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)
                         WHERE key=?
                     """,
@@ -222,7 +223,7 @@ class SQLiteQueue:
                     if metadata and "tokens" in metadata:
                         conn.execute(
                             """
-                            UPDATE metadata 
+                            UPDATE metadata
                             SET value = CAST(CAST(value AS INTEGER) + ? AS TEXT)
                             WHERE key='total_tokens'
                         """,
@@ -241,13 +242,13 @@ class SQLiteQueue:
 
                 except Exception as e:
                     conn.rollback()
-                    raise DatabaseError(f"Failed to add message: {e}")
+                    raise DatabaseError(f"Failed to add message: {e}") from e
                 finally:
                     conn.close()
 
         except Timeout:
             log_event(self.logger, "lock_timeout", {"action": "add_message"})
-            raise DatabaseError("Failed to acquire lock")
+            raise DatabaseError("Failed to acquire lock") from None
 
     async def get_context(self, max_messages: int = 10) -> List[Dict[str, Any]]:
         """Get recent conversation context"""
@@ -437,7 +438,7 @@ class RedisQueue:
         try:
             import redis.asyncio as redis
         except ImportError:
-            raise ImportError("redis package required for RedisQueue. Install: pip install redis")
+            raise ImportError("redis package required for RedisQueue. Install: pip install redis") from None
 
         self.r = redis.from_url(url, decode_responses=True)
         self.logger = logger

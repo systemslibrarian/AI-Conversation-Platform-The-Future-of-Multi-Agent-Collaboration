@@ -175,7 +175,7 @@ class ClaudeAgent(BaseAgent):
         super().__init__(*args, **kwargs)
     
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         response = await loop.run_in_executor(
             None,
             lambda: self.client.messages.create(...)
@@ -438,7 +438,7 @@ All AI provider API calls are non-blocking:
 
 ```python
 async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     
     # Run blocking SDK call in thread pool executor
     response = await loop.run_in_executor(

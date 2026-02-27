@@ -1,10 +1,11 @@
 """xAI Grok Agent v5.0 with async support"""
 
-from typing import List, Dict, Tuple
 import asyncio
+from typing import Dict, List, Tuple
+
+from core.config import config
 
 from .base import BaseAgent
-from core.config import config
 
 
 class GrokAgent(BaseAgent):
@@ -25,7 +26,7 @@ class GrokAgent(BaseAgent):
             # 2. Use the local 'api_key' variable to init the client.
             self.client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
         except ImportError:
-            raise ImportError("Install: pip install openai")
+            raise ImportError("Install: pip install openai") from None
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Grok API asynchronously"""
@@ -39,7 +40,7 @@ class GrokAgent(BaseAgent):
         # --- END OF FIX ---
 
         # Run blocking API call in executor
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         response = await loop.run_in_executor(
             None,
             lambda: client.chat.completions.create(

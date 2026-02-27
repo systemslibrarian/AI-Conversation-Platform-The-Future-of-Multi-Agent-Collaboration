@@ -1,7 +1,8 @@
 # Tests for provider initialization to cover lines 27-30
-import pytest
 import logging
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture

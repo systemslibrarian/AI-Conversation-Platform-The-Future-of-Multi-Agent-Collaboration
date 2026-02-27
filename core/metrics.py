@@ -1,9 +1,10 @@
 """Prometheus metrics collection v5.0"""
 
-from prometheus_client import Counter, Histogram, Gauge, start_http_server
-import os
 import logging
+import os
 from typing import Optional
+
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 logger = logging.getLogger(__name__)
 

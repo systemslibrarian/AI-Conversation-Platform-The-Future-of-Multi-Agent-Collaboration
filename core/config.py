@@ -1,9 +1,9 @@
 """Centralized Configuration v5.0 with Pydantic validation"""
 
-from dotenv import load_dotenv
 import os
-from pydantic import BaseModel, Field, ValidationError
-from pydantic import ConfigDict
+
+from dotenv import load_dotenv
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 load_dotenv()
 
@@ -105,7 +105,7 @@ class Config:
             for key, value in validated.model_dump().items():
                 setattr(cls, key, value)
         except ValidationError as e:
-            raise ValueError(f"Invalid configuration: {e}")
+            raise ValueError(f"Invalid configuration: {e}") from e
 
 
 # Export singleton instance
@@ -117,4 +117,4 @@ try:
 except ValueError as e:
     import warnings
 
-    warnings.warn(f"Configuration validation warning: {e}")
+    warnings.warn(f"Configuration validation warning: {e}", stacklevel=2)

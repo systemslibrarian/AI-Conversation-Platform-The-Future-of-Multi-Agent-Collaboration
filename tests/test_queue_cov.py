@@ -1,8 +1,10 @@
 # Minimal tests to increase coverage for core/queue.py
-import pytest
 import logging
 import tempfile
 from pathlib import Path
+
+import pytest
+
 from core.queue import SQLiteQueue
 
 

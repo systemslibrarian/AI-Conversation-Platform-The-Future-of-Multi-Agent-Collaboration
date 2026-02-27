@@ -1,6 +1,7 @@
 # Minimal tests to increase coverage for agents/base.py
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from agents import base
 
 

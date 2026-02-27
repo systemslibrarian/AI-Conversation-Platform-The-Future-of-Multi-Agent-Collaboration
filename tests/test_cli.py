@@ -1,12 +1,12 @@
 # tests/test_cli.py
 import asyncio
+import builtins
+import sys
 from argparse import Namespace
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
-import builtins
 import pytest
-import sys
 
 
 @contextmanager
@@ -314,15 +314,19 @@ def test_main_parses_args_and_calls_asyncio_run():
 
 def test_main_argparse_error_exits_nonzero():
     # Pass invalid value for --turns so argparse should exit with nonzero code
+    def _exit_side_effect(code=0):
+        raise SystemExit(code)
+
     with (
         patch.object(sys, "argv", ["aic-start", "--turns", "not_an_int"]),
-        patch.object(sys, "exit") as mock_exit,
+        patch.object(sys, "exit", side_effect=_exit_side_effect),
+        pytest.raises(SystemExit) as exc_info,
     ):
         from cli.start_conversation import main
 
         main()
-        # argparse typically exits nonzero; accept any non-0 to avoid coupling to exact code
-        assert mock_exit.call_args and mock_exit.call_args[0][0] != 0
+    # argparse should have exited with a nonzero code (typically 2)
+    assert exc_info.value.code != 0
 
 
 def test_main_handles_keyboard_interrupt():

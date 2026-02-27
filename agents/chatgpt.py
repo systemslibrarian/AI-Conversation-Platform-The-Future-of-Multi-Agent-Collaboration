@@ -1,10 +1,11 @@
 """OpenAI ChatGPT Agent v5.0 with async support"""
 
-from typing import List, Dict, Tuple
 import asyncio
+from typing import Dict, List, Tuple
+
+from core.config import config
 
 from .base import BaseAgent
-from core.config import config
 
 
 class ChatGPTAgent(BaseAgent):
@@ -27,7 +28,7 @@ class ChatGPTAgent(BaseAgent):
             # 2. Use the local 'api_key' variable to init the client.
             self.client = OpenAI(api_key=api_key)
         except ImportError:
-            raise ImportError("Install: pip install openai")
+            raise ImportError("Install: pip install openai") from None
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call OpenAI API asynchronously"""
@@ -41,7 +42,7 @@ class ChatGPTAgent(BaseAgent):
         # --- END OF FIX ---
 
         # Run blocking API call in executor
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         response = await loop.run_in_executor(
             None,
             lambda: client.chat.completions.create(

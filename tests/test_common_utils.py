@@ -1,4 +1,4 @@
-from core.common import mask_api_key, sanitize_content, simple_similarity, add_jitter
+from core.common import add_jitter, mask_api_key, sanitize_content, simple_similarity
 
 
 def test_mask_api_key():

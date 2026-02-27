@@ -1,10 +1,11 @@
 """Anthropic Claude Agent v5.0 with async support"""
 
-from typing import List, Dict, Tuple
 import asyncio
+from typing import Dict, List, Tuple
+
+from core.config import config
 
 from .base import BaseAgent
-from core.config import config
 
 
 class ClaudeAgent(BaseAgent):
@@ -25,7 +26,7 @@ class ClaudeAgent(BaseAgent):
             # 2. Use the local 'api_key' variable to init the client.
             self.client = anthropic.Anthropic(api_key=api_key)
         except ImportError:
-            raise ImportError("Install: pip install anthropic")
+            raise ImportError("Install: pip install anthropic") from None
 
     async def _call_api(self, messages: List[Dict]) -> Tuple[str, int]:
         """Call Claude API asynchronously"""
@@ -39,7 +40,7 @@ class ClaudeAgent(BaseAgent):
         # --- END OF FIX ---
 
         # Run blocking API call in executor
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         response = await loop.run_in_executor(
             None,
             lambda: client.messages.create(

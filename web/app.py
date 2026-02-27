@@ -6,15 +6,14 @@ Secure: path validation and input sanitization, mypy-friendly.
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import streamlit as st
-import sqlite3
-
 # Bleach stubs may be missing in some environments; ignore import typing error.
 import bleach  # type: ignore[import-untyped]
+import streamlit as st
 
 from core.config import config
 
@@ -48,7 +47,7 @@ def validate_db_path(db_file: str) -> Path:
         try:
             db_path = candidate.resolve()
         except (ValueError, OSError) as e:
-            raise ValueError(f"Invalid path: {e}")
+            raise ValueError(f"Invalid path: {e}") from e
 
     try:
         db_path.relative_to(allowed_dir)
@@ -59,9 +58,9 @@ def validate_db_path(db_file: str) -> Path:
             try:
                 db_path.relative_to(allowed_dir)
             except ValueError:
-                raise ValueError("Database path must be within DATA_DIR")
+                raise ValueError("Database path must be within DATA_DIR") from None
         else:
-            raise ValueError("Database path must be within DATA_DIR")
+            raise ValueError("Database path must be within DATA_DIR") from None
 
     if db_path.suffix.lower() != ".db":
         raise ValueError("Database file must have .db extension")

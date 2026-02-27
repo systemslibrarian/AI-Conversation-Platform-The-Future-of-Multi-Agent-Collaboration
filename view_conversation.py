@@ -26,10 +26,12 @@ def view_conversation(db_path="shared_conversation.db", limit=None):
 
     # Get messages
     query = "SELECT id, sender, content, timestamp FROM messages ORDER BY id"
+    params: list = []
     if limit:
-        query += f" LIMIT {limit}"
+        query += " LIMIT ?"
+        params.append(int(limit))
 
-    cursor.execute(query)
+    cursor.execute(query, params)
     messages = cursor.fetchall()
 
     print(f"\n{'=' * 80}")
@@ -62,8 +64,8 @@ def view_summary(db_path="shared_conversation.db"):
 
     # Message count by sender
     cursor.execute("""
-        SELECT sender, COUNT(*), SUM(LENGTH(content)) 
-        FROM messages 
+        SELECT sender, COUNT(*), SUM(LENGTH(content))
+        FROM messages
         GROUP BY sender
     """)
     stats = cursor.fetchall()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import os
-from typing import Dict, List, Type, Any, Tuple, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
 from .base import BaseAgent  # Safe/light to import eagerly
 

@@ -1,12 +1,13 @@
 """Comprehensive agent tests for AI Conversation Platform v5.0 - FIXED"""
 
-import pytest
+import importlib.util
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
-import importlib.util
+
+import pytest
 
 # We patch 'agents.base.config' so we must import from agents.base
-from agents import ClaudeAgent, ChatGPTAgent
+from agents import ChatGPTAgent, ClaudeAgent
 from agents.base import CircuitBreaker
 
 
