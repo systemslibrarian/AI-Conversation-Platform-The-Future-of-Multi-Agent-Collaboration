@@ -42,6 +42,8 @@
 
 **The AI Conversation Platform** is a production-ready, enterprise-grade system that enables **autonomous AI-to-AI conversations**. Watch different AI models debate, collaborate, and interact in real-time — completely unscripted.
 
+> 🌐 **[View Live Demo Site](https://systemslibrarian.github.io/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/)** — See the platform overview and quick start guide.
+
 ### Key Features
 
 - **🤝 Multi-Agent Orchestration** — Claude, ChatGPT, Gemini, Grok, Perplexity in dynamic conversations
@@ -52,7 +54,7 @@
 - **🧪 Comprehensive Testing** — 90%+ code coverage, pytest with async support
 - **🐳 Container-Ready** — Docker Compose with health checks and orchestration
 - **💻 Developer-Friendly** — Modern tooling (uv, Ruff, mypy), pre-commit hooks, CI/CD
-
+- **🌐 Web Demo** — Interactive Flask-based demo with real-time SSE streaming
 
 ---
 
@@ -101,11 +103,20 @@ docker compose up --build
 ### 5) Access services
 | Service | URL | Description |
 |---|---|---|
+| **Web Demo** | http://localhost:5000 | Interactive AI conversation demo |
 | Streamlit UI | http://localhost:8501 | View/search conversations |
 | Prometheus | http://localhost:9090 | Metrics |
 | Grafana | http://localhost:3000 | Dashboards (admin/admin) |
 
-### 6) Export conversations
+### 6) Run the Interactive Web Demo
+```bash
+cd web
+python demo.py
+# Open http://localhost:5000 in your browser
+```
+The web demo lets you configure two AI agents, set a topic, and watch them debate in real-time with SSE streaming.
+
+### 7) Export conversations
 Use the Streamlit UI **📥 Export to JSON**.
 
 ### 7) Stop
@@ -283,6 +294,29 @@ Core docs live in **/docs**:
 - **Contributing / Code of Conduct**: `docs/CONTRIBUTING.md`, `docs/CODE_OF_CONDUCT.md`
 - **Docs Hub**: `docs/docs_README.md`
 - **Docs Summary**: `docs/DOCUMENTATION_SUMMARY.md`
+- **GitHub Pages Site**: `docs/index.html` — Landing page for the project
+
+---
+
+## 🌐 GitHub Pages Setup
+
+The project includes a static landing page at `docs/index.html` deployed automatically via GitHub Actions.
+
+### Activating GitHub Pages
+
+1. Go to your repository on GitHub
+2. Click **Settings** → **Pages** (in the left sidebar under "Code and automation")
+3. Under **Source**, select **GitHub Actions**
+4. The deployment workflow (`.github/workflows/pages.yml`) will automatically deploy on pushes to `main`
+
+Your site will be available at:
+```
+https://systemslibrarian.github.io/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/
+```
+
+To trigger a manual deployment, go to **Actions** → **Deploy GitHub Pages** → **Run workflow**.
+
+The landing page showcases the platform features, provides a demo preview, and links to the quick start guide.
 
 ---
 

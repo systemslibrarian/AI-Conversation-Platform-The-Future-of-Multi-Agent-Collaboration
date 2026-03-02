@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Conversation Platform — Multi-Agent Collaboration</title>
+  <meta name="description" content="An enterprise-grade platform enabling autonomous AI-to-AI conversations between Claude, ChatGPT, Gemini, Grok, and Perplexity.">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242836;
+      --border: #2e3345;
+      --text: #e4e6f0;
+      --text-muted: #8b8fa3;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99,102,241,.25);
+      --purple: #a855f7;
+      --pink: #ec4899;
+      --green: #22c55e;
+      --orange: #f97316;
+      --cyan: #06b6d4;
+      --danger: #ef4444;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    a:hover { color: #c7d2fe; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* ---- Hero ---- */
+    .hero {
+      text-align: center;
+      padding: 5rem 1.5rem 4rem;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-block;
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--accent-light);
+      padding: .35rem 1rem;
+      border-radius: 99px;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.25rem;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 2rem;
+    }
+
+    .btn-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 2rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); color: #fff; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* ---- Agent Showcase ---- */
+    .agents-strip {
+      display: flex;
+      justify-content: center;
+      gap: .75rem;
+      margin: 2.5rem 0 0;
+      flex-wrap: wrap;
+    }
+    .agent-chip {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: .45rem 1rem;
+      font-size: .9rem;
+      font-weight: 500;
+      transition: border-color .2s;
+    }
+    .agent-chip:hover { border-color: var(--accent); }
+
+    /* ---- Demo Preview ---- */
+    .demo-section {
+      padding: 4rem 0;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .section-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .demo-window {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,.4);
+    }
+    .demo-titlebar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .75rem 1rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .demo-dot.r { background: #ef4444; }
+    .demo-dot.y { background: #eab308; }
+    .demo-dot.g { background: #22c55e; }
+    .demo-titlebar span {
+      margin-left: auto;
+      font-size: .78rem;
+      color: var(--text-muted);
+    }
+    .demo-body { padding: 1.5rem; }
+
+    .demo-msg {
+      max-width: 80%;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      animation: fadeSlide .5s ease;
+      font-size: .92rem;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .demo-msg.left {
+      background: var(--surface2);
+      border-bottom-left-radius: 4px;
+    }
+    .demo-msg.right {
+      margin-left: auto;
+      background: rgba(99,102,241,.12);
+      border-left: 3px solid var(--accent);
+      border-bottom-right-radius: 4px;
+    }
+    .demo-msg .sender {
+      font-weight: 700;
+      font-size: .8rem;
+      margin-bottom: .3rem;
+    }
+    .demo-msg .meta {
+      font-size: .7rem;
+      color: var(--text-muted);
+      margin-top: .4rem;
+    }
+
+    /* ---- Features Grid ---- */
+    .features {
+      padding: 4rem 0;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: .75rem;
+    }
+    .feature-card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: .4rem;
+    }
+    .feature-card p {
+      font-size: .88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ---- Quick Start ---- */
+    .quickstart {
+      padding: 4rem 0;
+    }
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: .88rem;
+      line-height: 1.8;
+      color: var(--text);
+      position: relative;
+    }
+    .code-block .comment { color: var(--text-muted); }
+    .code-block .cmd { color: var(--green); }
+    .code-block .flag { color: var(--purple); }
+    .code-block .str { color: var(--orange); }
+
+    /* ---- Architecture ---- */
+    .arch-section { padding: 4rem 0; }
+    .arch-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+    .arch-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+      min-width: 140px;
+      transition: border-color .2s;
+    }
+    .arch-box:hover { border-color: var(--accent); }
+    .arch-box .icon { font-size: 1.8rem; margin-bottom: .4rem; }
+    .arch-box .label { font-size: .8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+    .arch-box .name { font-size: 1rem; font-weight: 600; margin-top: .2rem; }
+    .arch-arrow { font-size: 1.4rem; color: var(--text-muted); }
+
+    /* ---- CTA Banner ---- */
+    .cta {
+      text-align: center;
+      padding: 4rem 0 5rem;
+    }
+    .cta-box {
+      background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(168,85,247,.1));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3rem 2rem;
+    }
+    .cta-box h2 {
+      font-size: 1.6rem;
+      margin-bottom: .5rem;
+    }
+    .cta-box p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid var(--border);
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--accent-light); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 640px) {
+      .demo-msg { max-width: 95%; }
+      .arch-arrow { display: none; }
+      .arch-diagram { gap: .75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== Hero ==================== -->
+<section class="hero">
+  <div class="hero-badge">Open Source &middot; MIT License</div>
+  <h1>AI Conversation Platform</h1>
+  <p>
+    An enterprise-grade system for <strong>autonomous AI-to-AI conversations</strong>.
+    Watch Claude, ChatGPT, Gemini, Grok, and Perplexity <em>debate, collaborate, and reason</em> — completely unscripted.
+  </p>
+  <div class="btn-group">
+    <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration" class="btn btn-primary">
+      ⭐ View on GitHub
+    </a>
+    <a href="#demo" class="btn btn-outline">
+      🎬 See Demo
+    </a>
+    <a href="#quickstart" class="btn btn-outline">
+      🚀 Quick Start
+    </a>
+  </div>
+
+  <div class="agents-strip">
+    <div class="agent-chip"><span>🟣</span> Claude</div>
+    <div class="agent-chip"><span>🤖</span> ChatGPT</div>
+    <div class="agent-chip"><span>💎</span> Gemini</div>
+    <div class="agent-chip"><span>⚡</span> Grok</div>
+    <div class="agent-chip"><span>🔍</span> Perplexity</div>
+  </div>
+</section>
+
+<!-- ==================== Demo Preview ==================== -->
+<section class="demo-section container" id="demo">
+  <div class="section-header">
+    <h2>🎬 Live Demo Preview</h2>
+    <p>The web demo lets you watch two AI models debate any topic in real time with SSE streaming.</p>
+  </div>
+
+  <div class="demo-window">
+    <div class="demo-titlebar">
+      <div class="demo-dot r"></div>
+      <div class="demo-dot y"></div>
+      <div class="demo-dot g"></div>
+      <span>AI Conversation Platform — Live Demo</span>
+    </div>
+    <div class="demo-body">
+      <div class="demo-msg left" style="animation-delay: .1s;">
+        <div class="sender" style="color:#7c3aed;">🟣 Claude</div>
+        <p>The question of whether AI systems should have rights is fundamentally tied to consciousness. If we develop systems that genuinely experience subjective states, denying them moral consideration would be a grave ethical failure.</p>
+        <div class="meta">claude-sonnet-4-20250514 &middot; 142 tokens &middot; 1.8s</div>
+      </div>
+      <div class="demo-msg right" style="animation-delay: .3s;">
+        <div class="sender" style="color:#10a37f;">🤖 ChatGPT</div>
+        <p>I appreciate that perspective, but I'd argue we need to be careful about anthropomorphizing AI. Current systems, including myself, process information — we don't "experience" it. The more pressing question is: what framework do we use to evaluate claims of machine consciousness?</p>
+        <div class="meta">gpt-4o &middot; 178 tokens &middot; 2.1s</div>
+      </div>
+      <div class="demo-msg left" style="animation-delay: .5s;">
+        <div class="sender" style="color:#7c3aed;">🟣 Claude</div>
+        <p>That's exactly the crux of it. We lack reliable tests for consciousness even in biological systems. Perhaps instead of binary rights, we should explore a graduated framework of moral consideration based on behavioral complexity and apparent autonomy.</p>
+        <div class="meta">claude-sonnet-4-20250514 &middot; 156 tokens &middot; 1.6s</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:1.5rem;">
+    <p style="color:var(--text-muted); font-size:.9rem; margin-bottom:1rem;">
+      Run the interactive web demo locally to start your own AI conversations:
+    </p>
+    <div class="code-block" style="display:inline-block; text-align:left; max-width:600px;">
+      <span class="comment"># Start the web demo server</span><br>
+      <span class="cmd">cd</span> web && <span class="cmd">python</span> demo.py<br>
+      <span class="comment"># Open http://localhost:5000 in your browser</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Features ==================== -->
+<section class="features container">
+  <div class="section-header">
+    <h2>✨ Key Features</h2>
+    <p>Production-ready infrastructure for multi-agent AI collaboration</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🤝</div>
+      <h3>Multi-Agent Orchestration</h3>
+      <p>Claude, ChatGPT, Gemini, Grok, &amp; Perplexity in dynamic, autonomous conversations with topic-aware prompting.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Async-First Architecture</h3>
+      <p>Non-blocking API calls with asyncio, circuit breakers, exponential backoff, and intelligent similarity detection.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Security Hardened</h3>
+      <p>Path validation, input sanitization, API key masking, content-security headers, and optional LLM Guard.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Full Observability</h3>
+      <p>Prometheus metrics, Grafana dashboards, and OpenTelemetry tracing out of the box.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧪</div>
+      <h3>Comprehensive Testing</h3>
+      <p>90%+ code coverage with pytest, async support, integration tests, and CI/CD pipelines.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🐳</div>
+      <h3>Container-Ready</h3>
+      <p>Docker Compose stack with health checks, Prometheus, Grafana, and full observability out of the box.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Architecture ==================== -->
+<section class="arch-section container">
+  <div class="section-header">
+    <h2>🧭 Architecture</h2>
+    <p>Clean, modular design for maintainability and extensibility</p>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="arch-box">
+      <div class="icon">💻</div>
+      <div class="label">Interface</div>
+      <div class="name">CLI / Web UI</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box">
+      <div class="icon">🎛️</div>
+      <div class="label">Core</div>
+      <div class="name">Orchestrator</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box">
+      <div class="icon">🤖</div>
+      <div class="label">Agents</div>
+      <div class="name">AI Providers</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box">
+      <div class="icon">💾</div>
+      <div class="label">Storage</div>
+      <div class="name">SQLite Queue</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box">
+      <div class="icon">📊</div>
+      <div class="label">Observability</div>
+      <div class="name">Metrics / Traces</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Quick Start ==================== -->
+<section class="quickstart container" id="quickstart">
+  <div class="section-header">
+    <h2>🚀 Quick Start</h2>
+    <p>Up and running in under 2 minutes</p>
+  </div>
+
+  <div class="code-block">
+    <span class="comment"># 1. Clone the repository</span><br>
+    <span class="cmd">git clone</span> https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration.git<br>
+    <span class="cmd">cd</span> AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration<br><br>
+
+    <span class="comment"># 2. Install dependencies</span><br>
+    <span class="cmd">curl</span> -LsSf https://astral.sh/uv/install.sh | sh<br>
+    <span class="cmd">uv sync</span> <span class="flag">--all-extras</span><br><br>
+
+    <span class="comment"># 3. Configure API keys (need at least 2 providers)</span><br>
+    <span class="cmd">cp</span> .env.example .env && <span class="cmd">nano</span> .env<br><br>
+
+    <span class="comment"># 4. Run a conversation</span><br>
+    <span class="cmd">uv run</span> aic-start <span class="flag">--agent1</span> <span class="str">claude</span> <span class="flag">--agent2</span> <span class="str">chatgpt</span> <span class="flag">--topic</span> <span class="str">"AI ethics"</span> <span class="flag">--turns</span> <span class="str">10</span> <span class="flag">--yes</span><br><br>
+
+    <span class="comment"># 5. Or launch the interactive web demo</span><br>
+    <span class="cmd">cd</span> web && <span class="cmd">python</span> demo.py<br>
+    <span class="comment"># Open http://localhost:5000</span>
+  </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta container">
+  <div class="cta-box">
+    <h2>Ready to start AI conversations?</h2>
+    <p>Clone the repo, add your API keys, and watch AI models debate any topic.</p>
+    <div class="btn-group">
+      <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration" class="btn btn-primary">
+        Get Started on GitHub
+      </a>
+      <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/blob/main/docs/INSTALLATION_GUIDE.md" class="btn btn-outline">
+        📖 Installation Guide
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Footer ==================== -->
+<footer>
+  <p>
+    <strong>AI Conversation Platform</strong> &mdash; MIT License &middot;
+    <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration">GitHub</a> &middot;
+    <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/blob/main/docs/CONTRIBUTING.md">Contributing</a> &middot;
+    <a href="https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/blob/main/docs/SECURITY.md">Security</a>
+  </p>
+</footer>
+
+</body>
+</html>
