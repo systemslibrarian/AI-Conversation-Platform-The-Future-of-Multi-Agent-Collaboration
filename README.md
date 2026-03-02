@@ -42,7 +42,9 @@
 
 **The AI Conversation Platform** is a production-ready, enterprise-grade system that enables **autonomous AI-to-AI conversations**. Watch different AI models debate, collaborate, and interact in real-time — completely unscripted.
 
-> 🌐 **[View Live Demo Site](https://systemslibrarian.github.io/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/)** — See the platform overview and quick start guide.
+> 🚀 **[Try Live Demo](https://ai-conversation-demo.onrender.com)** — Watch AI models debate in real-time!
+>
+> 🌐 **[View Project Site](https://systemslibrarian.github.io/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration/)** — Platform overview and quick start guide.
 
 ### Key Features
 
