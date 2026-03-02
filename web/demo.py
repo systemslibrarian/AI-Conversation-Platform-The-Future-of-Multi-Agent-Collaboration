@@ -57,13 +57,22 @@ AGENT_DISPLAY = {
     "perplexity": {"name": "Perplexity", "icon": "🔍", "color": "#20b2aa"},
 }
 
-# Env-var names for demo keys
+# Env-var names for demo keys (primary and alternative names)
 AGENT_ENV_KEYS = {
     "chatgpt": "OPENAI_API_KEY",
     "claude": "ANTHROPIC_API_KEY",
     "gemini": "GOOGLE_API_KEY",
     "grok": "XAI_API_KEY",
     "perplexity": "PERPLEXITY_API_KEY",
+}
+
+# Alternative env var names (checked if primary is not set)
+AGENT_ENV_KEYS_ALT = {
+    "chatgpt": ["CHATGPTAPIKEY", "CHATGPT_API_KEY"],
+    "claude": ["CLAUDEAPIKEY", "CLAUDE_API_KEY"],
+    "gemini": ["GEMINI_API_KEY", "GEMINIAPIKEY"],
+    "grok": ["GROKAPIKEY", "GROK_API_KEY"],
+    "perplexity": ["PERPLEXITYAPIKEY"],
 }
 
 DEMO_MAX_TURNS = 6  # Limit demo conversations
@@ -201,20 +210,21 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
     sq = SQLiteQueue(db_path, logger)
     queue = StreamingQueue(sq, event_queue)
 
-    # Resolve API keys: user-supplied > environment variable
+    # Resolve API keys: user-supplied > environment variable (primary) > alternatives
     def resolve_key(agent_type: str) -> str:
         user_key = api_keys.get(agent_type, "").strip()
         if user_key:
             return user_key
+        # Check primary env var
         env_var = AGENT_ENV_KEYS.get(agent_type, "")
         env_key = os.getenv(env_var, "")
         if env_key:
             return env_key
-        # For gemini, also check GEMINI_API_KEY
-        if agent_type == "gemini":
-            alt = os.getenv("GEMINI_API_KEY", "")
-            if alt:
-                return alt
+        # Check alternative env var names
+        for alt_var in AGENT_ENV_KEYS_ALT.get(agent_type, []):
+            alt_key = os.getenv(alt_var, "")
+            if alt_key:
+                return alt_key
         raise ValueError(
             f"No API key for {agent_type}. "
             f"Please provide your own {AGENT_ENV_KEYS.get(agent_type, '')} key."
@@ -341,9 +351,12 @@ def index():
     for agent_type in list_available_agents():
         env_var = AGENT_ENV_KEYS.get(agent_type, "")
         has_key = bool(os.getenv(env_var, ""))
-        # Check alt key for gemini
-        if not has_key and agent_type == "gemini":
-            has_key = bool(os.getenv("GEMINI_API_KEY", ""))
+        # Check alternative env var names
+        if not has_key:
+            for alt_var in AGENT_ENV_KEYS_ALT.get(agent_type, []):
+                if os.getenv(alt_var, ""):
+                    has_key = True
+                    break
         demo_agents[agent_type] = {
             "name": AGENT_DISPLAY.get(agent_type, {}).get("name", agent_type),
             "icon": AGENT_DISPLAY.get(agent_type, {}).get("icon", "🤖"),
@@ -388,8 +401,12 @@ def start_conversation():
         user_key = api_keys.get(ag, "").strip()
         env_var = AGENT_ENV_KEYS.get(ag, "")
         has_env = bool(os.getenv(env_var, ""))
-        if not has_env and ag == "gemini":
-            has_env = bool(os.getenv("GEMINI_API_KEY", ""))
+        # Check alternative env var names
+        if not has_env:
+            for alt_var in AGENT_ENV_KEYS_ALT.get(ag, []):
+                if os.getenv(alt_var, ""):
+                    has_env = True
+                    break
         if not user_key and not has_env:
             name = AGENT_DISPLAY.get(ag, {}).get("name", ag)
             return jsonify(

@@ -10,8 +10,9 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
+      # Primary env var names
       - key: OPENAI_API_KEY
-        sync: false  # Must be set manually in Render dashboard
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: GOOGLE_API_KEY
@@ -19,6 +20,15 @@ services:
       - key: XAI_API_KEY
         sync: false
       - key: PERPLEXITY_API_KEY
+        sync: false
+      # Alternative env var names (user-friendly)
+      - key: CHATGPTAPIKEY
+        sync: false
+      - key: GROKAPIKEY
+        sync: false
+      - key: CLAUDEAPIKEY
+        sync: false
+      - key: GEMINIAPIKEY
         sync: false
     healthCheckPath: /health
     autoDeploy: true
