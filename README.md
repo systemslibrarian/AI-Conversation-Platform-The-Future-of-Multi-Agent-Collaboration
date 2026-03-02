@@ -320,7 +320,31 @@ The landing page showcases the platform features, provides a demo preview, and l
 
 ---
 
-## 🛡️ Security & Compliance
+## � Deploy Live Demo (Render)
+
+Deploy the interactive web demo to Render for free:
+
+### One-Click Deploy
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/systemslibrarian/AI-Conversation-Platform-The-Future-of-Multi-Agent-Collaboration)
+
+### Manual Setup
+1. Go to [render.com](https://render.com) and sign up (free)
+2. Click **New** → **Blueprint**
+3. Connect your GitHub repo
+4. Render will detect `render.yaml` and configure the service
+5. Add your API keys in the Render dashboard under **Environment**:
+   - `OPENAI_API_KEY` (required for ChatGPT)
+   - `ANTHROPIC_API_KEY` (required for Claude)
+   - `GOOGLE_API_KEY` (required for Gemini)
+   - Add others as needed
+
+Your live demo will be at: `https://ai-conversation-demo.onrender.com`
+
+**Note:** Free tier spins down after inactivity. First request may take 30-60 seconds while it spins up.
+
+---
+
+## �🛡️ Security & Compliance
 See `docs/SECURITY.md` for how to report vulnerabilities and best practices.
 
 ---

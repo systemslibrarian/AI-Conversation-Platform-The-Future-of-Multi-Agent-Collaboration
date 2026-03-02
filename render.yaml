@@ -1,0 +1,25 @@
+# Render.com Blueprint
+# See https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: ai-conversation-demo
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 web.demo:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: OPENAI_API_KEY
+        sync: false  # Must be set manually in Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: PERPLEXITY_API_KEY
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: free

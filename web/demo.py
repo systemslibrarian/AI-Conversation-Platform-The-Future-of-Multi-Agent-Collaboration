@@ -327,6 +327,12 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
 # ---------------------------------------------------------------------------
 
 
+@app.route("/health")
+def health():
+    """Health check endpoint for deployment platforms."""
+    return jsonify({"status": "healthy", "service": "ai-conversation-demo"}), 200
+
+
 @app.route("/")
 def index():
     """Serve the demo page."""
