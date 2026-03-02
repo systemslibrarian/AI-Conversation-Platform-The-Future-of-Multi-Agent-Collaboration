@@ -9,7 +9,7 @@ services:
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 web.demo:app
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.0"
       # Primary env var names
       - key: OPENAI_API_KEY
         sync: false
