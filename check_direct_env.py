@@ -4,7 +4,7 @@
 import os
 
 api_keys = {
-    "ANTHROPIC_API_KEY": "Claude",
+    "CLAUDEAPIKEY": "Claude",
     "OPENAI_API_KEY": "ChatGPT",
     "GOOGLE_API_KEY": "Gemini (primary)",
     "GEMINI_API_KEY": "Gemini (alt)",

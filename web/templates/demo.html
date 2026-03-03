@@ -192,6 +192,17 @@
       color: #fff;
     }
     .btn-danger:hover { opacity: .85; }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-secondary.copied {
+      background: var(--success);
+      color: #000;
+      border-color: var(--success);
+    }
 
     .btn-row {
       display: flex;
@@ -439,6 +450,7 @@
       <div class="btn-row" style="margin-top:1.25rem;">
         <button class="btn btn-danger" id="stop-btn" onclick="stopConversation()">⏹ Stop</button>
         <button class="btn btn-primary" id="new-btn" onclick="resetUI()" style="display:none;">🔄 New Conversation</button>
+        <button class="btn btn-secondary" id="copy-btn" onclick="copyConversation()" style="display:none;">📋 Copy Conversation</button>
       </div>
     </div>
   </div>
@@ -708,7 +720,69 @@ function endConversation() {
   if (eventSource) { eventSource.close(); eventSource = null; }
   document.getElementById('stop-btn').style.display = 'none';
   document.getElementById('new-btn').style.display = '';
+  document.getElementById('copy-btn').style.display = '';
   removeThinking();
+}
+
+function copyConversation() {
+  const messages = document.getElementById('messages');
+  const topic = document.getElementById('topic-input').value.trim();
+  let text = '=== AI Conversation ===\n';
+  if (topic) text += 'Topic: ' + topic + '\n';
+  text += '\n';
+
+  // Extract text from each message
+  messages.querySelectorAll('.msg').forEach((msg) => {
+    const senderEl = msg.querySelector('.sender');
+    const sender = senderEl ? senderEl.textContent.trim() : 'Unknown';
+    
+    // Get content (skip sender and meta divs)
+    let content = '';
+    msg.childNodes.forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE && 
+          !node.classList.contains('sender') && 
+          !node.classList.contains('meta')) {
+        content += node.textContent;
+      }
+    });
+    content = content.trim();
+    
+    // Check if system message
+    if (sender.includes('System')) {
+      text += '[' + sender + ']\n' + content + '\n\n';
+    } else {
+      text += sender + ':\n' + content + '\n\n';
+    }
+  });
+
+  text += '=== End of Conversation ===';
+
+  // Copy to clipboard
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = origText;
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    const btn = document.getElementById('copy-btn');
+    btn.innerHTML = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '📋 Copy Conversation';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
 }
 
 function resetUI() {
@@ -721,6 +795,9 @@ function resetUI() {
   document.getElementById('start-btn').innerHTML = '🚀 Start Conversation';
   document.getElementById('start-error').textContent = '';
   document.getElementById('messages').innerHTML = '';
+  document.getElementById('copy-btn').style.display = 'none';
+  document.getElementById('copy-btn').innerHTML = '📋 Copy Conversation';
+  document.getElementById('copy-btn').classList.remove('copied');
 }
 
 // ============================================================

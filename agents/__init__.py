@@ -72,7 +72,8 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     },
     "claude": {
         "symbol": "ClaudeAgent",
-        "env_key": "ANTHROPIC_API_KEY",
+        "env_key": "CLAUDEAPIKEY",
+        "env_key_alt": "ANTHROPIC_API_KEY",  # Alternative for backward compatibility
         "default_model_attr": "DEFAULT_MODEL",
         "fallback_model": "claude-sonnet-4-5-20250929",
     },

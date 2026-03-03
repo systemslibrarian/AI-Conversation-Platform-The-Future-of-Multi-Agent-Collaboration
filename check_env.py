@@ -17,7 +17,7 @@ print()
 load_dotenv()
 
 api_keys = {
-    "ANTHROPIC_API_KEY": "Claude",
+    "CLAUDEAPIKEY": "Claude",
     "OPENAI_API_KEY": "ChatGPT",
     "GOOGLE_API_KEY": "Gemini",
     "XAI_API_KEY": "Grok",

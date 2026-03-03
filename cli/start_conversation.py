@@ -40,7 +40,7 @@ class ConversationStarter:
         if not self.available_agents:
             print("No AI agents configured!")
             print("\nAdd API keys to .env file or Codespaces secrets:")
-            print("  ANTHROPIC_API_KEY=your_key")
+            print("  CLAUDEAPIKEY=your_key")
             print("  OPENAI_API_KEY=your_key")
             print("  GOOGLE_API_KEY=your_key (or GEMINI_API_KEY)")
             print("  XAI_API_KEY=your_key")

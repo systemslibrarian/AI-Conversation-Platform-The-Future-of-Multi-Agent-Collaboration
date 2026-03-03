@@ -60,7 +60,7 @@ AGENT_DISPLAY = {
 # Env-var names for demo keys (primary and alternative names)
 AGENT_ENV_KEYS = {
     "chatgpt": "OPENAI_API_KEY",
-    "claude": "ANTHROPIC_API_KEY",
+    "claude": "CLAUDEAPIKEY",
     "gemini": "GOOGLE_API_KEY",
     "grok": "XAI_API_KEY",
     "perplexity": "PERPLEXITY_API_KEY",
@@ -69,7 +69,7 @@ AGENT_ENV_KEYS = {
 # Alternative env var names (checked if primary is not set)
 AGENT_ENV_KEYS_ALT = {
     "chatgpt": ["CHATGPTAPIKEY", "CHATGPT_API_KEY"],
-    "claude": ["CLAUDEAPIKEY", "CLAUDE_API_KEY"],
+    "claude": ["ANTHROPIC_API_KEY", "CLAUDE_API_KEY"],
     "gemini": ["GEMINI_API_KEY", "GEMINIAPIKEY"],
     "grok": ["GROKAPIKEY", "GROK_API_KEY"],
     "perplexity": ["PERPLEXITYAPIKEY"],
