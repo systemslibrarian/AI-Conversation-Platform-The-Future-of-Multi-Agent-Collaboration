@@ -358,7 +358,7 @@
         <label for="agent2-select">Second AI</label>
         <select id="agent2-select">
           {% for key, info in agents.items() %}
-          <option value="{{ key }}" {% if loop.index == 2 %}selected{% endif %}>
+          <option value="{{ key }}" {% if key == 'grok' %}selected{% endif %}>
             {{ info.icon }} {{ info.name }}{% if info.has_demo_key %} (demo key available){% endif %}
           </option>
           {% endfor %}
