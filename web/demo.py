@@ -202,6 +202,20 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
 
     logger = setup_logging(f"demo_{session_id}")
 
+    async def should_defer_done(term_reason: str) -> bool:
+        """Defer [done] so the peer AI can respond at least once before ending."""
+        term_token = getattr(config, "TERMINATION_TOKEN", "[done]").lower()
+        if term_token not in term_reason.lower():
+            return False
+
+        min_total = max(1, int(getattr(config, "MIN_TOTAL_TURNS_BEFORE_DONE", 2)))
+        try:
+            data = await queue.load()
+            total_turns = int(data.get("metadata", {}).get("total_turns", 0))
+        except Exception:
+            total_turns = 0
+        return total_turns < min_total
+
     # Create DB in a temp location
     data_dir = Path(config.DATA_DIR)
     data_dir.mkdir(exist_ok=True, parents=True)
@@ -313,8 +327,16 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
 
         # Check termination signals in content
         if term_reason := current._check_termination_signals(content):
-            await queue.mark_terminated(term_reason)
-            break
+            if await should_defer_done(term_reason):
+                event_queue.put(
+                    {
+                        "type": "status",
+                        "message": "Proposed ending detected; allowing the other AI one response before termination.",
+                    }
+                )
+            else:
+                await queue.mark_terminated(term_reason)
+                break
 
         # Deliberate delay so viewers can follow
         await asyncio.sleep(delay)
