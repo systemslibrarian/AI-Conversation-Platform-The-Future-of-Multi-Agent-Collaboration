@@ -467,6 +467,7 @@
 let sessionId = null;
 let eventSource = null;
 let turnCount = 0;
+let streamClosedByApp = false;
 
 // Agent metadata from server
 const AGENTS = {{ agents | tojson }};
@@ -636,6 +637,7 @@ async function startConversation() {
 
     sessionId = data.session_id;
     turnCount = 0;
+    streamClosedByApp = false;
 
     // Switch UI
     document.getElementById('setup-card').style.display = 'none';
@@ -660,6 +662,12 @@ function connectSSE(sid) {
   if (eventSource) eventSource.close();
   eventSource = new EventSource('/api/stream/' + sid);
 
+  eventSource.onopen = () => {
+    if (!streamClosedByApp && turnCount === 0) {
+      setStatus('Connected — waiting for first response…', true);
+    }
+  };
+
   eventSource.onmessage = (e) => {
     let event;
     try { event = JSON.parse(e.data); } catch { return; }
@@ -683,16 +691,19 @@ function connectSSE(sid) {
       case 'terminated':
         setStatus('Conversation ended: ' + (event.reason || 'completed'), false);
         addSystemMessage('Conversation ended — ' + (event.reason || 'completed').replace(/_/g, ' '), false);
+        streamClosedByApp = true;
         endConversation();
         break;
 
       case 'error':
         setStatus('Error occurred', false);
         addSystemMessage(event.message, true);
+        streamClosedByApp = true;
         endConversation();
         break;
 
       case 'done':
+        streamClosedByApp = true;
         if (eventSource) eventSource.close();
         endConversation();
         break;
@@ -703,7 +714,19 @@ function connectSSE(sid) {
   };
 
   eventSource.onerror = () => {
+    // Ignore error callbacks after intentional close (done/terminated/reset).
+    if (streamClosedByApp) return;
+
+    // EventSource automatically retries while CONNECTING; don't tear down UI.
+    if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
+      setStatus('Reconnecting…', true);
+      return;
+    }
+
+    // CLOSED means browser stopped retrying or stream is unavailable.
     setStatus('Connection lost', false);
+    addSystemMessage('Stream disconnected. Start a new conversation to continue.', true);
+    streamClosedByApp = true;
     endConversation();
   };
 }
@@ -717,6 +740,7 @@ async function stopConversation() {
 }
 
 function endConversation() {
+  streamClosedByApp = true;
   if (eventSource) { eventSource.close(); eventSource = null; }
   document.getElementById('stop-btn').style.display = 'none';
   document.getElementById('new-btn').style.display = '';
@@ -788,6 +812,7 @@ function copyConversation() {
 function resetUI() {
   sessionId = null;
   turnCount = 0;
+  streamClosedByApp = true;
   if (eventSource) { eventSource.close(); eventSource = null; }
   document.getElementById('conversation-area').style.display = 'none';
   document.getElementById('setup-card').style.display = '';

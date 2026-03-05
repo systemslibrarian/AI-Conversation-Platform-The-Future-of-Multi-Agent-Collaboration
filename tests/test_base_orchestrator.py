@@ -431,3 +431,15 @@ class TestBuildSystemPrompt:
         test_agent.topic = None
         prompt = test_agent._build_system_prompt()
         assert "general" in prompt
+
+    def test_prompt_includes_peer_critique_protocol(self, test_agent):
+        """System prompt should enforce critique-and-improve turn protocol."""
+        prompt = test_agent._build_system_prompt()
+        assert "review the most recent message from the other ai" in prompt.lower()
+        assert "give a focused critique" in prompt.lower()
+        assert "provide a better, corrected answer" in prompt.lower()
+
+    def test_prompt_includes_done_termination_guidance(self, test_agent):
+        """System prompt should allow explicit clean termination signal."""
+        prompt = test_agent._build_system_prompt()
+        assert "[done]" in prompt
