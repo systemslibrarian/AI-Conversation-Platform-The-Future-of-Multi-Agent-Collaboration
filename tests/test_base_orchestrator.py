@@ -461,3 +461,13 @@ class TestBuildSystemPrompt:
         """System prompt should allow explicit clean termination signal."""
         prompt = test_agent._build_system_prompt()
         assert "[done]" in prompt
+
+    def test_prompt_requires_structured_eval_format(self, test_agent):
+        """Prompt should require explicit evaluation sections each turn."""
+        prompt = test_agent._build_system_prompt()
+        assert "Topic Check, Critique, Verdict, Improved Answer, Next Step" in prompt
+
+    def test_prompt_requires_stop_or_continue_choice(self, test_agent):
+        """Prompt should require a stop/continue decision in every turn."""
+        prompt = test_agent._build_system_prompt()
+        assert "stop-or-continue choice" in prompt
