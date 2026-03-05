@@ -352,6 +352,30 @@ class BaseAgent(ABC):
                 )
 
                 if term_reason := self._check_termination_signals(content):
+                    # Avoid one-message conversations: require minimal context before honoring [done].
+                    term_token = getattr(config, "TERMINATION_TOKEN", "[done]").lower()
+                    if term_token in term_reason.lower():
+                        min_total = max(1, int(getattr(config, "MIN_TOTAL_TURNS_BEFORE_DONE", 2)))
+                        total_turns = 0
+                        try:
+                            data = await self.queue.load()
+                            total_turns = int(data.get("metadata", {}).get("total_turns", 0))
+                        except Exception:
+                            total_turns = 0
+
+                        if total_turns < min_total:
+                            log_event(
+                                self.logger,
+                                "termination_deferred",
+                                {
+                                    "agent": self.agent_name,
+                                    "reason": term_reason,
+                                    "total_turns": total_turns,
+                                    "min_total_turns": min_total,
+                                },
+                            )
+                            return
+
                     await self.queue.mark_terminated(term_reason)
                     print(f"\n✓ Terminated: {term_reason}")
                     return

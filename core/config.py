@@ -23,6 +23,9 @@ class ConfigValidation(BaseModel):
     DEFAULT_TIMEOUT_MINUTES: int = Field(ge=1, le=480, description="Default timeout in minutes")
     MAX_CONTEXT_MSGS: int = Field(ge=1, le=100, description="Maximum context messages")
     PROMETHEUS_PORT: int = Field(ge=1024, le=65535, description="Prometheus metrics port")
+    MIN_TOTAL_TURNS_BEFORE_DONE: int = Field(
+        ge=1, le=1000, description="Minimum total messages before honoring [done]"
+    )
 
     # Pydantic v2: use ConfigDict instead of class-based Config
     model_config = ConfigDict(extra="forbid")
@@ -53,6 +56,7 @@ class Config:
 
     # Termination phrases
     TOPIC_DRIFT_PHRASES = ["[done]", "i can't continue", "off topic", "unrelated", "loop detected"]
+    MIN_TOTAL_TURNS_BEFORE_DONE = int(os.getenv("MIN_TOTAL_TURNS_BEFORE_DONE", "2"))
 
     # Backoff settings
     INITIAL_BACKOFF = 2.0
@@ -100,6 +104,7 @@ class Config:
                 DEFAULT_TIMEOUT_MINUTES=cls.DEFAULT_TIMEOUT_MINUTES,
                 MAX_CONTEXT_MSGS=cls.MAX_CONTEXT_MSGS,
                 PROMETHEUS_PORT=cls.PROMETHEUS_PORT,
+                MIN_TOTAL_TURNS_BEFORE_DONE=cls.MIN_TOTAL_TURNS_BEFORE_DONE,
             )
             # Update class attributes with validated values
             for key, value in validated.model_dump().items():

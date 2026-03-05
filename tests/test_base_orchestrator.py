@@ -211,6 +211,24 @@ class TestAgentRespondLoop:
         mock_queue.mark_terminated.assert_called_with("repetition_detected")
         assert mock_queue.mark_terminated.call_count == 1
 
+    async def test_respond_defers_done_until_minimum_total_turns(self, test_agent, mock_queue):
+        """A first-turn [done] should not terminate immediately."""
+        test_agent._call_api.return_value = ("Factual answer. [done]", 10)
+        mock_queue.load.return_value = {"metadata": {"total_turns": "1"}}
+
+        await test_agent.respond()
+
+        mock_queue.mark_terminated.assert_not_called()
+
+    async def test_respond_honors_done_after_minimum_total_turns(self, test_agent, mock_queue):
+        """[done] should terminate once enough total turns exist."""
+        test_agent._call_api.return_value = ("Factual answer. [done]", 10)
+        mock_queue.load.return_value = {"metadata": {"total_turns": "2"}}
+
+        await test_agent.respond()
+
+        mock_queue.mark_terminated.assert_called_with("sentinel_phrase: [done]")
+
 
 # ---------- LLM-Guard & scanning tests ----------
 
