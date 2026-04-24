@@ -188,11 +188,11 @@ class BaseAgent(ABC):
         """Check for conversation termination signals"""
         lower = content.lower()
         term_token = getattr(config, "TERMINATION_TOKEN", "[done]")
-        
+
         # Check for factual sufficiency marker
         if "[factual_sufficient:" in lower:
             return "factual_answer_sufficient"
-        
+
         if term_token.lower() in lower:
             return f"sentinel_phrase: {term_token}"
 
