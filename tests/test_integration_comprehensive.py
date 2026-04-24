@@ -73,6 +73,7 @@ class TestConfigValidation:
             DEFAULT_TIMEOUT_MINUTES=30,
             MAX_CONTEXT_MSGS=10,
             PROMETHEUS_PORT=8000,
+            MIN_TOTAL_TURNS_BEFORE_DONE=2,
         )
         assert config.TEMPERATURE == 0.7
         assert config.MAX_TOKENS == 1024
@@ -88,6 +89,7 @@ class TestConfigValidation:
                 DEFAULT_TIMEOUT_MINUTES=30,
                 MAX_CONTEXT_MSGS=10,
                 PROMETHEUS_PORT=8000,
+                MIN_TOTAL_TURNS_BEFORE_DONE=2,
             )
 
     def test_max_tokens_validation(self):
@@ -101,6 +103,7 @@ class TestConfigValidation:
                 DEFAULT_TIMEOUT_MINUTES=30,
                 MAX_CONTEXT_MSGS=10,
                 PROMETHEUS_PORT=8000,
+                MIN_TOTAL_TURNS_BEFORE_DONE=2,
             )
 
     def test_similarity_threshold_range(self):
@@ -114,6 +117,7 @@ class TestConfigValidation:
                 DEFAULT_TIMEOUT_MINUTES=30,
                 MAX_CONTEXT_MSGS=10,
                 PROMETHEUS_PORT=8000,
+                MIN_TOTAL_TURNS_BEFORE_DONE=2,
             )
 
     def test_prometheus_port_range(self):
