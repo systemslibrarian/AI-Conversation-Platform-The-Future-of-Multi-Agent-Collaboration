@@ -67,6 +67,7 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     "chatgpt": {
         "symbol": "ChatGPTAgent",
         "env_key": "OPENAI_API_KEY",
+        "env_key_alt": "CHATGPT_API_KEY",  # Alternative naming
         "default_model_attr": "DEFAULT_MODEL",
         "fallback_model": "gpt-4o",
     },
@@ -87,12 +88,14 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
     "grok": {
         "symbol": "GrokAgent",
         "env_key": "XAI_API_KEY",
+        "env_key_alt": "GROK_API_KEY",  # Alternative naming used in .env.example
         "default_model_attr": "DEFAULT_MODEL",
         "fallback_model": "grok-beta",
     },
     "perplexity": {
         "symbol": "PerplexityAgent",
         "env_key": "PERPLEXITY_API_KEY",
+        "env_key_alt": "PERPLEXITYAPIKEY",  # Alternative naming
         "default_model_attr": "DEFAULT_MODEL",
         "fallback_model": "llama-3.1-sonar-large-128k-online",
     },

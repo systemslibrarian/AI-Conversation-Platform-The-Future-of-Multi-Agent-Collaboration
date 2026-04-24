@@ -81,7 +81,24 @@ class ConversationStarter:
         if cli_agent:
             agent_type = cli_agent.lower()
             if agent_type not in self.available_agents:
-                print(f"{position} agent '{cli_agent}' is not configured.")
+                # Helpful error: explain why and what to do.
+                all_known = list_available_agents()
+                if agent_type not in all_known:
+                    print(
+                        f"\n✗ {position} agent '{cli_agent}' is not a known agent.\n"
+                        f"  Known agents: {', '.join(all_known)}"
+                    )
+                else:
+                    info = get_agent_info(agent_type)
+                    env_key = info.get("env_key", "")
+                    env_alt = info.get("env_key_alt", "")
+                    env_hint = env_key + (f" (or {env_alt})" if env_alt else "")
+                    available = ", ".join(self.available_agents) or "(none)"
+                    print(
+                        f"\n✗ {position} agent '{cli_agent}' has no API key configured.\n"
+                        f"  Set environment variable: {env_hint}\n"
+                        f"  Currently available agents: {available}"
+                    )
                 sys.exit(1)
             return agent_type, None
 

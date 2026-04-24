@@ -10,25 +10,54 @@
 
     :root {
       --bg: #0f1117;
+      --bg-grad: radial-gradient(1200px 600px at 20% -10%, rgba(99,102,241,.10), transparent 60%),
+                 radial-gradient(900px 500px at 90% 0%, rgba(168,85,247,.08), transparent 55%),
+                 #0f1117;
       --surface: #1a1d27;
       --surface2: #242836;
+      --surface3: #2a2f3f;
       --border: #2e3345;
+      --border-strong: #3a4055;
       --text: #e4e6f0;
       --text-muted: #8b8fa3;
+      --text-dim: #6b7080;
       --accent: #6366f1;
+      --accent-2: #a855f7;
       --accent-glow: rgba(99,102,241,.25);
       --danger: #ef4444;
+      --warning: #f59e0b;
       --success: #22c55e;
       --radius: 12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.25);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,.35);
+      --ring: 0 0 0 3px var(--accent-glow);
+      --ease: cubic-bezier(.22,.61,.36,1);
     }
+
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
+      background: var(--bg-grad);
       color: var(--text);
       min-height: 100vh;
       line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "cv02","cv03","cv04","cv11";
     }
+
+    /* Global focus ring for keyboard users */
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--ring);
+      border-radius: 6px;
+    }
+
+    /* Selection */
+    ::selection { background: var(--accent-glow); color: #fff; }
 
     /* ---- Layout ---- */
     .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
@@ -49,11 +78,13 @@
 
     /* ---- Cards ---- */
     .card {
-      background: var(--surface);
+      background: linear-gradient(180deg, var(--surface), var(--surface) 30%, rgba(26,29,39,.92));
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 1.5rem;
       margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(8px);
     }
     .card h2 {
       font-size: 1.1rem;
@@ -61,6 +92,7 @@
       display: flex;
       align-items: center;
       gap: .5rem;
+      letter-spacing: -.01em;
     }
     .card h2 .badge {
       font-size: .7rem;
@@ -69,6 +101,7 @@
       padding: 2px 8px;
       border-radius: 99px;
       font-weight: 500;
+      letter-spacing: .02em;
     }
 
     /* ---- Form Elements ---- */
@@ -76,24 +109,28 @@
       display: block;
       font-size: .85rem;
       color: var(--text-muted);
-      margin-bottom: .3rem;
+      margin-bottom: .35rem;
       font-weight: 500;
+      letter-spacing: .01em;
     }
 
     select, input[type="text"], input[type="password"] {
       width: 100%;
-      padding: .65rem .85rem;
+      padding: .7rem .9rem;
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       color: var(--text);
       font-size: .95rem;
+      font-family: inherit;
       outline: none;
-      transition: border-color .2s;
+      transition: border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease);
     }
+    select:hover, input:hover { border-color: var(--border-strong); }
     select:focus, input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
+      box-shadow: var(--ring);
+      background: var(--surface3);
     }
     select { cursor: pointer; appearance: auto; }
 
@@ -101,6 +138,45 @@
     .row > * { flex: 1; }
 
     .form-group { margin-bottom: 1rem; }
+
+    /* Topic input wrapper with counter */
+    .topic-wrap { position: relative; }
+    .topic-counter {
+      position: absolute;
+      right: 10px; bottom: 8px;
+      font-size: .7rem;
+      color: var(--text-dim);
+      pointer-events: none;
+      background: var(--surface2);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* Topic suggestion chips */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin-top: .5rem;
+    }
+    .chip {
+      font-size: .78rem;
+      padding: .35rem .7rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .15s var(--ease);
+      white-space: nowrap;
+    }
+    .chip:hover {
+      background: var(--surface3);
+      border-color: var(--accent);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+    .chip:active { transform: translateY(0); }
 
     /* ---- Agent Selectors ---- */
     .agent-select-wrapper {
@@ -169,14 +245,19 @@
       align-items: center;
       justify-content: center;
       gap: .5rem;
-      padding: .75rem 2rem;
+      padding: .75rem 1.75rem;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
+      border-radius: var(--radius-sm);
+      font-size: .95rem;
       font-weight: 600;
+      font-family: inherit;
       cursor: pointer;
-      transition: all .2s;
+      letter-spacing: .01em;
+      transition: transform .15s var(--ease), box-shadow .2s var(--ease),
+                  background .2s var(--ease), opacity .2s var(--ease);
+      will-change: transform;
     }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
     .btn-primary {
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: #fff;
@@ -184,24 +265,40 @@
     }
     .btn-primary:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px var(--accent-glow);
+      box-shadow: 0 8px 24px var(--accent-glow);
     }
-    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
     .btn-danger {
       background: var(--danger);
       color: #fff;
+      box-shadow: 0 2px 8px rgba(239,68,68,.25);
     }
-    .btn-danger:hover { opacity: .85; }
+    .btn-danger:hover { opacity: .9; transform: translateY(-1px); }
     .btn-secondary {
       background: var(--surface2);
       color: var(--text);
       border: 1px solid var(--border);
     }
-    .btn-secondary:hover { background: var(--border); }
+    .btn-secondary:hover { background: var(--surface3); border-color: var(--border-strong); }
     .btn-secondary.copied {
       background: var(--success);
       color: #000;
       border-color: var(--success);
+    }
+    .kbd-hint {
+      font-size: .72rem;
+      color: var(--text-dim);
+      margin-left: .25rem;
+    }
+    .kbd {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: .7rem;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--text-muted);
     }
 
     .btn-row {
@@ -209,6 +306,7 @@
       gap: 1rem;
       align-items: center;
       margin-top: 1rem;
+      flex-wrap: wrap;
     }
 
     /* ---- Conversation Area ---- */
@@ -217,26 +315,43 @@
     .status-bar {
       display: flex;
       align-items: center;
-      gap: .5rem;
-      padding: .6rem 1rem;
+      gap: .65rem;
+      padding: .65rem 1rem;
       background: var(--surface2);
-      border-radius: 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       margin-bottom: 1rem;
       font-size: .85rem;
       color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+    .status-bar .stats {
+      margin-left: auto;
+      display: flex;
+      gap: 1rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-dim);
+    }
+    .status-bar .stats span strong {
+      color: var(--text);
+      font-weight: 600;
     }
     .status-dot {
       width: 8px; height: 8px;
       border-radius: 50%;
       background: var(--success);
-      animation: pulse 1.5s infinite;
+      box-shadow: 0 0 0 0 rgba(34,197,94,.6);
+      animation: pulse 1.6s infinite var(--ease);
     }
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .3; }
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); }
+      70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
     }
-    .status-dot.ended { background: var(--text-muted); animation: none; }
+    .status-dot.ended { background: var(--text-muted); animation: none; box-shadow: none; }
 
+    /* Messages container */
+    .messages-wrap { position: relative; }
     #messages {
       display: flex;
       flex-direction: column;
@@ -245,23 +360,69 @@
       overflow-y: auto;
       padding-right: .5rem;
       scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
-    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar { width: 8px; }
     #messages::-webkit-scrollbar-track { background: transparent; }
-    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    #messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    #messages::-webkit-scrollbar-thumb:hover { background: var(--border-strong); background-clip: padding-box; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-dim);
+      font-size: .9rem;
+    }
+    .empty-state .pulse-ring {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-bottom: .5rem;
+      animation: pulse 1.4s infinite;
+    }
+
+    /* Scroll-to-bottom button */
+    .scroll-bottom {
+      position: absolute;
+      right: 12px; bottom: 12px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      transition: transform .15s var(--ease), opacity .2s var(--ease);
+      z-index: 5;
+    }
+    .scroll-bottom.show { display: flex; }
+    .scroll-bottom:hover { transform: translateY(-2px); }
 
     .msg {
       max-width: 85%;
       padding: 1rem 1.25rem;
       border-radius: var(--radius);
       position: relative;
-      animation: fadeSlideIn .4s ease;
+      animation: fadeSlideIn .4s var(--ease);
       line-height: 1.65;
-      font-size: .93rem;
+      font-size: .94rem;
+      box-shadow: var(--shadow-sm);
     }
     @keyframes fadeSlideIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(10px) scale(.99); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .msg.left {
@@ -276,16 +437,111 @@
     .msg .sender {
       font-weight: 700;
       font-size: .8rem;
-      margin-bottom: .35rem;
+      margin-bottom: .4rem;
       display: flex;
       align-items: center;
       gap: .35rem;
+      letter-spacing: .01em;
+    }
+    .msg .sender .timestamp {
+      margin-left: auto;
+      font-size: .7rem;
+      color: var(--text-dim);
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
     }
     .msg .meta {
       font-size: .72rem;
-      color: var(--text-muted);
-      margin-top: .5rem;
+      color: var(--text-dim);
+      margin-top: .55rem;
+      padding-top: .5rem;
+      border-top: 1px dashed var(--border);
+      font-variant-numeric: tabular-nums;
     }
+
+    /* ---- Markdown rendering inside messages ---- */
+    .msg .content > *:first-child { margin-top: 0; }
+    .msg .content > *:last-child { margin-bottom: 0; }
+    .msg .content p { margin: .5rem 0; }
+    .msg .content strong { color: #fff; font-weight: 700; }
+    .msg .content em { color: #d6d8e6; font-style: italic; }
+    .msg .content code {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: .85em;
+      background: rgba(0,0,0,.35);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #f0a8ff;
+    }
+    .msg .content pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: .75rem 1rem;
+      margin: .6rem 0;
+      overflow-x: auto;
+      font-size: .82rem;
+    }
+    .msg .content pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--text);
+    }
+    .msg .content ul, .msg .content ol {
+      margin: .5rem 0 .5rem 1.4rem;
+      padding: 0;
+    }
+    .msg .content li { margin: .2rem 0; }
+    .msg .content blockquote {
+      border-left: 3px solid var(--accent);
+      padding: .25rem .75rem;
+      margin: .5rem 0;
+      color: var(--text-muted);
+      background: rgba(99,102,241,.06);
+      border-radius: 0 6px 6px 0;
+    }
+    .msg .content a { color: var(--accent); text-decoration: underline; }
+    .msg .content .marker {
+      display: inline-block;
+      font-size: .72rem;
+      padding: 1px 7px;
+      border-radius: 99px;
+      margin: 0 .25rem;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    .msg .content .marker.factual { background: rgba(34,197,94,.18); color: #6ee7a8; border: 1px solid rgba(34,197,94,.35); }
+    .msg .content .marker.done { background: rgba(99,102,241,.18); color: #a5a8ff; border: 1px solid rgba(99,102,241,.35); }
+
+    /* ---- Toast ---- */
+    .toast-wrap {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      align-items: center;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: .65rem 1rem;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      font-size: .88rem;
+      animation: toastIn .3s var(--ease), toastOut .3s var(--ease) forwards;
+      animation-delay: 0s, 2.4s;
+      pointer-events: auto;
+    }
+    .toast.success { border-color: rgba(34,197,94,.4); }
+    .toast.error   { border-color: rgba(239,68,68,.4); }
+    @keyframes toastIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { to   { opacity: 0; transform: translateY(8px); } }
 
     /* Thinking indicator */
     .thinking {
@@ -369,7 +625,18 @@
     <!-- Topic -->
     <div class="form-group">
       <label for="topic-input">Conversation Topic</label>
-      <input type="text" id="topic-input" placeholder="e.g. Should humanity colonize Mars?" maxlength="500">
+      <div class="topic-wrap">
+        <input type="text" id="topic-input" placeholder="e.g. Should humanity colonize Mars?"
+               maxlength="500" autocomplete="off" aria-describedby="topic-counter topic-chips">
+        <span class="topic-counter" id="topic-counter" aria-live="polite">0 / 500</span>
+      </div>
+      <div class="chips" id="topic-chips" role="group" aria-label="Topic suggestions">
+        <button type="button" class="chip" data-topic="What is the capital of France?">What is the capital of France?</button>
+        <button type="button" class="chip" data-topic="Should humanity colonize Mars?">Colonize Mars?</button>
+        <button type="button" class="chip" data-topic="Is consciousness computable?">Is consciousness computable?</button>
+        <button type="button" class="chip" data-topic="Pros and cons of remote work">Remote work tradeoffs</button>
+        <button type="button" class="chip" data-topic="What is the speed of light in a vacuum?">Speed of light?</button>
+      </div>
     </div>
 
     <!-- Max Turns & Delay -->
@@ -425,10 +692,11 @@
 
     <!-- Start Button -->
     <div class="btn-row">
-      <button class="btn btn-primary" id="start-btn" onclick="startConversation()">
+      <button class="btn btn-primary" id="start-btn" onclick="startConversation()" aria-label="Start conversation">
         🚀 Start Conversation
       </button>
-      <span id="start-error" style="color:var(--danger); font-size:.85rem;"></span>
+      <span class="kbd-hint">or press <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span></span>
+      <span id="start-error" role="alert" style="color:var(--danger); font-size:.85rem;"></span>
     </div>
   </div>
 
@@ -440,12 +708,26 @@
         <span class="badge" id="turn-badge">Turn 0</span>
       </h2>
 
-      <div class="status-bar">
+      <div class="status-bar" role="status" aria-live="polite">
         <div class="status-dot" id="status-dot"></div>
         <span id="status-text">Connecting…</span>
+        <div class="stats" aria-label="Conversation stats">
+          <span title="Messages exchanged">💬 <strong id="stat-msgs">0</strong></span>
+          <span title="Total tokens used">🪙 <strong id="stat-tokens">0</strong></span>
+          <span title="Elapsed time">⏱ <strong id="stat-time">0s</strong></span>
+        </div>
       </div>
 
-      <div id="messages"></div>
+      <div class="messages-wrap">
+        <div id="messages" role="log" aria-live="polite" aria-label="Conversation messages">
+          <div class="empty-state" id="empty-state">
+            <div class="pulse-ring"></div>
+            <div>Waiting for the first response…</div>
+          </div>
+        </div>
+        <button class="scroll-bottom" id="scroll-bottom-btn" type="button"
+                onclick="scrollToBottom(true)" aria-label="Scroll to latest message" title="Scroll to latest">↓</button>
+      </div>
 
       <div class="btn-row" style="margin-top:1.25rem;">
         <button class="btn btn-danger" id="stop-btn" onclick="stopConversation()">⏹ Stop</button>
@@ -460,6 +742,9 @@
   </div>
 </div>
 
+<!-- Toasts -->
+<div class="toast-wrap" id="toast-wrap" aria-live="polite" aria-atomic="true"></div>
+
 <script>
 // ============================================================
 // State
@@ -468,6 +753,19 @@ let sessionId = null;
 let eventSource = null;
 let turnCount = 0;
 let streamClosedByApp = false;
+
+// Live stats
+let totalTokens = 0;
+let startTimestamp = 0;
+let timerInterval = null;
+
+// Scroll behavior
+let userScrolledUp = false;
+
+// Tab-title flash
+const ORIGINAL_TITLE = document.title;
+let unreadCount = 0;
+let titleFlashTimer = null;
 
 // Agent metadata from server
 const AGENTS = {{ agents | tojson }};
@@ -493,18 +791,33 @@ function setStatus(text, alive) {
   if (alive) { dot.classList.remove('ended'); } else { dot.classList.add('ended'); }
 }
 
-function scrollToBottom() {
+function isAtBottom() {
   const el = document.getElementById('messages');
-  el.scrollTop = el.scrollHeight;
+  return (el.scrollHeight - el.scrollTop - el.clientHeight) < 60;
+}
+
+function scrollToBottom(force) {
+  const el = document.getElementById('messages');
+  if (force || !userScrolledUp) {
+    el.scrollTop = el.scrollHeight;
+    userScrolledUp = false;
+    document.getElementById('scroll-bottom-btn').classList.remove('show');
+  }
+}
+
+function clearEmptyState() {
+  const el = document.getElementById('empty-state');
+  if (el) el.remove();
 }
 
 function addThinking(agent) {
   removeThinking();
+  clearEmptyState();
   const div = document.createElement('div');
   div.className = 'thinking';
   div.id = 'thinking-indicator';
   const info = Object.values(AGENTS).find(a => a.name === agent) || {};
-  div.innerHTML = `<strong>${info.icon || '🤖'} ${agent}</strong> is thinking <span class="dots"><span></span><span></span><span></span></span>`;
+  div.innerHTML = `<strong>${info.icon || '🤖'} ${escapeHtml(agent)}</strong> is thinking <span class="dots"><span></span><span></span><span></span></span>`;
   document.getElementById('messages').appendChild(div);
   scrollToBottom();
 }
@@ -520,10 +833,123 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// ---------- Lightweight Markdown renderer (escape first, then format) -------
+function renderMarkdown(raw) {
+  let s = escapeHtml(raw);
+
+  // Highlight protocol markers from system prompt
+  s = s.replace(/\[FACTUAL_SUFFICIENT:[^\]]*\]/gi, '<span class="marker factual">✓ Factual answer sufficient</span>');
+  s = s.replace(/\[done\]/gi, '<span class="marker done">[done]</span>');
+  s = s.replace(/\[off_topic\]/gi, '<span class="marker">[off-topic]</span>');
+
+  // Code fences ```lang\n...\n```
+  s = s.replace(/```([\s\S]*?)```/g, (_, code) => {
+    return '<pre><code>' + code.replace(/^\n/, '').replace(/\n$/, '') + '</code></pre>';
+  });
+  // Inline code `code`
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // Bold **text**
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  // Italic *text* (avoid matching list bullets at line start)
+  s = s.replace(/(^|[^\*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  // Blockquotes
+  s = s.replace(/(^|\n)&gt; ?(.+)/g, '$1<blockquote>$2</blockquote>');
+
+  // Lists — convert lines starting with -, *, or number.
+  const lines = s.split('\n');
+  const out = [];
+  let inUl = false, inOl = false, paraBuf = [];
+  const flushPara = () => {
+    if (paraBuf.length) { out.push('<p>' + paraBuf.join(' ') + '</p>'); paraBuf = []; }
+  };
+  const closeLists = () => {
+    if (inUl) { out.push('</ul>'); inUl = false; }
+    if (inOl) { out.push('</ol>'); inOl = false; }
+  };
+  for (const line of lines) {
+    if (/^<(pre|blockquote)/.test(line)) { flushPara(); closeLists(); out.push(line); continue; }
+    const ul = line.match(/^\s*[-*]\s+(.*)$/);
+    const ol = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (ul) {
+      flushPara();
+      if (inOl) { out.push('</ol>'); inOl = false; }
+      if (!inUl) { out.push('<ul>'); inUl = true; }
+      out.push('<li>' + ul[1] + '</li>');
+    } else if (ol) {
+      flushPara();
+      if (inUl) { out.push('</ul>'); inUl = false; }
+      if (!inOl) { out.push('<ol>'); inOl = true; }
+      out.push('<li>' + ol[1] + '</li>');
+    } else if (line.trim() === '') {
+      flushPara(); closeLists();
+    } else {
+      paraBuf.push(line);
+    }
+  }
+  flushPara(); closeLists();
+  return out.join('\n');
+}
+
+function fmtTime(secs) {
+  if (secs < 60) return Math.floor(secs) + 's';
+  const m = Math.floor(secs / 60), s = Math.floor(secs % 60);
+  return `${m}m ${s}s`;
+}
+
+function nowHHMM() {
+  const d = new Date();
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function updateStats() {
+  document.getElementById('stat-msgs').textContent = turnCount;
+  document.getElementById('stat-tokens').textContent = totalTokens.toLocaleString();
+  if (startTimestamp) {
+    document.getElementById('stat-time').textContent = fmtTime((Date.now() - startTimestamp) / 1000);
+  }
+}
+
+function startTimer() {
+  startTimestamp = Date.now();
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateStats, 1000);
+}
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ---------- Toasts ----------
+function toast(message, kind) {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind || '');
+  el.textContent = message;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ---------- Tab title flash ----------
+function flashTitle() {
+  if (!document.hidden) return;
+  unreadCount++;
+  document.title = `(${unreadCount}) ${ORIGINAL_TITLE}`;
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    unreadCount = 0;
+    document.title = ORIGINAL_TITLE;
+    if (titleFlashTimer) { clearInterval(titleFlashTimer); titleFlashTimer = null; }
+  }
+});
+
 function addMessage(sender, content, metadata) {
   removeThinking();
+  clearEmptyState();
   turnCount++;
   document.getElementById('turn-badge').textContent = 'Turn ' + turnCount;
+  if (metadata && metadata.tokens) totalTokens += Number(metadata.tokens) || 0;
+  updateStats();
+  flashTitle();
 
   const agent1Name = AGENTS[document.getElementById('agent1-select').value]?.name;
   const isLeft = (sender === agent1Name);
@@ -543,18 +969,23 @@ function addMessage(sender, content, metadata) {
     div.style.borderLeft = `3px solid ${color}`;
   }
 
-  // Build message safely — escape all LLM output to prevent XSS
+  // Sender row with timestamp
   const senderDiv = document.createElement('div');
   senderDiv.className = 'sender';
   senderDiv.style.color = color;
-  senderDiv.textContent = `${icon} ${sender}`;
+  const senderText = document.createElement('span');
+  senderText.textContent = `${icon} ${sender}`;
+  const ts = document.createElement('span');
+  ts.className = 'timestamp';
+  ts.textContent = nowHHMM();
+  senderDiv.appendChild(senderText);
+  senderDiv.appendChild(ts);
   div.appendChild(senderDiv);
 
-  // Render content as safe text with paragraph breaks
-  const escaped = escapeHtml(content);
-  const formatted = escaped.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+  // Content with safe markdown rendering (escape happens inside renderMarkdown)
   const contentEl = document.createElement('div');
-  contentEl.innerHTML = '<p>' + formatted + '</p>';
+  contentEl.className = 'content';
+  contentEl.innerHTML = renderMarkdown(content);
   div.appendChild(contentEl);
 
   if (metadata && metadata.tokens) {
@@ -565,11 +996,16 @@ function addMessage(sender, content, metadata) {
   }
 
   document.getElementById('messages').appendChild(div);
-  scrollToBottom();
+  if (userScrolledUp) {
+    document.getElementById('scroll-bottom-btn').classList.add('show');
+  } else {
+    scrollToBottom();
+  }
 }
 
 function addSystemMessage(text, isError) {
   removeThinking();
+  clearEmptyState();
   const div = document.createElement('div');
   div.className = 'msg left';
   div.style.background = isError ? 'rgba(239,68,68,.12)' : 'rgba(99,102,241,.1)';
@@ -582,12 +1018,15 @@ function addSystemMessage(text, isError) {
   senderDiv.textContent = (isError ? '❌' : 'ℹ️') + ' System';
   div.appendChild(senderDiv);
 
-  const p = document.createElement('p');
-  p.textContent = text;
+  const p = document.createElement('div');
+  p.className = 'content';
+  const pp = document.createElement('p');
+  pp.textContent = text;
+  p.appendChild(pp);
   div.appendChild(p);
 
   document.getElementById('messages').appendChild(div);
-  scrollToBottom();
+  if (!userScrolledUp) scrollToBottom();
 }
 
 // ============================================================
@@ -637,16 +1076,27 @@ async function startConversation() {
 
     sessionId = data.session_id;
     turnCount = 0;
+    totalTokens = 0;
     streamClosedByApp = false;
+    userScrolledUp = false;
+
+    // Persist topic for next visit
+    try { localStorage.setItem('aic-last-topic', topic); } catch {}
 
     // Switch UI
     document.getElementById('setup-card').style.display = 'none';
     document.getElementById('conversation-area').style.display = 'block';
-    document.getElementById('messages').innerHTML = '';
+    document.getElementById('messages').innerHTML =
+      '<div class="empty-state" id="empty-state"><div class="pulse-ring"></div>' +
+      '<div>Waiting for the first response…</div></div>';
     document.getElementById('stop-btn').style.display = '';
     document.getElementById('new-btn').style.display = 'none';
     document.getElementById('turn-badge').textContent = 'Turn 0';
+    document.getElementById('stat-msgs').textContent = '0';
+    document.getElementById('stat-tokens').textContent = '0';
+    document.getElementById('stat-time').textContent = '0s';
     setStatus('Connected — waiting for first response…', true);
+    startTimer();
 
     // Connect SSE
     connectSSE(sessionId);
@@ -742,6 +1192,8 @@ async function stopConversation() {
 function endConversation() {
   streamClosedByApp = true;
   if (eventSource) { eventSource.close(); eventSource = null; }
+  stopTimer();
+  updateStats();
   document.getElementById('stop-btn').style.display = 'none';
   document.getElementById('new-btn').style.display = '';
   document.getElementById('copy-btn').style.display = '';
@@ -787,6 +1239,7 @@ function copyConversation() {
     const origText = btn.innerHTML;
     btn.innerHTML = '✅ Copied!';
     btn.classList.add('copied');
+    toast('Conversation copied to clipboard', 'success');
     setTimeout(() => {
       btn.innerHTML = origText;
       btn.classList.remove('copied');
@@ -802,6 +1255,7 @@ function copyConversation() {
     const btn = document.getElementById('copy-btn');
     btn.innerHTML = '✅ Copied!';
     btn.classList.add('copied');
+    toast('Conversation copied to clipboard', 'success');
     setTimeout(() => {
       btn.innerHTML = '📋 Copy Conversation';
       btn.classList.remove('copied');
@@ -826,14 +1280,90 @@ function resetUI() {
 }
 
 // ============================================================
-// Init — auto-open api keys if any agent needs a key
+// Init — wire chips, counter, scroll, keyboard, persistence
 // ============================================================
 (function init() {
+  // Auto-open API keys if any agent needs a key
   const needsKey = Object.values(AGENTS).some(a => !a.has_demo_key);
   if (needsKey) {
     document.getElementById('api-keys-section').classList.add('open');
     document.getElementById('api-chevron').textContent = '▼';
   }
+
+  const topicInput = document.getElementById('topic-input');
+  const counter = document.getElementById('topic-counter');
+
+  // Restore last-used topic
+  try {
+    const last = localStorage.getItem('aic-last-topic');
+    if (last && !topicInput.value) topicInput.value = last;
+  } catch {}
+
+  const updateCounter = () => {
+    const len = topicInput.value.length;
+    counter.textContent = `${len} / 500`;
+    counter.style.color = len > 450 ? 'var(--warning)' : 'var(--text-dim)';
+  };
+  topicInput.addEventListener('input', updateCounter);
+  updateCounter();
+
+  // Topic suggestion chips
+  document.querySelectorAll('.chip[data-topic]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      topicInput.value = chip.dataset.topic;
+      topicInput.focus();
+      updateCounter();
+    });
+  });
+
+  // Smart scroll: detect user scroll-up to suppress auto-scroll
+  const messagesEl = document.getElementById('messages');
+  messagesEl.addEventListener('scroll', () => {
+    if (isAtBottom()) {
+      userScrolledUp = false;
+      document.getElementById('scroll-bottom-btn').classList.remove('show');
+    } else {
+      userScrolledUp = true;
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + Enter → start (when setup card visible)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      const setupVisible = document.getElementById('setup-card').style.display !== 'none';
+      if (setupVisible && !document.getElementById('start-btn').disabled) {
+        e.preventDefault();
+        startConversation();
+      }
+    }
+    // Escape → stop conversation
+    if (e.key === 'Escape') {
+      const stopBtn = document.getElementById('stop-btn');
+      if (stopBtn && stopBtn.style.display !== 'none' && sessionId) {
+        stopConversation();
+      }
+    }
+  });
+
+  // Plain Enter inside topic field also starts
+  topicInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!document.getElementById('start-btn').disabled) startConversation();
+    }
+  });
+
+  // Warn if both agents are the same when changed
+  const a1 = document.getElementById('agent1-select');
+  const a2 = document.getElementById('agent2-select');
+  const checkSame = () => {
+    if (a1.value === a2.value) {
+      toast('Heads up: both agents are ' + (AGENTS[a1.value]?.name || a1.value), '');
+    }
+  };
+  a1.addEventListener('change', checkSame);
+  a2.addEventListener('change', checkSame);
 })();
 </script>
 </body>
