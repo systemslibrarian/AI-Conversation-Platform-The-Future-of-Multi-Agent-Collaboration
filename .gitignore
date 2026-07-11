@@ -83,6 +83,8 @@ dist/
 *.log
 *.sqlite
 *.db
+*.db.lock
+:memory:.lock
 
 # ───────────────────────────────
 # Local development tools

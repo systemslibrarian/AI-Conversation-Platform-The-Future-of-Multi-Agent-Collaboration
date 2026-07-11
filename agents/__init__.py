@@ -76,7 +76,7 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "env_key": "CLAUDEAPIKEY",
         "env_key_alt": "ANTHROPIC_API_KEY",  # Alternative for backward compatibility
         "default_model_attr": "DEFAULT_MODEL",
-        "fallback_model": "claude-sonnet-4-5-20250929",
+        "fallback_model": "claude-sonnet-4-6",
     },
     "gemini": {
         "symbol": "GeminiAgent",
@@ -90,14 +90,14 @@ _AGENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "env_key": "XAI_API_KEY",
         "env_key_alt": "GROK_API_KEY",  # Alternative naming used in .env.example
         "default_model_attr": "DEFAULT_MODEL",
-        "fallback_model": "grok-beta",
+        "fallback_model": "grok-3",
     },
     "perplexity": {
         "symbol": "PerplexityAgent",
         "env_key": "PERPLEXITY_API_KEY",
         "env_key_alt": "PERPLEXITYAPIKEY",  # Alternative naming
         "default_model_attr": "DEFAULT_MODEL",
-        "fallback_model": "llama-3.1-sonar-large-128k-online",
+        "fallback_model": "sonar-pro",
     },
 }
 
@@ -167,7 +167,9 @@ def create_agent(
         raise ValueError(f"Missing API key for {agent_type!r}. Set {env_key} or pass api_key=...")
 
     selected_model = model if model else default_model
-    return cls(
+    # Provider subclasses take api_key as an extra leading parameter that
+    # BaseAgent itself does not accept, hence the call-arg ignore.
+    return cls(  # type: ignore[call-arg]
         api_key=key,
         queue=queue,
         logger=logger,

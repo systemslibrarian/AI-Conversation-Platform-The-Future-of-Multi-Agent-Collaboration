@@ -8,7 +8,7 @@ import re
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 def setup_logging(agent_name: str, log_dir: str = "logs") -> logging.Logger:
@@ -64,8 +64,12 @@ def hash_message(content: str) -> str:
     return hashlib.md5(content.encode()).hexdigest()[:8]
 
 
-def add_jitter(value: float, jitter_range: float = 0.2) -> float:
-    """Add random jitter for backoff"""
+def add_jitter(value: float, jitter_range: Optional[float] = None) -> float:
+    """Add random jitter for backoff (defaults to config.JITTER_RANGE)"""
+    if jitter_range is None:
+        from .config import config
+
+        jitter_range = config.JITTER_RANGE
     return max(0.1, value * (1.0 + random.uniform(-jitter_range, jitter_range)))
 
 

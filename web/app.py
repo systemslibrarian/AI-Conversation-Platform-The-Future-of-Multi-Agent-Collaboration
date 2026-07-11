@@ -7,12 +7,11 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Bleach stubs may be missing in some environments; ignore import typing error.
-import bleach  # type: ignore[import-untyped]
+import bleach
 import streamlit as st
 
 from core.config import config
@@ -140,7 +139,7 @@ def export_to_json(
     data = {
         "metadata": metadata or {},
         "messages": messages or [],
-        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "exported_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     return json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -229,7 +228,7 @@ def main() -> None:
         st.download_button(
             label="Download JSON",
             data=json_data,
-            file_name=f"conversation_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json",
+            file_name=f"conversation_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
         )
 

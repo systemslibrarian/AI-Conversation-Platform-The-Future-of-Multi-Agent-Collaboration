@@ -54,6 +54,10 @@ class GeminiAgent(BaseAgent):
             role = "user" if msg["role"] == "user" else "model"
             history.append({"role": role, "parts": [msg["content"]]})
 
+        # Gemini requires chat history to start with a user turn.
+        if history and history[0]["role"] == "model":
+            history.insert(0, {"role": "user", "parts": [self._kickoff_message()]})
+
         # The last message is the one we are "sending"
         if messages:
             last_message = messages[-1]["content"]
@@ -64,13 +68,16 @@ class GeminiAgent(BaseAgent):
 
         def _sync_call():
             chat = client.start_chat(history=history)
-            return chat.send_message(last_message or "Continue.")
+            return chat.send_message(last_message or self._kickoff_message())
 
         response = await loop.run_in_executor(None, _sync_call)
 
         content = response.text
 
-        # Estimate tokens (Gemini doesn't always provide usage info)
-        tokens = len(content) // 4 + sum(len(m["content"]) // 4 for m in messages)
+        # Prefer real usage info when the API provides it; fall back to estimate
+        usage = getattr(response, "usage_metadata", None)
+        tokens = getattr(usage, "total_token_count", 0) if usage else 0
+        if not isinstance(tokens, int) or tokens <= 0:
+            tokens = len(content) // 4 + sum(len(m["content"]) // 4 for m in messages)
 
         return content, tokens

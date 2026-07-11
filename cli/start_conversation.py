@@ -176,6 +176,15 @@ class ConversationStarter:
             topic=topic,
             timeout=config.DEFAULT_TIMEOUT_MINUTES,
         )
+        # Only agent1 may open an empty conversation; otherwise both agents
+        # race to post an opening message at the same time.
+        agent2.is_initiator = False
+
+        # Same-provider conversations need distinct names, or turn alternation
+        # and message role mapping (self vs partner) break down.
+        if agent1.agent_name == agent2.agent_name:
+            agent1.agent_name = f"{agent1.agent_name}-1"
+            agent2.agent_name = f"{agent2.agent_name}-2"
 
         increment_conversations()
         try:

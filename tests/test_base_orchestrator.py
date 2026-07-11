@@ -468,18 +468,21 @@ class TestBuildSystemPrompt:
         prompt = test_agent._build_system_prompt()
         assert "[done]" in prompt
 
-    def test_prompt_requires_structured_eval_format(self, test_agent):
-        """Prompt should require explicit evaluation sections each turn."""
+    def test_prompt_enforces_natural_on_topic_conversation(self, test_agent):
+        """Prompt should demand natural prose, brevity, and strict topic focus."""
         prompt = test_agent._build_system_prompt()
-        # The structured 5-step protocol must be present
-        for section in (
-            "Topic Anchor",
-            "Evaluate Previous Response",
-            "Determine Response Type",
-            "Improved Answer",
-            "Next Step",
-        ):
-            assert section in prompt, f"Prompt missing required section: {section}"
+        lower = prompt.lower()
+        # Natural conversation, not protocol narration
+        assert "no step labels" in lower
+        assert "natural, flowing prose" in lower
+        # Brevity: the configured word budget must appear
+        from core.config import config
+
+        assert f"under {config.MAX_RESPONSE_WORDS} words" in prompt
+        # Topic focus and drift handling
+        assert "STAYING ON TOPIC" in prompt
+        assert "[off_topic]" in prompt
+        assert "steer it back" in lower
 
     def test_prompt_requires_stop_or_continue_choice(self, test_agent):
         """Prompt should require a stop/continue decision in every turn."""

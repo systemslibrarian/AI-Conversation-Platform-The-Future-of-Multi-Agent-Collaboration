@@ -6,14 +6,16 @@
 """
 
 import asyncio
+import itertools
 import json
 import sqlite3
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol, Tuple
+from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
-from filelock import FileLock, Timeout
+from filelock import BaseFileLock, FileLock, Timeout
 
 from .common import hash_message, log_event
 from .config import config
@@ -63,16 +65,61 @@ class QueueInterface(Protocol):
         ...
 
 
+class _ThreadLock:
+    """FileLock-compatible in-process lock for in-memory databases.
+
+    Raises filelock.Timeout on acquisition failure so callers can treat it
+    exactly like a FileLock.
+    """
+
+    def __init__(self, timeout: float = 30) -> None:
+        self._lock = threading.Lock()
+        self._timeout = timeout
+
+    def acquire(self, timeout: Optional[float] = None) -> None:
+        effective = self._timeout if timeout is None else timeout
+        if not self._lock.acquire(timeout=effective):
+            raise Timeout(":memory:")
+
+    def release(self) -> None:
+        self._lock.release()
+
+    def __enter__(self) -> "_ThreadLock":
+        self.acquire()
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        self.release()
+
+
+# Distinguishes concurrently-created in-memory queues within one process.
+_memory_queue_counter = itertools.count()
+
+
 class SQLiteQueue:
     """Async SQLite-based message queue with atomic operations"""
 
-    def __init__(self, filepath: Path, logger, lock_timeout: int = 30) -> None:
+    def __init__(self, filepath: Union[str, Path], logger, lock_timeout: int = 30) -> None:
         self.filepath = Path(filepath)
         self.logger = logger
         self.lock_timeout = lock_timeout
+        self.is_memory = str(filepath) == ":memory:"
 
-        # File-based lock for inter-process synchronization
-        self.lock = FileLock(f"{filepath}.lock", timeout=lock_timeout)
+        self.lock: Union[BaseFileLock, _ThreadLock]
+        if self.is_memory:
+            # A plain sqlite3.connect(":memory:") gives every connection its own
+            # private database, so per-operation connections would each see an
+            # empty schema. Use a named shared-cache database instead, held open
+            # by an anchor connection for the queue's lifetime.
+            self._memory_uri = (
+                f"file:aic_mem_{next(_memory_queue_counter)}?mode=memory&cache=shared"
+            )
+            self._anchor_conn = sqlite3.connect(self._memory_uri, uri=True, check_same_thread=False)
+            # No file to lock; synchronize within the process instead.
+            self.lock = _ThreadLock(timeout=lock_timeout)
+        else:
+            # File-based lock for inter-process synchronization
+            self.lock = FileLock(f"{filepath}.lock", timeout=lock_timeout)
 
         # Initialize database
         self._init_db()
@@ -83,11 +130,18 @@ class SQLiteQueue:
             {"filepath": str(self.filepath), "type": "sqlite"},
         )
 
+    def _connect(self, timeout: float = 30) -> sqlite3.Connection:
+        """Open a connection to the queue's database."""
+        if self.is_memory:
+            return sqlite3.connect(self._memory_uri, uri=True, timeout=timeout)
+        return sqlite3.connect(str(self.filepath), timeout=timeout)
+
     def _init_db(self) -> None:
         """Initialize database schema"""
-        conn = sqlite3.connect(str(self.filepath), timeout=30)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
+        conn = self._connect()
+        if not self.is_memory:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS metadata (
@@ -181,7 +235,7 @@ class SQLiteQueue:
 
         try:
             with self.lock:
-                conn = sqlite3.connect(str(self.filepath))
+                conn = self._connect()
                 conn.execute("BEGIN IMMEDIATE")
 
                 try:
@@ -208,13 +262,14 @@ class SQLiteQueue:
                         WHERE key='total_turns'
                     """)
 
-                    # Update sender-specific counter
+                    # Update sender-specific counter (upsert so senders that were
+                    # not pre-seeded in _init_db are still counted)
                     sender_key = f"{sender.lower()}_turns"
                     conn.execute(
                         """
-                        UPDATE metadata
+                        INSERT INTO metadata (key, value) VALUES (?, '1')
+                        ON CONFLICT(key) DO UPDATE
                         SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)
-                        WHERE key=?
                     """,
                         (sender_key,),
                     )
@@ -254,7 +309,7 @@ class SQLiteQueue:
         """Get recent conversation context"""
         await asyncio.sleep(0)
 
-        conn = sqlite3.connect(str(self.filepath))
+        conn = self._connect()
         conn.row_factory = sqlite3.Row
 
         try:
@@ -284,7 +339,7 @@ class SQLiteQueue:
         """Get the sender of the last message"""
         await asyncio.sleep(0)
 
-        conn = sqlite3.connect(str(self.filepath))
+        conn = self._connect()
         try:
             row = conn.execute("SELECT sender FROM messages ORDER BY id DESC LIMIT 1").fetchone()
             if row is None:
@@ -299,7 +354,7 @@ class SQLiteQueue:
         """Check if conversation is terminated"""
         await asyncio.sleep(0)
 
-        conn = sqlite3.connect(str(self.filepath))
+        conn = self._connect()
         try:
             row = conn.execute("SELECT value FROM metadata WHERE key='terminated'").fetchone()
             if row is None:
@@ -316,7 +371,7 @@ class SQLiteQueue:
 
         try:
             with self.lock:
-                conn = sqlite3.connect(str(self.filepath))
+                conn = self._connect()
                 try:
                     now = datetime.now().isoformat()
                     conn.execute("UPDATE metadata SET value = '1' WHERE key='terminated'")
@@ -340,7 +395,7 @@ class SQLiteQueue:
         """Get termination reason"""
         await asyncio.sleep(0)
 
-        conn = sqlite3.connect(str(self.filepath))
+        conn = self._connect()
         try:
             row = conn.execute(
                 "SELECT value FROM metadata WHERE key='termination_reason'"
@@ -359,7 +414,7 @@ class SQLiteQueue:
         """Load all messages and metadata"""
         await asyncio.sleep(0)
 
-        conn = sqlite3.connect(str(self.filepath))
+        conn = self._connect()
         conn.row_factory = sqlite3.Row
 
         try:
@@ -397,7 +452,7 @@ class SQLiteQueue:
 
         # Database connectivity
         try:
-            conn = sqlite3.connect(str(self.filepath))
+            conn = self._connect()
             conn.execute("SELECT 1").fetchone()
             conn.close()
             health["checks"]["database"] = "ok"
@@ -434,7 +489,7 @@ class SQLiteQueue:
 class RedisQueue:
     """Redis-based message queue for distributed deployments"""
 
-    def __init__(self, url: str, logger) -> None:
+    def __init__(self, url: str, logger, conv_id: Optional[str] = None) -> None:
         try:
             import redis.asyncio as redis
         except ImportError:
@@ -444,7 +499,10 @@ class RedisQueue:
 
         self.r = redis.from_url(url, decode_responses=True)
         self.logger = logger
-        self.conv_id = f"conv:{int(time.time())}"
+        # A timestamp-derived id is only unique per instance; distributed
+        # deployments must pass a shared conv_id so all workers see the same
+        # conversation.
+        self.conv_id = conv_id or f"conv:{int(time.time())}"
 
         log_event(self.logger, "queue_initialized", {"type": "redis", "conv_id": self.conv_id})
 
@@ -543,9 +601,11 @@ class RedisQueue:
         return health
 
 
-def create_queue(filepath_or_url: str, logger, use_redis: bool = False) -> QueueInterface:
+def create_queue(
+    filepath_or_url: str, logger, use_redis: bool = False, conv_id: Optional[str] = None
+) -> QueueInterface:
     """Factory function to create appropriate queue"""
     if use_redis or filepath_or_url.startswith("redis://"):
-        return RedisQueue(filepath_or_url, logger)
+        return RedisQueue(filepath_or_url, logger, conv_id=conv_id)
     else:
         return SQLiteQueue(Path(filepath_or_url), logger)

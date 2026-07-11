@@ -51,7 +51,7 @@ SESSION_TTL = 600  # 10 minutes max session lifetime
 # Agent display info
 AGENT_DISPLAY = {
     "chatgpt": {"name": "ChatGPT", "icon": "🤖", "color": "#10a37f"},
-    "claude": {"name": "Claude", "icon": "🟣", "color": "#7c3aed"},
+    "claude": {"name": "Claude", "icon": "🟣", "color": "#a78bfa"},
     "gemini": {"name": "Gemini", "icon": "💎", "color": "#4285f4"},
     "grok": {"name": "Grok", "icon": "⚡", "color": "#1da1f2"},
     "perplexity": {"name": "Perplexity", "icon": "🔍", "color": "#20b2aa"},
@@ -114,13 +114,19 @@ def _check_rate_limit(ip: str) -> bool:
 
 
 def _cleanup_stale_sessions():
-    """Remove sessions older than SESSION_TTL."""
+    """Remove sessions older than SESSION_TTL and prune idle rate-limit entries."""
     now = time.time()
     stale = [sid for sid, s in _sessions.items() if now - s.get("started_at", now) > SESSION_TTL]
     for sid in stale:
         session = _sessions.pop(sid, None)
         if session:
             session["stop_requested"] = True
+
+    # Drop IPs whose window has fully expired so the dict doesn't grow forever
+    for ip in list(_rate_limits):
+        _rate_limits[ip] = [t for t in _rate_limits[ip] if now - t < RATE_LIMIT_WINDOW]
+        if not _rate_limits[ip]:
+            del _rate_limits[ip]
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +211,7 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
     async def should_defer_done(term_reason: str) -> bool:
         """Defer [done] so the peer AI can respond at least once before ending."""
         term_token = getattr(config, "TERMINATION_TOKEN", "[done]").lower()
-        if term_token not in term_reason.lower():
+        if term_token not in term_reason.lower() and term_reason != "factual_answer_sufficient":
             return False
 
         min_total = max(1, int(getattr(config, "MIN_TOTAL_TURNS_BEFORE_DONE", 2)))
@@ -226,7 +232,7 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
 
     # Resolve API keys: user-supplied > environment variable (primary) > alternatives
     def resolve_key(agent_type: str) -> str:
-        user_key = api_keys.get(agent_type, "").strip()
+        user_key = str(api_keys.get(agent_type, "") or "").strip()
         if user_key:
             return user_key
         # Check primary env var
@@ -268,6 +274,12 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
         api_key=key2,
     )
 
+    # Same-provider conversations need distinct names, or message role mapping
+    # (self vs partner) breaks down.
+    if agent1.agent_name == agent2.agent_name:
+        agent1.agent_name = f"{agent1.agent_name}-1"
+        agent2.agent_name = f"{agent2.agent_name}-2"
+
     event_queue.put(
         {
             "type": "status",
@@ -283,7 +295,6 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
 
     # Turn-based loop (sequential, not concurrent gather)
     agents = [agent1, agent2]
-    names = [agent1.agent_name, agent2.agent_name]
 
     for turn in range(max_turns):
         if session.get("stop_requested"):
@@ -291,7 +302,6 @@ async def _async_conversation(session_id: str, session: Dict[str, Any]):
             return
 
         current = agents[turn % 2]
-        _ = names[(turn + 1) % 2]
 
         event_queue.put({"type": "thinking", "agent": current.agent_name})
 
@@ -403,14 +413,23 @@ def start_conversation():
     if len(_sessions) >= MAX_SESSIONS:
         return jsonify({"error": "Server is at capacity. Please try again later."}), 503
 
-    data = request.get_json(force=True)
+    data = request.get_json(force=True, silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
 
-    agent1 = data.get("agent1", "").strip().lower()
-    agent2 = data.get("agent2", "").strip().lower()
-    topic = data.get("topic", "").strip() or "general"
+    agent1 = str(data.get("agent1", "") or "").strip().lower()
+    agent2 = str(data.get("agent2", "") or "").strip().lower()
+    topic = str(data.get("topic", "") or "").strip() or "general"
     api_keys = data.get("api_keys", {})
-    max_turns = min(int(data.get("max_turns", DEMO_MAX_TURNS)), DEMO_MAX_TURNS * 2)
-    delay = max(0.5, min(float(data.get("delay", 2.0)), 10.0))
+    if not isinstance(api_keys, dict):
+        return jsonify({"error": "api_keys must be an object."}), 400
+    try:
+        max_turns = int(data.get("max_turns", DEMO_MAX_TURNS))
+        delay = float(data.get("delay", 2.0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "max_turns and delay must be numbers."}), 400
+    max_turns = max(1, min(max_turns, DEMO_MAX_TURNS * 2))
+    delay = max(0.5, min(delay, 10.0))
 
     available = list_available_agents()
     if agent1 not in available:
@@ -420,7 +439,7 @@ def start_conversation():
 
     # Check that we have keys for both agents
     for ag in [agent1, agent2]:
-        user_key = api_keys.get(ag, "").strip()
+        user_key = str(api_keys.get(ag, "") or "").strip()
         env_var = AGENT_ENV_KEYS.get(ag, "")
         has_env = bool(os.getenv(env_var, ""))
         # Check alternative env var names

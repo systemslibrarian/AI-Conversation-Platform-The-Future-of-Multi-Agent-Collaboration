@@ -55,19 +55,31 @@ class Config:
     MAX_CONSECUTIVE_SIMILAR = int(os.getenv("MAX_CONSECUTIVE_SIMILAR", "2"))
 
     # Termination phrases
-    TOPIC_DRIFT_PHRASES = ["[done]", "i can't continue", "off topic", "unrelated", "loop detected"]
+    TERMINATION_TOKEN = os.getenv("TERMINATION_TOKEN", "[done]")
+    TOPIC_DRIFT_PHRASES = [
+        "[done]",
+        "[off_topic]",
+        "i can't continue",
+        "off topic",
+        "unrelated",
+        "loop detected",
+    ]
     MIN_TOTAL_TURNS_BEFORE_DONE = int(os.getenv("MIN_TOTAL_TURNS_BEFORE_DONE", "2"))
 
     # Backoff settings
-    INITIAL_BACKOFF = 2.0
-    MAX_BACKOFF = 120.0
-    BACKOFF_MULTIPLIER = 2.0
-    JITTER_RANGE = 0.2
+    INITIAL_BACKOFF = float(os.getenv("INITIAL_BACKOFF", "2.0"))
+    MAX_BACKOFF = float(os.getenv("MAX_BACKOFF", "120.0"))
+    BACKOFF_MULTIPLIER = float(os.getenv("BACKOFF_MULTIPLIER", "2.0"))
+    JITTER_RANGE = float(os.getenv("JITTER_RANGE", "0.2"))
 
     # API settings
     TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
     MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
     MAX_CONTEXT_MSGS = int(os.getenv("MAX_CONTEXT_MSGS", "10"))
+
+    # Conversation quality: soft per-reply word budget used in the system prompt
+    # and the per-turn topic reminder to keep exchanges focused.
+    MAX_RESPONSE_WORDS = int(os.getenv("MAX_RESPONSE_WORDS", "180"))
 
     # Redis settings
     REDIS_URL = os.getenv("REDIS_URL", "")

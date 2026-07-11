@@ -19,9 +19,11 @@
       --border: #2e3345;
       --border-strong: #3a4055;
       --text: #e4e6f0;
-      --text-muted: #8b8fa3;
-      --text-dim: #6b7080;
+      --text-muted: #9aa0b4;   /* ≥4.5:1 on all surfaces (WCAG AA) */
+      --text-dim: #939aae;     /* ≥4.5:1 on all surfaces (WCAG AA) */
       --accent: #6366f1;
+      --accent-strong: #4f46e5; /* badge bg: white text passes AA */
+      --accent-text: #a0a3ff;   /* accent-colored text on dark surfaces */
       --accent-2: #a855f7;
       --accent-glow: rgba(99,102,241,.25);
       --danger: #ef4444;
@@ -96,7 +98,7 @@
     }
     .card h2 .badge {
       font-size: .7rem;
-      background: var(--accent);
+      background: var(--accent-strong);
       color: #fff;
       padding: 2px 8px;
       border-radius: 99px;
@@ -133,6 +135,18 @@
       background: var(--surface3);
     }
     select { cursor: pointer; appearance: auto; }
+    ::placeholder { color: var(--text-dim); opacity: 1; }
+
+    /* Screen-reader-only text */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     .row { display: flex; gap: 1rem; }
     .row > * { flex: 1; }
@@ -141,6 +155,7 @@
 
     /* Topic input wrapper with counter */
     .topic-wrap { position: relative; }
+    .topic-wrap input { padding-right: 4.5rem; } /* keep text clear of the counter */
     .topic-counter {
       position: absolute;
       right: 10px; bottom: 8px;
@@ -161,7 +176,8 @@
     }
     .chip {
       font-size: .78rem;
-      padding: .35rem .7rem;
+      min-height: 2rem;
+      padding: .45rem .8rem;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 99px;
@@ -196,10 +212,15 @@
       align-items: center;
       gap: .5rem;
       cursor: pointer;
-      color: var(--accent);
+      color: var(--accent-text);
       font-size: .85rem;
       margin-bottom: .75rem;
       user-select: none;
+      background: none;
+      border: none;
+      padding: .25rem 0;
+      font-family: inherit;
+      font-weight: 500;
     }
     .api-keys-toggle:hover { text-decoration: underline; }
     .api-keys-section { display: none; }
@@ -207,13 +228,18 @@
     .key-input-wrap {
       position: relative;
     }
-    .key-input-wrap input { padding-right: 3rem; }
+    .key-input-wrap input { padding-right: 3.25rem; }
     .key-toggle-vis {
       position: absolute;
-      right: 8px; top: 50%;
+      right: 4px; top: 50%;
       transform: translateY(-50%);
+      width: 2.5rem; height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: none;
       border: none;
+      border-radius: var(--radius-sm);
       color: var(--text-muted);
       cursor: pointer;
       font-size: 1rem;
@@ -232,7 +258,7 @@
       display: inline-block;
       font-size: .7rem;
       background: var(--danger);
-      color: #fff;
+      color: #000; /* ≥4.5:1 on red at this size */
       padding: 1px 6px;
       border-radius: 4px;
       margin-left: .4rem;
@@ -393,7 +419,7 @@
     .scroll-bottom {
       position: absolute;
       right: 12px; bottom: 12px;
-      width: 36px; height: 36px;
+      width: 40px; height: 40px;
       border-radius: 50%;
       background: var(--accent);
       color: #fff;
@@ -500,7 +526,7 @@
       background: rgba(99,102,241,.06);
       border-radius: 0 6px 6px 0;
     }
-    .msg .content a { color: var(--accent); text-decoration: underline; }
+    .msg .content a { color: var(--accent-text); text-decoration: underline; }
     .msg .content .marker {
       display: inline-block;
       font-size: .72rem;
@@ -580,13 +606,30 @@
       .row { flex-direction: column; gap: .75rem; }
       .msg { max-width: 95%; }
       header h1 { font-size: 1.5rem; }
+      /* 16px inputs prevent iOS Safari from zooming on focus */
+      select, input[type="text"], input[type="password"] { font-size: 1rem; }
+    }
+
+    /* Touch devices: keyboard shortcut hint is meaningless */
+    @media (hover: none) and (pointer: coarse) {
+      .kbd-hint { display: none; }
+    }
+
+    /* ---- Reduced motion (WCAG 2.3.3) ---- */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+      html, #messages { scroll-behavior: auto; }
     }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div class="container">
+<main class="container">
 
   <!-- Header -->
   <header>
@@ -663,17 +706,18 @@
     </div>
 
     <!-- API Keys -->
-    <div class="api-keys-toggle" onclick="toggleApiKeys()">
-      <span id="api-chevron">▶</span> API Keys
+    <button type="button" class="api-keys-toggle" id="api-keys-toggle" onclick="toggleApiKeys()"
+            aria-expanded="false" aria-controls="api-keys-section">
+      <span id="api-chevron" aria-hidden="true">▶</span> API Keys
       <span class="badge" style="background:var(--surface2); color:var(--text-muted);">optional if demo keys available</span>
-    </div>
+    </button>
     <div class="api-keys-section" id="api-keys-section">
       <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:.75rem;">
         Leave blank to use the demo API keys (limited budget). Enter your own keys for unrestricted use.
       </p>
       {% for key, info in agents.items() %}
       <div class="form-group" id="key-group-{{ key }}">
-        <label>
+        <label for="key-{{ key }}">
           {{ info.icon }} {{ info.name }}
           {% if info.has_demo_key %}
           <span class="demo-badge">DEMO KEY</span>
@@ -684,7 +728,10 @@
         <div class="key-input-wrap">
           <input type="password" id="key-{{ key }}" placeholder="Paste your API key…"
                  autocomplete="off" spellcheck="false">
-          <button class="key-toggle-vis" onclick="toggleKeyVis('{{ key }}')" type="button" title="Show/hide">👁</button>
+          <button class="key-toggle-vis" onclick="toggleKeyVis('{{ key }}')" type="button"
+                  aria-label="Show {{ info.name }} API key" aria-pressed="false">
+            <span aria-hidden="true">👁</span>
+          </button>
         </div>
       </div>
       {% endfor %}
@@ -692,8 +739,8 @@
 
     <!-- Start Button -->
     <div class="btn-row">
-      <button class="btn btn-primary" id="start-btn" onclick="startConversation()" aria-label="Start conversation">
-        🚀 Start Conversation
+      <button class="btn btn-primary" id="start-btn" onclick="startConversation()">
+        <span aria-hidden="true">🚀</span> Start Conversation
       </button>
       <span class="kbd-hint">or press <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span></span>
       <span id="start-error" role="alert" style="color:var(--danger); font-size:.85rem;"></span>
@@ -703,18 +750,21 @@
   <!-- Conversation Card -->
   <div id="conversation-area">
     <div class="card">
-      <h2>
-        💬 Live Conversation
+      <h2 id="conversation-heading" tabindex="-1">
+        <span aria-hidden="true">💬</span> Live Conversation
         <span class="badge" id="turn-badge">Turn 0</span>
       </h2>
 
-      <div class="status-bar" role="status" aria-live="polite">
-        <div class="status-dot" id="status-dot"></div>
-        <span id="status-text">Connecting…</span>
-        <div class="stats" aria-label="Conversation stats">
-          <span title="Messages exchanged">💬 <strong id="stat-msgs">0</strong></span>
-          <span title="Total tokens used">🪙 <strong id="stat-tokens">0</strong></span>
-          <span title="Elapsed time">⏱ <strong id="stat-time">0s</strong></span>
+      <div class="status-bar">
+        <div class="status-dot" id="status-dot" aria-hidden="true"></div>
+        <span id="status-text" role="status" aria-live="polite">Connecting…</span>
+        <div class="stats">
+          <span title="Messages exchanged"><span aria-hidden="true">💬</span>
+            <span class="sr-only">Messages exchanged:</span> <strong id="stat-msgs">0</strong></span>
+          <span title="Total tokens used"><span aria-hidden="true">🪙</span>
+            <span class="sr-only">Total tokens used:</span> <strong id="stat-tokens">0</strong></span>
+          <span title="Elapsed time"><span aria-hidden="true">⏱</span>
+            <span class="sr-only">Elapsed time:</span> <strong id="stat-time">0s</strong></span>
         </div>
       </div>
 
@@ -737,10 +787,10 @@
     </div>
   </div>
 
-  <div class="footer">
+  <footer class="footer">
     AI Conversation Platform v5.0 &mdash; Multi-Agent Collaboration Demo
-  </div>
-</div>
+  </footer>
+</main>
 
 <!-- Toasts -->
 <div class="toast-wrap" id="toast-wrap" aria-live="polite" aria-atomic="true"></div>
@@ -776,13 +826,18 @@ const AGENTS = {{ agents | tojson }};
 function toggleApiKeys() {
   const sec = document.getElementById('api-keys-section');
   const chev = document.getElementById('api-chevron');
+  const btn = document.getElementById('api-keys-toggle');
   const isOpen = sec.classList.toggle('open');
   chev.textContent = isOpen ? '▼' : '▶';
+  btn.setAttribute('aria-expanded', String(isOpen));
 }
 
 function toggleKeyVis(agent) {
   const inp = document.getElementById('key-' + agent);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
+  const btn = inp.parentElement.querySelector('.key-toggle-vis');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  if (btn) btn.setAttribute('aria-pressed', String(show));
 }
 
 function setStatus(text, alive) {
@@ -1014,7 +1069,8 @@ function addSystemMessage(text, isError) {
 
   const senderDiv = document.createElement('div');
   senderDiv.className = 'sender';
-  senderDiv.style.color = isError ? 'var(--danger)' : 'var(--accent)';
+  // Lightened tints keep >=4.5:1 contrast on the tinted message background
+  senderDiv.style.color = isError ? '#fca5a5' : 'var(--accent-text)';
   senderDiv.textContent = (isError ? '❌' : 'ℹ️') + ' System';
   div.appendChild(senderDiv);
 
@@ -1058,7 +1114,7 @@ async function startConversation() {
 
   const startBtn = document.getElementById('start-btn');
   startBtn.disabled = true;
-  startBtn.innerHTML = '⏳ Starting…';
+  startBtn.innerHTML = '<span aria-hidden="true">⏳</span> Starting…';
 
   try {
     const resp = await fetch('/api/start', {
@@ -1070,7 +1126,7 @@ async function startConversation() {
     if (!resp.ok) {
       errEl.textContent = data.error || 'Failed to start conversation.';
       startBtn.disabled = false;
-      startBtn.innerHTML = '🚀 Start Conversation';
+      startBtn.innerHTML = '<span aria-hidden="true">🚀</span> Start Conversation';
       return;
     }
 
@@ -1098,13 +1154,17 @@ async function startConversation() {
     setStatus('Connected — waiting for first response…', true);
     startTimer();
 
+    // Move keyboard focus into the new view (the setup card, including the
+    // previously focused button, is now hidden).
+    document.getElementById('conversation-heading').focus();
+
     // Connect SSE
     connectSSE(sessionId);
 
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     startBtn.disabled = false;
-    startBtn.innerHTML = '🚀 Start Conversation';
+    startBtn.innerHTML = '<span aria-hidden="true">🚀</span> Start Conversation';
   }
 }
 
@@ -1271,12 +1331,14 @@ function resetUI() {
   document.getElementById('conversation-area').style.display = 'none';
   document.getElementById('setup-card').style.display = '';
   document.getElementById('start-btn').disabled = false;
-  document.getElementById('start-btn').innerHTML = '🚀 Start Conversation';
+  document.getElementById('start-btn').innerHTML = '<span aria-hidden="true">🚀</span> Start Conversation';
   document.getElementById('start-error').textContent = '';
   document.getElementById('messages').innerHTML = '';
   document.getElementById('copy-btn').style.display = 'none';
   document.getElementById('copy-btn').innerHTML = '📋 Copy Conversation';
   document.getElementById('copy-btn').classList.remove('copied');
+  // Return keyboard focus to the setup form (the conversation view is gone)
+  document.getElementById('topic-input').focus();
 }
 
 // ============================================================
@@ -1288,6 +1350,7 @@ function resetUI() {
   if (needsKey) {
     document.getElementById('api-keys-section').classList.add('open');
     document.getElementById('api-chevron').textContent = '▼';
+    document.getElementById('api-keys-toggle').setAttribute('aria-expanded', 'true');
   }
 
   const topicInput = document.getElementById('topic-input');
